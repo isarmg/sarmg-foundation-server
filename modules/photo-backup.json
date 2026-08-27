@@ -2,7 +2,7 @@
   "schema_version": 1,
   "id": "photo-backup",
   "display_name": "Photo Backup",
-  "description": "加密照片分片上传、资源清单和移动端同步",
+  "description": "HTTPS 照片分片上传、服务端明文资源库和移动端同步",
   "version": "0.1.0",
   "execution": "service",
   "ui": { "kind": "external", "public_url_env": "SARMG_PHOTO_BACKUP_URL" },
@@ -14,4 +14,3 @@
   },
   "database": { "profile": "dedicated_postgres", "database_env": "DATABASE_URL" }
 }
-

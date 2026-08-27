@@ -5,6 +5,26 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+/// Versioned module descriptors shipped with the platform contract.
+///
+/// Consumers use these constants instead of reaching into a sibling checkout, so an exact Git
+/// dependency is sufficient to reproduce a Union build.
+pub mod manifests {
+    pub const SUNSHINE: &str = include_str!("../../../modules/sunshine.json");
+    pub const HOST_MONITORING: &str = include_str!("../../../modules/host-monitoring.json");
+    pub const SENTINEL_MONITOR: &str = include_str!("../../../modules/sentinel-monitor.json");
+    pub const PHOTO_BACKUP: &str = include_str!("../../../modules/photo-backup.json");
+    pub const DUFS: &str = include_str!("../../../modules/dufs.json");
+
+    pub const ALL: [&str; 5] = [
+        SUNSHINE,
+        HOST_MONITORING,
+        SENTINEL_MONITOR,
+        PHOTO_BACKUP,
+        DUFS,
+    ];
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ModuleExecution {
@@ -226,17 +246,9 @@ fn valid_absolute_path(value: &str) -> bool {
 mod tests {
     use super::*;
 
-    const MANIFESTS: [&str; 5] = [
-        include_str!("../../../modules/sunshine.json"),
-        include_str!("../../../modules/host-monitoring.json"),
-        include_str!("../../../modules/sentinel-monitor.json"),
-        include_str!("../../../modules/photo-backup.json"),
-        include_str!("../../../modules/dufs.json"),
-    ];
-
     #[test]
     fn shipped_manifests_form_one_valid_catalog() {
-        let modules = MANIFESTS
+        let modules = manifests::ALL
             .into_iter()
             .map(|json| serde_json::from_str(json).unwrap())
             .collect();
@@ -250,14 +262,14 @@ mod tests {
 
     #[test]
     fn duplicate_routes_and_ids_are_rejected() {
-        let module: ModuleDescriptor = serde_json::from_str(MANIFESTS[0]).unwrap();
+        let module: ModuleDescriptor = serde_json::from_str(manifests::ALL[0]).unwrap();
         assert_eq!(
             ModuleCatalog::new(vec![module.clone(), module]).unwrap_err(),
             CatalogError::DuplicateId("sunshine".into())
         );
 
-        let first: ModuleDescriptor = serde_json::from_str(MANIFESTS[0]).unwrap();
-        let mut second: ModuleDescriptor = serde_json::from_str(MANIFESTS[1]).unwrap();
+        let first: ModuleDescriptor = serde_json::from_str(manifests::ALL[0]).unwrap();
+        let mut second: ModuleDescriptor = serde_json::from_str(manifests::ALL[1]).unwrap();
         second.ui = first.ui.clone();
         assert_eq!(
             ModuleCatalog::new(vec![first, second]).unwrap_err(),
@@ -267,7 +279,7 @@ mod tests {
 
     #[test]
     fn a_service_cannot_hide_an_invalid_probe_path() {
-        let mut module: ModuleDescriptor = serde_json::from_str(MANIFESTS[2]).unwrap();
+        let mut module: ModuleDescriptor = serde_json::from_str(manifests::ALL[2]).unwrap();
         module.service.as_mut().unwrap().liveness_path = "http://other-host/health".into();
         assert!(matches!(
             ModuleCatalog::new(vec![module]),
