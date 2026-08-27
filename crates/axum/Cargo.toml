@@ -1,0 +1,11 @@
+[package]
+name = "sarmg-platform-axum"
+description = "Build-time Axum module composition for the Sarmg platform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+axum = "0.8"
+sarmg-platform-core = { path = "../core" }
+

@@ -1,0 +1,14 @@
+[package]
+name = "sarmg-platform-core"
+description = "Framework-independent module contracts for the Sarmg platform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+

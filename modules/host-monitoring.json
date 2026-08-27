@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "host-monitoring",
+  "display_name": "主机",
+  "description": "Agent 配对、遥测接收、历史和主机生命周期",
+  "version": "0.1.0",
+  "execution": "in_process",
+  "ui": { "kind": "embedded", "route": "/modules/host-monitoring" },
+  "capabilities": ["agents.pair", "telemetry.write", "telemetry.read"],
+  "service": null,
+  "database": {
+    "profile": "embedded_sqlite",
+    "rationale": "迁移期仍由 UnionC SQLite 持久化；目标 host_monitoring schema 已定义但尚未切换"
+  }
+}

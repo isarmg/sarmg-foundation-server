@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "sunshine",
+  "display_name": "Sunshine",
+  "description": "Sunshine 主机配置、状态探测和 API 代理",
+  "version": "0.1.0",
+  "execution": "in_process",
+  "ui": { "kind": "embedded", "route": "/modules/sunshine" },
+  "capabilities": ["hosts.read", "hosts.write", "sunshine.proxy"],
+  "service": null,
+  "database": {
+    "profile": "embedded_sqlite",
+    "rationale": "迁移期仍由 UnionC SQLite 持久化；目标 sunshine schema 已定义但尚未切换"
+  }
+}

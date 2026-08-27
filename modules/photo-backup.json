@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "photo-backup",
+  "display_name": "Photo Backup",
+  "description": "加密照片分片上传、资源清单和移动端同步",
+  "version": "0.1.0",
+  "execution": "service",
+  "ui": { "kind": "external", "public_url_env": "SARMG_PHOTO_BACKUP_URL" },
+  "capabilities": ["photos.upload", "photos.read", "accounts.admin"],
+  "service": {
+    "base_url_env": "SARMG_PHOTO_BACKUP_URL",
+    "liveness_path": "/health/live",
+    "readiness_path": "/health/ready"
+  },
+  "database": { "profile": "dedicated_postgres", "database_env": "DATABASE_URL" }
+}
+

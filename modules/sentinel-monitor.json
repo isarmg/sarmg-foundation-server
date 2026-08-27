@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "id": "sentinel-monitor",
+  "display_name": "Sentinel",
+  "description": "摄像头、录像、事件、ONVIF 和 MediaMTX 控制面",
+  "version": "0.1.0",
+  "execution": "service",
+  "ui": { "kind": "external", "public_url_env": "SARMG_SENTINEL_URL" },
+  "capabilities": ["camera.read", "camera.write", "recording.read", "ptz.write"],
+  "service": {
+    "base_url_env": "SARMG_SENTINEL_URL",
+    "liveness_path": "/health/live",
+    "readiness_path": "/health/ready"
+  },
+  "database": { "profile": "dedicated_postgres", "database_env": "DATABASE_URL" }
+}
+
