@@ -4,13 +4,19 @@
   "display_name": "Photo Backup",
   "description": "HTTPS 照片分片上传、服务端明文资源库和移动端同步",
   "version": "0.1.0",
-  "execution": "service",
-  "ui": { "kind": "external", "public_url_env": "SARMG_PHOTO_BACKUP_URL" },
+  "execution": "private_process",
+  "ui": { "kind": "gateway", "entry_path": "/admin/" },
   "capabilities": ["photos.upload", "photos.read", "accounts.admin"],
   "service": {
-    "base_url_env": "SARMG_PHOTO_BACKUP_URL",
+    "binary": "photo-backup",
+    "bind": "127.0.0.1:18102",
+    "gateway_prefix": "/modules/photo-backup",
     "liveness_path": "/health/live",
     "readiness_path": "/health/ready"
   },
-  "database": { "profile": "dedicated_postgres", "database_env": "DATABASE_URL" }
+  "database": {
+    "profile": "dedicated_postgres",
+    "database_env": "UNIONC_PHOTO_BACKUP_DATABASE_URL",
+    "role": "photo_backup_runtime"
+  }
 }

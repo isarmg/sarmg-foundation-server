@@ -4,17 +4,19 @@
   "display_name": "Dufs",
   "description": "共享根文件浏览、上传、下载和持久删除",
   "version": "0.1.0",
-  "execution": "service",
-  "ui": { "kind": "external", "public_url_env": "SARMG_DUFS_URL" },
+  "execution": "private_process",
+  "ui": { "kind": "gateway", "entry_path": "/" },
   "capabilities": ["files.read", "files.write", "files.delete"],
   "service": {
-    "base_url_env": "SARMG_DUFS_URL",
+    "binary": "dufs",
+    "bind": "127.0.0.1:18103",
+    "gateway_prefix": "/modules/dufs",
     "liveness_path": "/__dufs__/health",
     "readiness_path": "/__dufs__/ready"
   },
   "database": {
     "profile": "embedded_sqlite",
-    "rationale": "状态库与共享文件根身份及文件提交恢复处于同一故障域"
+    "state_directory": "modules/dufs/state",
+    "rationale": "状态库与共享文件根身份、上传提交和删除恢复处于同一文件系统故障域"
   }
 }
-

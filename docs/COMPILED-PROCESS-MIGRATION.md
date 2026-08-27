@@ -1,33 +1,47 @@
-# 编译期进程模块迁移门禁
+# 编译期私有进程迁移与验收门禁
 
-目标契约由 `upstream/REQUIREMENTS-AND-BOUNDARIES.md` 定义。本文件只记录 platform 层必须
-提供的机制和当前差距。
+本文件定义从历史部署切换到最终运行模型时必须满足的证据。最终模型本身只有
+`private_process`，不存在运行时 URL 注册或进程内业务模块的兼容模式。
 
-## 目标
+## 每个模块的完成条件
 
-- manifest 声明模块 worker binary、固定 loopback/Unix-socket binding、gateway path、健康路径、
-  数据所有权和 capability；不再声明管理员可配置的公共 URL。
-- Union Cargo feature 决定编译哪些 manifest、gateway adapter、前端入口和 supervisor unit。
-- `sarmg-platform-core` 只提供描述和验证，不能导入模块 DTO。
-- `sarmg-platform-axum` 只提供受限内部代理/身份/错误映射，不合并模块业务 Router。
-- `sarmg-platform-postgres` 只提供连接、migration/readiness；schema/role/SQL 继续由模块拥有。
+- manifest 通过 JSON Schema 和 `ModuleCatalog`，并锁定 binary/bind/gateway/health/database。
+- worker 拒绝非 loopback bind，拒绝缺失或错误的 `gateway-v1` 四元组。
+- UI、API、Cookie Path、redirect 和静态资产全部尊重编译前缀。
+- liveness 与 readiness 独立；健康响应回显协议与 audience，但不泄露 token。
+- supervisor 能处理启动失败、快速崩溃、退避、正常 SIGTERM 和超时强杀。
+- Union 不转发自己的 Cookie，不接受客户端伪造的内部或 forwarded 头。
+- 大 body、Range、HEAD、SSE/流媒体和客户端中断经过真实网关测试。
+- module crate/binary 均不可发布，仓库没有独立 Release 工作流。
 
-## 当前差距
+## 数据切换门禁
 
-| 项目 | 当前状态 | 切换门禁 |
+Sunshine 和主机监控在启用其 worker feature 前，必须完成旧 Union SQLite 的冻结、导入、核验
+和可演练回滚。切换时只允许一个事实源接受写入。Sentinel/Photo 继续使用各自 PostgreSQL，
+但入口、cookie/prefix 和发布边界必须切到 Union。Dufs 不迁移数据库，只迁移启动和网关边界。
+
+## 官方 profile 验证
+
+至少维护以下 profile，而不是穷举全部 feature 组合：
+
+| profile | 模块 | 必须覆盖 |
 |---|---|---|
-| Sunshine | Union 进程、Union SQLite/AppState | 导出/回滚、独立 schema/role、worker 与内部身份 |
-| 主机监控 | Union 进程、Union SQLite/AppState | Agent 路由兼容、历史导入、worker 与内部身份 |
-| Sentinel | 独立公网服务模型 | loopback、静态 gateway、Union supervisor、取消独立发布 |
-| Photo Backup | 独立公网服务模型 | loopback、移动 API 网关、大 body/Range 测试、取消独立发布 |
-| Dufs | 独立公网服务模型 | loopback、前缀/网关适配、大文件流测试；SQLite 保留 |
+| `minimal` | 无业务模块 | 没有模块路由、进程和导航 |
+| `storage` | Photo + Dufs | 上传、Range、恢复、SQLite/文件故障 |
+| `monitoring` | Sentinel + 主机 | SSE/媒体/Agent、高频写入和 PG readiness |
+| `full` | 五个模块 | 端口唯一、进程监督、统一入口、安装/升级/回滚 |
 
-## 禁止的捷径
+每个 profile 必须从精确 Git revision 的干净源码构建，输出 release manifest 和 SHA-256，随后
+在解压后的真实发行目录执行安装、首次启动、升级、故障重启、优雅停机与回滚验证。
 
-- 不在 Sunshine/主机仍持有同一个 SQLite 独占锁时启动第二进程。
-- 不用空壳 worker 或健康探针替代真实业务拆分。
-- 不把 `SARMG_*_URL` 从用户环境换成另一个可编辑配置字段；最终 binding 必须来自已编译清单。
-- 不把 Union Cookie 原样转发给 worker，不信任所有 loopback 请求。
-- 不因拆进程而把数据库合并进 `public` schema 或增加跨模块 SQL。
+## 明确禁止
 
-完成条件与官方 profile 见 `upstream/BUILD-AND-MODULE-ARCHITECTURE.md`。
+- 将旧 `SARMG_*_URL` 换名后继续作为可编辑 upstream。
+- 用空壳 worker、仅健康检查或子进程包装器冒充业务拆分。
+- 让 worker 连接 Union SQLite/AppState/session 或共享另一个模块 role。
+- 未验证 prefix 就以正文替换方式临时修补绝对 URL。
+- 因 loopback 而跳过 audience/token 校验。
+- 单独发布任一 module binary、容器或 GitHub Release。
+
+验收报告必须区分“编译成功”“契约测试成功”“真实发行目录端到端成功”和“数据切换成功”；
+其中任意一项缺失，都不能宣称该 profile 已可生产切换。

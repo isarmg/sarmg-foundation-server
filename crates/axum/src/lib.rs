@@ -1,41 +1,65 @@
-//! Axum composition for statically linked platform modules.
+//! Axum composition for compile-time Union gateway adapters.
+//!
+//! The routers assembled here live in Union and proxy to supervised private processes. They are
+//! not module business routers and do not share Union's application state with a worker.
 
 use axum::Router;
 use sarmg_platform_core::{CatalogError, ModuleCatalog, ModuleDescriptor};
 
-pub struct AxumModule<S> {
+pub struct AxumGatewayAdapter<S> {
     pub descriptor: ModuleDescriptor,
-    pub console_routes: fn() -> Router<S>,
-    pub public_routes: Option<fn() -> Router<S>>,
+    pub gateway_routes: fn() -> Router<S>,
 }
 
-pub struct AssembledModules<S> {
+pub struct AssembledGateways<S> {
     pub catalog: ModuleCatalog,
-    pub console_routes: Router<S>,
-    pub public_routes: Router<S>,
+    pub gateway_routes: Router<S>,
 }
 
-pub fn assemble<S>(modules: Vec<AxumModule<S>>) -> Result<AssembledModules<S>, CatalogError>
+/// Assemble only the adapters selected by Cargo features in the final Union binary.
+///
+/// `ModuleCatalog::new` validates that bindings, prefixes, installed binary names and database
+/// identities are unique before any route becomes reachable.
+pub fn assemble_gateways<S>(
+    adapters: Vec<AxumGatewayAdapter<S>>,
+) -> Result<AssembledGateways<S>, CatalogError>
 where
     S: Clone + Send + Sync + 'static,
 {
     let catalog = ModuleCatalog::new(
-        modules
+        adapters
             .iter()
-            .map(|module| module.descriptor.clone())
+            .map(|adapter| adapter.descriptor.clone())
             .collect(),
     )?;
-    let mut console_routes = Router::new();
-    let mut public_routes = Router::new();
-    for module in modules {
-        console_routes = console_routes.merge((module.console_routes)());
-        if let Some(routes) = module.public_routes {
-            public_routes = public_routes.merge(routes());
-        }
+    let mut gateway_routes = Router::new();
+    for adapter in adapters {
+        gateway_routes = gateway_routes.merge((adapter.gateway_routes)());
     }
-    Ok(AssembledModules {
+    Ok(AssembledGateways {
         catalog,
-        console_routes,
-        public_routes,
+        gateway_routes,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::routing::get;
+    use sarmg_platform_core::manifests;
+
+    fn descriptor(raw: &str) -> ModuleDescriptor {
+        serde_json::from_str(raw).unwrap()
+    }
+
+    #[test]
+    fn assembles_gateway_adapters_without_business_router_categories() {
+        let assembled = assemble_gateways::<()>(vec![AxumGatewayAdapter {
+            descriptor: descriptor(manifests::DUFS),
+            gateway_routes: || Router::new().route("/modules/dufs/{*path}", get(|| async {})),
+        }])
+        .unwrap();
+        assert_eq!(assembled.catalog.modules().len(), 1);
+        assert_eq!(assembled.catalog.modules()[0].id, "dufs");
+    }
 }
