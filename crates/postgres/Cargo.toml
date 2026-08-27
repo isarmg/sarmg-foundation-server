@@ -3,9 +3,9 @@ name = "sarmg-platform-postgres"
 description = "Product-neutral PostgreSQL bootstrap support for Sarmg services"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 license.workspace = true
 
 [dependencies]
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres", "migrate"] }
 thiserror.workspace = true
-

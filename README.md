@@ -20,6 +20,9 @@ cargo fmt --all -- --check
 cargo test --workspace
 ```
 
-正式发布前应把本目录初始化为独立仓库并发布固定版本；当前 sibling path 依赖只用于
+本目录已经是独立仓库；正式发布 crate 前仍应建立固定版本。当前 sibling path 依赖只用于
 `/mnt/sarmg.org` 组合工作区内的迁移。
 
+## 许可证
+
+本仓库的第一方代码、文档和模块清单采用 [Apache License 2.0](LICENSE)。

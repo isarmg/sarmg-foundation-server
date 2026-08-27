@@ -3,6 +3,7 @@ name = "sarmg-platform-core"
 description = "Framework-independent module contracts for the Sarmg platform"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 license.workspace = true
 
 [dependencies]
@@ -11,4 +12,3 @@ thiserror.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
-
