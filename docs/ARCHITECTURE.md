@@ -12,15 +12,15 @@ Sunshine / host-monitoring / service adapters
 Union distribution（唯一组装根）
 ```
 
-平台核心不得导入任何模块的 DTO、数据库表或业务状态。只有最终发行程序知道安装了哪些
-模块。进程内模块通过编译期注册组装，独立服务模块通过 manifest 和受限适配器注册。
+平台核心不得导入任何模块的 DTO、数据库表或业务状态。只有最终发行程序知道编译了哪些
+模块。新的唯一目标是编译期选择、运行时独立进程；旧的进程内 Router 与运行时 URL 注册只
+作为有期限的迁移机制，见 `COMPILED-PROCESS-MIGRATION.md`。
 
-## 模块类型
+## 模块类型（目标）
 
-- `in_process`：首批只用于 Sunshine 和主机监控。模块贡献 Axum console/public Router、
-  前端视图、后台任务、健康状态和自己的 migration。
-- `service`：用于 Sentinel、Photo Backup 和 Dufs。平台保存非秘密 base URL，读取公开
-  liveness，展示导航；不转发平台 Cookie，也不直接读取服务数据库。
+- `process`：五个业务模块都编译为 Union 私有 worker。manifest 提供固定 gateway path、私有
+  binding 和健康路径；Union 编译 feature 决定是否包含适配器、前端入口和 worker。
+- `core`：Union 认证、公共网关、supervisor、发行 manifest 和系统健康，不是可选业务模块。
 
 不实现 Rust `.so`/`.dll` 动态插件。Rust ABI、Axum/Tower 类型和共享状态版本不稳定，动态
 插件会把升级边界变成不可审计的运行时失败。需要独立升级的模块使用进程边界。
@@ -34,5 +34,5 @@ Union distribution（唯一组装根）
 ## 发布边界
 
 `platform-core` 遵循语义版本。模块 manifest 是公共 API；删除 capability、修改模块 id、
-改变数据库所有权或收紧身份契约均视为破坏性变更。每个消费者仍可独立构建、发布和回滚。
-
+改变数据库所有权或收紧身份契约均视为破坏性变更。模块可独立测试和回滚源码，但只能随
+Union 发行版发布；生产回滚以完整 Union release manifest 为单位。

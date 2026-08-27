@@ -9,9 +9,11 @@
 - `sarmg-platform-axum`：编译期 Axum 模块的路由组装；不使用 Rust 动态链接插件。
 - `sarmg-platform-postgres`：PostgreSQL 连接、migration 和 readiness 的薄支持层。
 
-`modules/` 是五个首批模块的机器可读清单。Sunshine 和主机监控是进程内模块；
-Sentinel、Photo Backup 和 Dufs 是独立服务模块。独立服务仍保留自己的认证、发布周期、
-业务数据库和故障边界，平台只接入导航、健康状态和后续的受控身份交换。
+`modules/` 是五个首批模块的机器可读清单。当前代码仍处于过渡态：Sunshine/主机监控在
+Union 进程内，Sentinel/Photo/Dufs 通过运行时 URL 接入。目标架构已改为全部模块在构建期
+选入一个 Union 发行版、运行时使用私有独立进程、只由 Union 提供公共入口和 Release。
+迁移门禁见 [`docs/COMPILED-PROCESS-MIGRATION.md`](docs/COMPILED-PROCESS-MIGRATION.md)；在门禁
+完成前不得把当前 manifest 当成最终模块 ABI。
 
 验证：
 
