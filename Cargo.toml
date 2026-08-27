@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/core", "crates/axum", "crates/postgres"]
+members = ["crates/core", "crates/axum", "crates/gateway", "crates/postgres"]
 
 [workspace.package]
 version = "0.1.0"

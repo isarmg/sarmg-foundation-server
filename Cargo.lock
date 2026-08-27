@@ -1072,6 +1072,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sarmg-platform-gateway"
+version = "0.1.0"
+dependencies = [
+ "http",
+ "subtle",
+ "thiserror",
+]
+
+[[package]]
 name = "sarmg-platform-postgres"
 version = "0.1.0"
 dependencies = [

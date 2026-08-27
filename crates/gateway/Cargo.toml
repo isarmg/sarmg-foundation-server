@@ -1,0 +1,12 @@
+[package]
+name = "sarmg-platform-gateway"
+publish = false
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+http = "1"
+subtle = "2"
+thiserror.workspace = true
