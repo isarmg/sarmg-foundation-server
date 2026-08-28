@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sarmg.org/contracts/plugin-manifest-v1.schema.json",
+  "title": "Sarmg runtime plugin manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version", "id", "display_name", "description", "version",
+    "version_metadata", "compatibility", "dependencies", "execution", "backend",
+    "frontend", "permissions", "migrations", "configuration", "health", "lifecycle",
+    "services", "events"
+  ],
+  "properties": {
+    "manifest_version": { "const": 1 },
+    "id": { "$ref": "#/$defs/pluginId" },
+    "display_name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "version": { "$ref": "#/$defs/semanticVersion" },
+    "version_metadata": { "$ref": "#/$defs/versionMetadata" },
+    "compatibility": { "$ref": "#/$defs/compatibility" },
+    "dependencies": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/dependency" }
+    },
+    "execution": {
+      "oneOf": [
+        { "$ref": "#/$defs/inProcessExecution" },
+        { "$ref": "#/$defs/processExecution" },
+        { "$ref": "#/$defs/containerExecution" },
+        { "$ref": "#/$defs/serviceExecution" }
+      ]
+    },
+    "backend": { "$ref": "#/$defs/backend" },
+    "frontend": { "$ref": "#/$defs/frontend" },
+    "permissions": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/permission" }
+    },
+    "migrations": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/migration" }
+    },
+    "configuration": { "$ref": "#/$defs/configuration" },
+    "health": {
+      "oneOf": [
+        { "$ref": "#/$defs/callbackHealth" },
+        { "$ref": "#/$defs/httpHealth" }
+      ]
+    },
+    "lifecycle": { "$ref": "#/$defs/lifecycle" },
+    "services": {
+      "type": "array", "uniqueItems": true,
+      "items": { "$ref": "#/$defs/service" }
+    },
+    "events": { "$ref": "#/$defs/events" }
+  },
+  "$defs": {
+    "pluginId": {
+      "type": "string", "minLength": 1, "maxLength": 64,
+      "pattern": "^[a-z](?:[a-z0-9]|-(?=[a-z0-9])){0,62}[a-z0-9]$|^[a-z]$"
+    },
+    "localId": {
+      "type": "string", "minLength": 1, "maxLength": 64,
+      "pattern": "^[a-z](?:[a-z0-9]|-(?=[a-z0-9])){0,62}[a-z0-9]$|^[a-z]$"
+    },
+    "dottedId": {
+      "type": "string", "minLength": 3, "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$"
+    },
+    "semanticVersion": {
+      "type": "string", "maxLength": 64,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "versionRequirement": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "bundlePath": {
+      "type": "string", "minLength": 1, "maxLength": 255,
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_./-]*$"
+    },
+    "routePath": {
+      "type": "string", "minLength": 1, "maxLength": 512,
+      "pattern": "^/(?!/)[^?#\\\\]*$"
+    },
+    "versionMetadata": {
+      "type": "object", "additionalProperties": false,
+      "required": ["channel", "distribution", "license"],
+      "properties": {
+        "channel": { "enum": ["development", "beta", "stable"] },
+        "distribution": { "const": "bundled" },
+        "license": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "source_revision": { "type": "string", "pattern": "^[0-9A-Fa-f]{7,64}$" },
+        "release_notes": { "$ref": "#/$defs/bundlePath" }
+      }
+    },
+    "compatibility": {
+      "type": "object", "additionalProperties": false,
+      "required": ["core", "platform_api", "plugin_api"],
+      "properties": {
+        "core": { "$ref": "#/$defs/versionRequirement" },
+        "platform_api": { "$ref": "#/$defs/versionRequirement" },
+        "plugin_api": { "$ref": "#/$defs/versionRequirement" }
+      }
+    },
+    "dependency": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "version", "optional"],
+      "properties": {
+        "id": { "$ref": "#/$defs/pluginId" },
+        "version": { "$ref": "#/$defs/versionRequirement" },
+        "optional": { "type": "boolean" }
+      }
+    },
+    "inProcessExecution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "runtime", "artifact", "entrypoint"],
+      "properties": {
+        "mode": { "const": "in_process" },
+        "runtime": { "const": "wasi_component_v1" },
+        "artifact": { "type": "string", "pattern": "^backend/[A-Za-z0-9_./-]+\\.wasm$", "maxLength": 255 },
+        "entrypoint": { "$ref": "#/$defs/localId" }
+      }
+    },
+    "processExecution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "executable", "args", "environment", "bind"],
+      "properties": {
+        "mode": { "const": "process" },
+        "executable": { "type": "string", "pattern": "^backend/[A-Za-z0-9_./-]+$", "maxLength": 255 },
+        "args": {
+          "type": "array", "maxItems": 128,
+          "items": { "type": "string", "minLength": 1, "maxLength": 4096 }
+        },
+        "environment": {
+          "type": "array", "uniqueItems": true, "maxItems": 128,
+          "items": { "$ref": "#/$defs/environmentBinding" }
+        },
+        "bind": {
+          "type": "object", "additionalProperties": false,
+          "required": ["host", "port"],
+          "properties": {
+            "host": { "enum": ["127.0.0.1", "::1"] },
+            "port": { "type": "integer", "minimum": 0, "maximum": 65535 },
+            "environment": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" }
+          }
+        }
+      }
+    },
+    "environmentBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "config_pointer"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" },
+        "config_pointer": { "type": "string", "pattern": "^/", "maxLength": 255 }
+      }
+    },
+    "containerExecution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "image", "digest"],
+      "properties": {
+        "mode": { "const": "container" },
+        "image": { "type": "string", "minLength": 1, "maxLength": 255 },
+        "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "serviceExecution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "service"],
+      "properties": {
+        "mode": { "const": "service" },
+        "service": { "$ref": "#/$defs/dottedId" }
+      }
+    },
+    "backend": {
+      "type": "object", "additionalProperties": false,
+      "required": ["api_version", "base_path", "service", "routes"],
+      "properties": {
+        "api_version": { "type": "string", "pattern": "^v[1-9][0-9]*$" },
+        "base_path": { "$ref": "#/$defs/routePath" },
+        "service": { "$ref": "#/$defs/dottedId" },
+        "routes": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/backendRoute" }
+        }
+      }
+    },
+    "backendRoute": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "path", "upstream_path", "methods", "auth", "permission"],
+      "properties": {
+        "id": { "$ref": "#/$defs/localId" },
+        "path": { "$ref": "#/$defs/routePath" },
+        "upstream_path": { "$ref": "#/$defs/routePath" },
+        "methods": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "enum": ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"] }
+        },
+        "auth": { "enum": ["platform", "module"] },
+        "permission": {
+          "oneOf": [
+            { "$ref": "#/$defs/dottedId" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "frontend": {
+      "type": "object", "additionalProperties": false,
+      "required": ["entry", "styles", "components", "api_base", "routes", "menu"],
+      "properties": {
+        "entry": { "type": "string", "pattern": "^[A-Za-z0-9_./-]+\\.js$", "maxLength": 255 },
+        "styles": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Za-z0-9_./-]+\\.css$", "maxLength": 255 }
+        },
+        "components": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9_]{0,127}$" }
+        },
+        "api_base": { "$ref": "#/$defs/routePath" },
+        "routes": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/frontendRoute" }
+        },
+        "menu": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/menu" }
+        }
+      }
+    },
+    "frontendRoute": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "component", "permission"],
+      "properties": {
+        "path": { "$ref": "#/$defs/routePath" },
+        "component": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9_]{0,127}$" },
+        "permission": { "$ref": "#/$defs/dottedId" }
+      }
+    },
+    "menu": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "label", "route", "permission", "order"],
+      "properties": {
+        "id": { "$ref": "#/$defs/localId" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "route": { "$ref": "#/$defs/routePath" },
+        "permission": { "$ref": "#/$defs/dottedId" },
+        "order": { "type": "integer" }
+      }
+    },
+    "permission": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description", "default_roles"],
+      "properties": {
+        "id": { "$ref": "#/$defs/dottedId" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "default_roles": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/localId" }
+        }
+      }
+    },
+    "migration": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "engine", "directory", "schema"],
+          "properties": {
+            "id": { "$ref": "#/$defs/localId" },
+            "engine": { "const": "postgresql" },
+            "directory": { "$ref": "#/$defs/bundlePath" },
+            "schema": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}$" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "engine", "directory"],
+          "properties": {
+            "id": { "$ref": "#/$defs/localId" },
+            "engine": { "const": "sqlite" },
+            "directory": { "$ref": "#/$defs/bundlePath" }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["id", "engine"],
+          "properties": {
+            "id": { "$ref": "#/$defs/localId" },
+            "engine": { "const": "embedded" }
+          }
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "version", "secret_fields"],
+      "properties": {
+        "schema": { "type": "string", "pattern": "^config/[A-Za-z0-9_./-]+\\.json$", "maxLength": 255 },
+        "version": { "type": "integer", "minimum": 1 },
+        "secret_fields": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^/", "maxLength": 255 }
+        }
+      }
+    },
+    "callbackHealth": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "liveness_hook", "readiness_hook", "interval_seconds", "timeout_seconds"],
+      "properties": {
+        "kind": { "const": "callback" },
+        "liveness_hook": { "$ref": "#/$defs/localId" },
+        "readiness_hook": { "$ref": "#/$defs/localId" },
+        "interval_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 }
+      }
+    },
+    "httpHealth": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "service", "liveness_path", "readiness_path", "interval_seconds", "timeout_seconds"],
+      "properties": {
+        "kind": { "const": "http" },
+        "service": { "$ref": "#/$defs/dottedId" },
+        "liveness_path": { "$ref": "#/$defs/routePath" },
+        "readiness_path": { "$ref": "#/$defs/routePath" },
+        "interval_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 }
+      }
+    },
+    "lifecycle": {
+      "type": "object", "additionalProperties": false,
+      "required": ["startup_timeout_seconds", "shutdown_timeout_seconds", "restart_policy", "max_restarts"],
+      "properties": {
+        "startup_timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "shutdown_timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "restart_policy": { "enum": ["never", "on_failure", "always"] },
+        "max_restarts": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "service": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "protocol", "visibility"],
+      "properties": {
+        "name": { "$ref": "#/$defs/dottedId" },
+        "protocol": { "enum": ["http", "grpc"] },
+        "visibility": { "enum": ["module", "platform"] }
+      }
+    },
+    "events": {
+      "type": "object", "additionalProperties": false,
+      "required": ["publishes", "subscribes"],
+      "properties": {
+        "publishes": {
+          "type": "array", "uniqueItems": true,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["topic", "version"],
+            "properties": {
+              "topic": { "$ref": "#/$defs/dottedId" },
+              "version": { "type": "integer", "minimum": 1 }
+            }
+          }
+        },
+        "subscribes": {
+          "type": "array", "uniqueItems": true,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["topic", "version", "handler", "delivery"],
+            "properties": {
+              "topic": { "$ref": "#/$defs/dottedId" },
+              "version": { "$ref": "#/$defs/versionRequirement" },
+              "handler": { "$ref": "#/$defs/localId" },
+              "delivery": { "enum": ["at_most_once", "at_least_once"] }
+            }
+          }
+        }
+      }
+    }
+  }
+}

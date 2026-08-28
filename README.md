@@ -1,35 +1,48 @@
 # Sarmg Platform
 
-这是 Union 的产品中立模块契约与薄基础设施层，不是业务代码集合，也不是可独立部署的
-服务。五个业务模块都由 Cargo feature 在编译期选入同一个 Union 发行版，运行时则是由
-Union 监督的私有进程；只有 Union 监听公共入口和发布 Release。
+这是混合架构的产品中立契约与 SDK：系统以 Modular Monolith 为基础，以 Plugin Architecture
+作为扩展机制，并允许重型模块演进为独立 Process、Container 或 Service。Core Platform 只提供
+认证、RBAC、配置、审计、任务、通知、模块生命周期、Gateway、服务发现和事件总线，不包含
+Sunshine、主机监控、Sentinel、Photo Backup 或 Dufs 的业务逻辑。
 
-平台包含四个 crate：
+模块选择分为两个不同阶段：Builder 在发行构建阶段决定哪些完整模块包进入发行；Core 在运行时
+只发现、校验、注册和启停当前发行已包含的包。系统不从公网下载任意代码，也不是在线插件市场。
 
-- `sarmg-platform-core`：可嵌入发行版的模块清单、固定进程拓扑、数据库所有权和健康状态。
-- `sarmg-platform-axum`：组合 Union 内的静态网关 adapter，不合并 worker 业务 Router。
-- `sarmg-platform-gateway`：worker 对 `gateway-v1` 进程级 token、audience 和 prefix 的校验。
-- `sarmg-platform-postgres`：模块自有 migration、search path 和 readiness 的薄支持层。
+## Workspace
 
-`modules/` 中的五个 JSON 是机器可读事实源，并由
-[`contracts/module-v1.schema.json`](contracts/module-v1.schema.json) 和 Rust `ModuleCatalog`
-双重约束。清单不能声明管理员提供的 upstream URL、动态插件路径或公网监听地址。
+- `sarmg-platform-core`：统一 Plugin Manifest、严格解析、安全校验、SemVer compatibility 与依赖拓扑。
+- `sarmg-platform-sdk`：配置、认证、审计、日志、任务、通知、服务发现、事件和 in-process 生命周期接口。
+- `sarmg-platform-events`：transport-neutral Event Envelope、Publisher、Subscription 与 delivery 语义。
+- `sarmg-platform-gateway`：旧 worker `gateway-v1` 身份适配器。
+- `sarmg-platform-postgres`：模块自有 PostgreSQL migration/readiness 薄支持层。
+- `sarmg-platform-axum`：可选的 Axum host adapter；Core/SDK/Event 均不依赖 Web framework。
 
-| 模块 | 私有监听 | Union 网关 | 安装文件 | 数据库 |
-|---|---|---|---|---|
-| Sentinel | `127.0.0.1:18101` | `/modules/sentinel-monitor` | `sentinel-monitor` | 独立 PostgreSQL database/role |
-| Photo Backup | `127.0.0.1:18102` | `/modules/photo-backup` | `photo-backup` | 独立 PostgreSQL database/role |
-| Dufs | `127.0.0.1:18103` | `/modules/dufs` | `dufs` | 与共享根同故障域的 SQLite |
-| Sunshine | `127.0.0.1:18104` | `/modules/sunshine` | `sunshine` | `sunshine` PostgreSQL schema/独占 role |
-| 主机监控 | `127.0.0.1:18105` | `/modules/host-monitoring` | `host-monitoring` | `host_monitoring` PostgreSQL schema/独占 role |
+机器契约在 [`contracts/plugin-manifest-v1.schema.json`](contracts/plugin-manifest-v1.schema.json)，
+Rust 权威语义校验在 `sarmg-platform-core`。五份内置 manifest 是迁移基线，不是编译期 allow-list。
+完整可复制包见 [`examples/process-module`](examples/process-module)。
 
-详细边界：
+## 核心保证
 
-- [平台与进程架构](docs/ARCHITECTURE.md)
+- Manifest 每层对象拒绝未知字段；所有版本和 compatibility range 使用 SemVer。
+- dependency 必须存在且版本匹配，激活按确定性拓扑顺序进行；循环依赖拒绝。
+- 可执行文件、前端、配置、migration 与 release notes 均为安全 bundle 相对路径，禁止 traversal。
+- canonical API 固定 `/api/modules/<id>`；每条 route 显式声明安全 `upstream_path` 和认证边界。
+- `auth=platform` 必须引用模块已声明权限；`auth=module` 必须 `permission=null`，但仍只能经 Core 公共 Gateway。
+- 前端资源固定 `/modules/<id>/assets/<relative>`；route 固定 `/modules/<id>` 命名空间。
+- process 仅 loopback，配置由只读 JSON 文件传入；旧 env 只能通过 `config_pointer` 显式映射且不经 shell。
+- PostgreSQL schema/migration 属于单一模块；禁止跨模块 SQL 和直接修改其他模块数据。
+
+## 版本
+
+平台 crate 当前为 `0.2.0`。`platform_api=1.0.0` 与 `plugin_api=1.0.0` 是独立兼容面，不能从
+crate 版本推导。当前 Union Core 插件兼容窗口为 `>=0.5.0, <0.6.0`。
+
+## 文档与验证
+
+- [混合架构与边界](docs/ARCHITECTURE.md)
+- [Plugin Manifest / SDK / Event 契约](docs/PLUGIN-CONTRACT.md)
+- [运行期插件迁移与验收](docs/COMPILED-PROCESS-MIGRATION.md)
 - [数据库所有权](docs/DATABASE-OWNERSHIP.md)
-- [迁移与验收门禁](docs/COMPILED-PROCESS-MIGRATION.md)
-
-验证：
 
 ```bash
 cargo fmt --all -- --check
@@ -37,6 +50,4 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --locked
 ```
 
-## 许可证
-
-本仓库第一方代码、文档和模块清单采用 [Apache License 2.0](LICENSE)。
+本仓库第一方代码、文档与示例采用 [Apache License 2.0](LICENSE)。

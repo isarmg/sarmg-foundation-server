@@ -143,9 +143,9 @@ mod tests {
             PROTOCOL,
             "photo-backup",
             TOKEN,
-            "/modules/photo-backup",
+            "/api/modules/photo-backup",
             "photo-backup",
-            "/modules/photo-backup",
+            "/api/modules/photo-backup",
         )
         .unwrap()
     }
@@ -157,7 +157,7 @@ mod tests {
         headers.insert(TOKEN_HEADER, HeaderValue::from_static(TOKEN));
         headers.insert(
             PREFIX_HEADER,
-            HeaderValue::from_static("/modules/photo-backup"),
+            HeaderValue::from_static("/api/modules/photo-backup"),
         );
         headers
     }
@@ -178,9 +178,9 @@ mod tests {
                 PROTOCOL,
                 "photo-backup",
                 TOKEN.to_uppercase(),
-                "/modules/photo-backup",
+                "/api/modules/photo-backup",
                 "photo-backup",
-                "/modules/photo-backup",
+                "/api/modules/photo-backup",
             ),
             Err(GatewayConfigError::Token)
         );

@@ -1,90 +1,79 @@
-# 平台与私有进程架构
+# 混合模块架构
 
-## 唯一运行模型
-
-```text
-Browser / mobile / agent
-          │ HTTPS
-          ▼
-Union public gateway + authentication + supervisor
-          │ fixed loopback + gateway-v1
-          ├── sentinel-monitor   127.0.0.1:18101
-          ├── photo-backup      127.0.0.1:18102
-          ├── dufs              127.0.0.1:18103
-          ├── sunshine          127.0.0.1:18104
-          └── host-monitoring   127.0.0.1:18105
-```
-
-所有业务模块的 `execution` 都是 `private_process`，`service` binding 必填。平台不再定义
-进程内业务 Router、管理员可编辑的服务 URL 或 Rust 动态插件。`.so`/`.dll` ABI、共享
-Axum state 和跨模块全局变量均不属于受支持边界。
-
-## 编译期选择
-
-Cargo feature 同时决定：
-
-1. 哪份 manifest 进入 Union 静态 catalog；
-2. 哪条固定网关 adapter 被编译；
-3. 哪个 worker 被 `union-builder` 编译并安装到 `libexec/union/modules/<id>`；
-4. 哪个前端入口进入同一静态资源发行物；
-5. supervisor 是否创建对应进程。
-
-运行时复制一个额外二进制不会增加模块；未编译 feature 时不存在 catalog 项、路由、导航、
-健康任务或进程任务。运行配置只能提供数据库凭据、业务秘密和存储目录，不能覆盖 `binary`、
-`bind` 或 `gateway_prefix`。
-
-`ui.kind=console` 表示前端视图在编译 Union Web 时静态链接，但业务请求仍转发到私有
-worker；`ui.kind=gateway` 表示模块自带的前端资源由同一固定网关前缀提供。二者都不是
-进程内后端，也不会引入运行时插件加载。
-
-## 静态清单约束
-
-`ModuleCatalog` 在路由开放前验证：
-
-- module id、安装文件名、loopback socket、gateway prefix 全局唯一；
-- 安装文件名必须等于 module id，网关必须精确为 `/modules/<id>`；
-- liveness/readiness 是不同的规范绝对路径；
-- capability 不重复且使用稳定的小写标识；
-- PostgreSQL 环境变量、schema 和 role 合法且不被两个模块复用；
-- SQLite state directory 是 Union 数据目录内的安全相对路径。
-
-JSON Schema 负责形状与字段白名单，Rust 校验负责跨字段和跨模块唯一性。两者都必须通过。
-
-## 内部身份与请求边界
-
-Union 每次启动为每个 audience 生成独立的 64 个十六进制字符 token，并通过私有启动环境传给
-worker。每个请求（含健康检查）都必须携带：
+## 总体结构
 
 ```text
-X-Union-Module-Protocol: gateway-v1
-X-Union-Module-Audience: <module-id>
-X-Union-Module-Token: <process-scoped token>
-X-Forwarded-Prefix: /modules/<module-id>
+Builder-selected release contents
+  ├── Core Platform          identity/RBAC/config/audit/tasks/notifications
+  ├── Web Shell              layout/session/navigation/dynamic loader
+  ├── Plugin Runtime         discovery/validation/migration/lifecycle/gateway
+  ├── Platform SDK           stable framework-neutral capabilities
+  ├── Event Bus              versioned asynchronous integration
+  └── Modules
+       ├── in-process        low cost, low risk, frequent Core interaction
+       └── process/container/service
+                            heavy jobs, scaling or failure isolation
 ```
 
-worker 恒定时间校验完整四元组；健康响应只回显 protocol 和 audience，不回显 token。
-Union 在探测确认协议前不开放代理。Union 必须覆盖客户端提供的内部头和 forwarded 头，删除
-hop-by-hop 头以及自己的 session/CSRF Cookie。模块用户凭据只有在该模块协议明确需要时才
-转发，不能把 Union 长效会话当成 worker 身份。
+Core 不包含业务判断。Builder 可组合不同发行内容，但不会把业务源码编译进 Core。运行时 discovery
+root 只能指向当前发行的只读 modules 目录，Manifest 的 `distribution` 必须为 `bundled`。staging、
+健康检查和原子切换可用于新发行升级，不等于允许从网络安装未知模块。
 
-loopback 是网络收敛，不代替内部认证。同一 Unix 服务账户仍属于共同信任域；若将来需要抵御
-恶意 sibling worker，应增加独立 UID、受限 `/proc` 和 Unix socket 文件权限，而不是扩大
-HTTP token 权限。
+## 生命周期顺序
 
-## 生命周期与健康
+Runtime 对当前发行目录执行：
 
-supervisor 使用固定路径启动、捕获 PID、优雅发送 SIGTERM，并在宽限期后强制结束。异常退出
-采用有上限的指数退避；每个新进程代重新经过 liveness、readiness 和 gateway 协议门禁。
+1. fail-closed 读取 manifest，拒绝未知字段和不安全路径；
+2. 校验 Core、Platform API、Plugin API compatibility；
+3. 校验 required/optional dependency、实际版本并做确定性拓扑排序；
+4. 注册 permission definition 和 configuration schema；
+5. 按模块所有权执行 migration；
+6. 注册 service discovery、event publish/subscribe、backend route 与 frontend asset；
+7. 按 execution mode 启动并完成 liveness/readiness；
+8. 只有全部门禁通过后进入 active；停用按反向依赖顺序执行。
 
-- liveness：进程仍能处理内部 HTTP。
-- readiness：本模块数据库、文件系统及关键依赖可服务。
-- gateway compatibility：精确的 protocol/audience/prefix/token 已由 worker 证明。
+任何一步失败都不能留下半注册路由、权限或 migration 状态。升级需要 staging、兼容校验、备份与
+模块级回滚证据；删除包不等于回滚数据。
 
-三者不能合并成一个缓存布尔值。Union 停机时先停止接收并排空代理响应，再关闭 worker，
-避免在上传或下载中途切断后端。
+## Web Shell
 
-## 发布边界
+Shell 只提供布局、认证状态、导航、RBAC 和模块加载器。Manifest 声明 ESM `entry`、CSS `styles`、
+组件白名单、Route 与 Menu；资源由 Core 解析为 `/modules/<id>/assets/<relative>`，禁止外部 URL。
 
-模块可在各自源码仓库独立测试和回滚，但不发布独立程序、容器或 Release。生产回滚以完整
-Union release manifest 为单位。module id、gateway、database ownership 或内部身份变化均是
-平台契约的破坏性变更。
+入口默认导出：
+
+```js
+{ pluginApiVersion, moduleId, version, activate(hostSdk) }
+```
+
+`activate` 返回的 `components` 必须覆盖 Manifest 白名单。Shell 通过 `hostSdk.react` 提供唯一
+React 实例；模块不得打包或运行时导入第二份 React/ReactDOM。安装、卸载和升级当前发行内模块
+不要求重建 Web Shell。
+
+## 认证和 Gateway
+
+所有外部请求仍先经过 Core。canonical backend base 固定 `/api/modules/<id>`；route 的
+`upstream_path` 完成 legacy worker 路由映射，capture 名和 wildcard 类型必须与 canonical path
+一致，Core 不按 module id 硬编码业务 rewrite。
+
+- `auth=platform`：Core session、RBAC 与写请求 CSRF 生效，permission 必填。
+- `auth=module`：设备、Agent、移动端 API key 或领域凭证由 worker 校验，permission 必须为 null。
+
+`auth=module` 不是绕过 Union 或允许 worker 公网监听。Dufs 当前保留自身 ACL 属于过渡边界；
+其流量仍经 Core Gateway，后续只有在不破坏 WebDAV/Basic Auth 客户端时才迁移到统一身份。
+
+## 数据边界
+
+每个模块拥有独立 schema/database、migration 和 runtime role。禁止跨模块外键、共享可写表、
+直接读取另一模块数据或从数据库 join 推导平台身份。跨模块集成使用稳定 Platform API、Plugin API
+或 versioned event；禁止依赖内部 crate、内部表和循环同步调用链。
+
+共享 PostgreSQL cluster 只是运维统一，不等于共享数据所有权。Dufs 的 SQLite 与文件系统提交
+处于同一故障域，继续作为显式 `embedded` migration 例外。
+
+## 演进边界
+
+in-process 模块以 ABI-stable WASI Component 随发行打包并共享 Core 故障域，只适合有界 body、
+低风险、低资源功能；不加载原生 Rust `.so`。大文件、媒体、长任务、
+独立扩缩容或强隔离模块使用 process/container/service。SDK 的 in-process HTTP 接口故意使用
+bounded bytes；需要 streaming 即是提升隔离级别的架构信号。

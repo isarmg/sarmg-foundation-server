@@ -1,0 +1,124 @@
+{
+  "manifest_version": 1,
+  "id": "example-module",
+  "display_name": "Example Module",
+  "description": "A complete release-bundled process plugin example",
+  "version": "1.2.3",
+  "version_metadata": {
+    "channel": "stable",
+    "distribution": "bundled",
+    "license": "Apache-2.0",
+    "release_notes": "version/RELEASE-NOTES.md"
+  },
+  "compatibility": {
+    "core": ">=0.5.0, <0.6.0",
+    "platform_api": "^1.0.0",
+    "plugin_api": "^1.0.0"
+  },
+  "dependencies": [],
+  "execution": {
+    "mode": "process",
+    "executable": "backend/example-module",
+    "args": ["serve"],
+    "environment": [
+      { "name": "EXAMPLE_DATABASE_URL", "config_pointer": "/database_url" }
+    ],
+    "bind": {
+      "host": "127.0.0.1",
+      "port": 0,
+      "environment": "EXAMPLE_BIND"
+    }
+  },
+  "backend": {
+    "api_version": "v1",
+    "base_path": "/api/modules/example-module",
+    "service": "example-module.api",
+    "routes": [
+      {
+        "id": "items-read",
+        "path": "/items/{id}",
+        "upstream_path": "/v1/items/{id}",
+        "methods": ["GET"],
+        "auth": "platform",
+        "permission": "example-module.items.read"
+      },
+      {
+        "id": "device-ingest",
+        "path": "/device/events",
+        "upstream_path": "/v1/device/events",
+        "methods": ["POST"],
+        "auth": "module",
+        "permission": null
+      }
+    ]
+  },
+  "frontend": {
+    "entry": "frontend/entry.js",
+    "styles": ["frontend/styles.css"],
+    "components": ["ExampleOverview"],
+    "api_base": "/api/modules/example-module",
+    "routes": [
+      {
+        "path": "/modules/example-module",
+        "component": "ExampleOverview",
+        "permission": "example-module.items.read"
+      }
+    ],
+    "menu": [
+      {
+        "id": "overview",
+        "label": "Example",
+        "route": "/modules/example-module",
+        "permission": "example-module.items.read",
+        "order": 100
+      }
+    ]
+  },
+  "permissions": [
+    {
+      "id": "example-module.items.read",
+      "description": "Read example items",
+      "default_roles": ["admin"]
+    }
+  ],
+  "migrations": [
+    {
+      "id": "schema-v1",
+      "engine": "postgresql",
+      "directory": "migrations",
+      "schema": "example_module"
+    }
+  ],
+  "configuration": {
+    "schema": "config/schema.json",
+    "version": 1,
+    "secret_fields": ["/database_url"]
+  },
+  "health": {
+    "kind": "http",
+    "service": "example-module.api",
+    "liveness_path": "/health/live",
+    "readiness_path": "/health/ready",
+    "interval_seconds": 10,
+    "timeout_seconds": 2
+  },
+  "lifecycle": {
+    "startup_timeout_seconds": 30,
+    "shutdown_timeout_seconds": 30,
+    "restart_policy": "on_failure",
+    "max_restarts": 5
+  },
+  "services": [
+    {
+      "name": "example-module.api",
+      "protocol": "http",
+      "visibility": "platform"
+    }
+  ],
+  "events": {
+    "publishes": [
+      { "topic": "example-module.item.changed", "version": 1 }
+    ],
+    "subscribes": []
+  }
+}

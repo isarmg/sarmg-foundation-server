@@ -1,0 +1,7 @@
+[
+  {
+    "id": "example-module.items.read",
+    "description": "Read example items",
+    "default_roles": ["admin"]
+  }
+]

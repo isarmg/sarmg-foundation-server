@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["database_url"],
+  "properties": {
+    "database_url": { "type": "string", "minLength": 1 }
+  }
+}

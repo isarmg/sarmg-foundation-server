@@ -1,7 +1,7 @@
-//! Axum composition for compile-time Union gateway adapters.
+//! Optional Axum adapter for routes contributed by release-bundled runtime plugins.
 //!
-//! The routers assembled here live in Union and proxy to supervised private processes. They are
-//! not module business routers and do not share Union's application state with a worker.
+//! The framework-neutral manifest and SDK do not depend on Axum. This crate is only a host-side
+//! bridge and must be called again when the active runtime catalog changes.
 
 use axum::Router;
 use sarmg_platform_core::{CatalogError, ModuleCatalog, ModuleDescriptor};
@@ -16,10 +16,10 @@ pub struct AssembledGateways<S> {
     pub gateway_routes: Router<S>,
 }
 
-/// Assemble only the adapters selected by Cargo features in the final Union binary.
+/// Assemble adapters for the validated active runtime catalog.
 ///
-/// `ModuleCatalog::new` validates that bindings, prefixes, installed binary names and database
-/// identities are unique before any route becomes reachable.
+/// `ModuleCatalog::new` validates compatibility, dependencies, paths, permissions and service
+/// names before any route becomes reachable.
 pub fn assemble_gateways<S>(
     adapters: Vec<AxumGatewayAdapter<S>>,
 ) -> Result<AssembledGateways<S>, CatalogError>
@@ -56,10 +56,12 @@ mod tests {
     fn assembles_gateway_adapters_without_business_router_categories() {
         let assembled = assemble_gateways::<()>(vec![AxumGatewayAdapter {
             descriptor: descriptor(manifests::DUFS),
-            gateway_routes: || Router::new().route("/modules/dufs/{*path}", get(|| async {})),
+            gateway_routes: || {
+                Router::new().route("/api/modules/dufs/files/{*path}", get(|| async {}))
+            },
         }])
         .unwrap();
-        assert_eq!(assembled.catalog.modules().len(), 1);
-        assert_eq!(assembled.catalog.modules()[0].id, "dufs");
+        assert_eq!(assembled.catalog.manifests().count(), 1);
+        assert_eq!(assembled.catalog.get("dufs").unwrap().id, "dufs");
     }
 }

@@ -1,6 +1,6 @@
 [package]
-name = "sarmg-platform-core"
-description = "Framework-neutral runtime plugin manifest and dependency catalog"
+name = "sarmg-platform-events"
+description = "Transport-neutral event API for Sarmg plugins"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

@@ -1,22 +1,117 @@
 {
-  "schema_version": 1,
+  "manifest_version": 1,
   "id": "sentinel-monitor",
   "display_name": "Sentinel",
   "description": "摄像头、录像、事件、ONVIF 和 MediaMTX 控制面",
   "version": "0.1.0",
-  "execution": "private_process",
-  "ui": { "kind": "gateway", "entry_path": "/" },
-  "capabilities": ["camera.read", "camera.write", "recording.read", "ptz.write"],
-  "service": {
-    "binary": "sentinel-monitor",
-    "bind": "127.0.0.1:18101",
-    "gateway_prefix": "/modules/sentinel-monitor",
-    "liveness_path": "/health/live",
-    "readiness_path": "/health/ready"
+  "version_metadata": { "channel": "development", "distribution": "bundled", "license": "Apache-2.0" },
+  "compatibility": {
+    "core": ">=0.5.0, <0.6.0",
+    "platform_api": "^1.0.0",
+    "plugin_api": "^1.0.0"
   },
-  "database": {
-    "profile": "dedicated_postgres",
-    "database_env": "UNIONC_SENTINEL_DATABASE_URL",
-    "role": "sentinel_monitor_runtime"
+  "dependencies": [],
+  "execution": {
+    "mode": "process",
+    "executable": "backend/sentinel-monitor",
+    "args": [],
+    "environment": [
+      { "name": "DATABASE_URL", "config_pointer": "/database_url" },
+      { "name": "APP_JWT_SECRET", "config_pointer": "/auth/jwt_secret" },
+      { "name": "CREDENTIALS_KEY", "config_pointer": "/credentials_key" },
+      { "name": "BOOTSTRAP_ADMIN_EMAIL", "config_pointer": "/bootstrap_admin_email" },
+      { "name": "BOOTSTRAP_ADMIN_PASSWORD", "config_pointer": "/bootstrap_admin_password" },
+      { "name": "MEDIAMTX_API_URL", "config_pointer": "/mediamtx/api_url" },
+      { "name": "MEDIAMTX_PLAYBACK_URL", "config_pointer": "/mediamtx/playback_url" },
+      { "name": "MEDIAMTX_WEBRTC_URL", "config_pointer": "/mediamtx/webrtc_url" },
+      { "name": "MEDIAMTX_HLS_URL", "config_pointer": "/mediamtx/hls_url" },
+      { "name": "SESSION_COOKIE_SECURE", "config_pointer": "/session_cookie_secure" },
+      { "name": "SESSION_TTL_HOURS", "config_pointer": "/session_ttl_hours" },
+      { "name": "MEDIA_TOKEN_TTL_SECS", "config_pointer": "/media_token_ttl_seconds" },
+      { "name": "STATUS_INTERVAL_SECS", "config_pointer": "/status_interval_seconds" },
+      { "name": "RECONCILE_INTERVAL_SECS", "config_pointer": "/reconcile_interval_seconds" },
+      { "name": "REQUEST_TIMEOUT_SECS", "config_pointer": "/request_timeout_seconds" },
+      { "name": "ONVIF_DISCOVERY_TIMEOUT_MS", "config_pointer": "/onvif_discovery_timeout_ms" }
+    ],
+    "bind": { "host": "127.0.0.1", "port": 0, "environment": "BIND_ADDR" }
+  },
+  "backend": {
+    "api_version": "v1",
+    "base_path": "/api/modules/sentinel-monitor",
+    "service": "sentinel-monitor.api",
+    "routes": [
+      { "id": "cameras-read", "path": "/cameras", "upstream_path": "/api/cameras", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.cameras.read" },
+      { "id": "cameras-create", "path": "/cameras", "upstream_path": "/api/cameras", "methods": ["POST"], "auth": "platform", "permission": "sentinel-monitor.cameras.write" },
+      { "id": "camera-details-read", "path": "/cameras/{*path}", "upstream_path": "/api/cameras/{*path}", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.cameras.read" },
+      { "id": "ptz-write", "path": "/cameras/{camera_id}/ptz", "upstream_path": "/api/cameras/{camera_id}/ptz", "methods": ["POST"], "auth": "platform", "permission": "sentinel-monitor.ptz.write" },
+      { "id": "cameras-write", "path": "/cameras/{*path}", "upstream_path": "/api/cameras/{*path}", "methods": ["POST", "PUT", "DELETE"], "auth": "platform", "permission": "sentinel-monitor.cameras.write" },
+      { "id": "recordings-root", "path": "/recordings", "upstream_path": "/api/recordings", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.recordings.read" },
+      { "id": "recordings-read", "path": "/recordings/{*path}", "upstream_path": "/api/recordings/{*path}", "methods": ["GET", "HEAD"], "auth": "platform", "permission": "sentinel-monitor.recordings.read" },
+      { "id": "events-root", "path": "/events", "upstream_path": "/api/events", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.events.read" },
+      { "id": "events-read", "path": "/events/{*path}", "upstream_path": "/api/events/{*path}", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.events.read" },
+      { "id": "events-write", "path": "/events/{*path}", "upstream_path": "/api/events/{*path}", "methods": ["POST"], "auth": "platform", "permission": "sentinel-monitor.events.write" },
+      { "id": "users-root-read", "path": "/users", "upstream_path": "/api/users", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.users.admin" },
+      { "id": "users-root-write", "path": "/users", "upstream_path": "/api/users", "methods": ["POST"], "auth": "platform", "permission": "sentinel-monitor.users.admin" },
+      { "id": "users-write", "path": "/users/{*path}", "upstream_path": "/api/users/{*path}", "methods": ["PUT", "DELETE"], "auth": "platform", "permission": "sentinel-monitor.users.admin" },
+      { "id": "discovery", "path": "/discovery/{*path}", "upstream_path": "/api/discovery/{*path}", "methods": ["POST"], "auth": "platform", "permission": "sentinel-monitor.cameras.write" },
+      { "id": "system", "path": "/system/{*path}", "upstream_path": "/api/system/{*path}", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.system.read" },
+      { "id": "audit", "path": "/audit", "upstream_path": "/api/audit", "methods": ["GET"], "auth": "platform", "permission": "sentinel-monitor.system.read" },
+      { "id": "media-webrtc", "path": "/media-webrtc/{*path}", "upstream_path": "/media-webrtc/{*path}", "methods": ["GET", "POST"], "auth": "module", "permission": null },
+      { "id": "media-hls", "path": "/media-hls/{*path}", "upstream_path": "/media-hls/{*path}", "methods": ["GET", "HEAD"], "auth": "module", "permission": null }
+    ]
+  },
+  "frontend": {
+    "entry": "frontend/entry.js",
+    "styles": ["frontend/styles.css"],
+    "components": ["SentinelMonitorView"],
+    "api_base": "/api/modules/sentinel-monitor",
+    "routes": [
+      { "path": "/modules/sentinel-monitor", "component": "SentinelMonitorView", "permission": "sentinel-monitor.cameras.read" }
+    ],
+    "menu": [
+      { "id": "cameras", "label": "监控", "route": "/modules/sentinel-monitor", "permission": "sentinel-monitor.cameras.read", "order": 40 }
+    ]
+  },
+  "permissions": [
+    { "id": "sentinel-monitor.cameras.read", "description": "查看摄像头", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.cameras.write", "description": "配置摄像头", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.recordings.read", "description": "查看录像", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.ptz.write", "description": "控制云台", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.events.read", "description": "查看监控事件", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.events.write", "description": "确认监控事件", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.users.admin", "description": "管理 Sentinel 用户", "default_roles": ["admin"] },
+    { "id": "sentinel-monitor.system.read", "description": "查看 Sentinel 系统状态和审计", "default_roles": ["admin"] }
+  ],
+  "migrations": [
+    { "id": "schema-v1", "engine": "postgresql", "directory": "migrations", "schema": "public" }
+  ],
+  "configuration": {
+    "schema": "config/schema.json",
+    "version": 1,
+    "secret_fields": ["/database_url", "/auth/jwt_secret", "/credentials_key", "/bootstrap_admin_password"]
+  },
+  "health": {
+    "kind": "http",
+    "service": "sentinel-monitor.api",
+    "liveness_path": "/health/live",
+    "readiness_path": "/health/ready",
+    "interval_seconds": 10,
+    "timeout_seconds": 2
+  },
+  "lifecycle": {
+    "startup_timeout_seconds": 60,
+    "shutdown_timeout_seconds": 60,
+    "restart_policy": "on_failure",
+    "max_restarts": 5
+  },
+  "services": [
+    { "name": "sentinel-monitor.api", "protocol": "http", "visibility": "platform" }
+  ],
+  "events": {
+    "publishes": [
+      { "topic": "sentinel-monitor.camera.status-changed", "version": 1 },
+      { "topic": "sentinel-monitor.recording.created", "version": 1 }
+    ],
+    "subscribes": []
   }
 }

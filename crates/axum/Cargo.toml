@@ -1,6 +1,6 @@
 [package]
 name = "sarmg-platform-axum"
-description = "Build-time Axum module composition for the Sarmg platform"
+description = "Optional Axum adapter for Sarmg runtime plugin routes"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
