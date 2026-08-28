@@ -5,6 +5,10 @@
 事实源为 `contracts/plugin-manifest-v1.schema.json` 与 `sarmg-platform-core::PluginManifest`。
 JSON Schema 约束字段形状，Rust 负责跨字段、跨模块和安全语义。仅通过其中一个不算可激活。
 
+这里的“契约事实源”指格式和语义；某个模块的具体字段只以该模块仓库的 `manifest.json` 为准。
+Platform 的 `tests/fixtures` 是中性测试数据，不是业务清单镜像。Builder 必须从选定模块 revision
+直接读取清单并完成双重校验，不能回退到 Platform 内的副本。
+
 顶层必填：
 
 ```text

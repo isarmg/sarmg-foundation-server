@@ -47,7 +47,7 @@ mod tests {
     use super::*;
     use axum::routing::get;
 
-    const EXAMPLE_MANIFEST: &str = include_str!("../../../modules/dufs.json");
+    const PROCESS_FIXTURE: &str = include_str!("../../../tests/fixtures/process-module.json");
 
     fn descriptor(raw: &str) -> ModuleDescriptor {
         serde_json::from_str(raw).unwrap()
@@ -56,13 +56,16 @@ mod tests {
     #[test]
     fn assembles_gateway_adapters_without_business_router_categories() {
         let assembled = assemble_gateways::<()>(vec![AxumGatewayAdapter {
-            descriptor: descriptor(EXAMPLE_MANIFEST),
+            descriptor: descriptor(PROCESS_FIXTURE),
             gateway_routes: || {
-                Router::new().route("/api/modules/dufs/files/{*path}", get(|| async {}))
+                Router::new().route("/api/modules/fixture-module/items/{id}", get(|| async {}))
             },
         }])
         .unwrap();
         assert_eq!(assembled.catalog.manifests().count(), 1);
-        assert_eq!(assembled.catalog.get("dufs").unwrap().id, "dufs");
+        assert_eq!(
+            assembled.catalog.get("fixture-module").unwrap().id,
+            "fixture-module"
+        );
     }
 }

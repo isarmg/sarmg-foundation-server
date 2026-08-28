@@ -6,24 +6,43 @@ use sarmg_platform_core::{
     PluginManifest, RouteAuth,
 };
 
-const SUNSHINE: &str = include_str!("../../../modules/sunshine.json");
-const HOST_MONITORING: &str = include_str!("../../../modules/host-monitoring.json");
-const SENTINEL_MONITOR: &str = include_str!("../../../modules/sentinel-monitor.json");
-const PHOTO_BACKUP: &str = include_str!("../../../modules/photo-backup.json");
-const DUFS: &str = include_str!("../../../modules/dufs.json");
-const SHIPPED: [&str; 5] = [
-    SUNSHINE,
-    HOST_MONITORING,
-    SENTINEL_MONITOR,
-    PHOTO_BACKUP,
-    DUFS,
-];
+const PROCESS_FIXTURE: &str = include_str!("../../../tests/fixtures/process-module.json");
 
-fn shipped() -> Vec<PluginManifest> {
-    SHIPPED
-        .into_iter()
-        .map(|raw| PluginManifest::parse_json(raw).unwrap())
-        .collect()
+fn fixture(id: &str, version: &str) -> PluginManifest {
+    let raw = PROCESS_FIXTURE.replace("fixture-module", id).replacen(
+        "\"version\": \"1.2.3\"",
+        &format!("\"version\": \"{version}\""),
+        1,
+    );
+    PluginManifest::parse_json(&raw).unwrap()
+}
+
+fn fixtures() -> Vec<PluginManifest> {
+    let mut manifests = [
+        ("fixture-control", "1.0.0"),
+        ("fixture-host", "1.1.0"),
+        ("fixture-media", "1.2.0"),
+        ("fixture-library", "1.3.0"),
+        ("fixture-storage", "1.4.0"),
+    ]
+    .into_iter()
+    .map(|(id, version)| fixture(id, version))
+    .collect::<Vec<_>>();
+
+    let storage = manifests
+        .iter_mut()
+        .find(|manifest| manifest.id == "fixture-storage")
+        .unwrap();
+    let Execution::Process { bind, .. } = &mut storage.execution else {
+        unreachable!()
+    };
+    bind.port = 18103;
+    storage.migrations[0].engine = MigrationEngine::Embedded;
+    storage.migrations[0].directory = None;
+    storage.migrations[0].schema = None;
+    storage.validate().unwrap();
+
+    manifests
 }
 
 #[test]
@@ -35,12 +54,12 @@ fn complete_process_package_example_uses_the_same_contract() {
 }
 
 #[test]
-fn shipped_manifests_are_valid_runtime_process_plugins() {
-    let catalog = PluginCatalog::new(shipped()).unwrap();
+fn five_module_style_fixture_is_a_valid_process_catalog() {
+    let catalog = PluginCatalog::new(fixtures()).unwrap();
     assert_eq!(catalog.manifests().count(), 5);
     assert_eq!(PLATFORM_API_VERSION, "1.0.0");
     assert_eq!(PLUGIN_API_VERSION, "1.0.0");
-    assert_eq!(catalog.get("dufs").unwrap().version, "0.49.7");
+    assert_eq!(catalog.get("fixture-storage").unwrap().version, "1.4.0");
     for plugin in catalog.manifests() {
         let Execution::Process {
             executable, bind, ..
@@ -50,7 +69,7 @@ fn shipped_manifests_are_valid_runtime_process_plugins() {
         };
         assert!(executable.starts_with("backend/"));
         assert_eq!(bind.host, "127.0.0.1");
-        assert!(bind.port == 0 || (plugin.id == "dufs" && bind.port == 18103));
+        assert!(bind.port == 0 || (plugin.id == "fixture-storage" && bind.port == 18103));
         assert_eq!(
             plugin.backend.base_path,
             format!("/api/modules/{}", plugin.id)
@@ -104,7 +123,7 @@ fn json_schema_tracks_rust_contract_and_all_execution_modes() {
 
 #[test]
 fn strict_parser_rejects_unknown_fields() {
-    let raw = DUFS.replacen(
+    let raw = PROCESS_FIXTURE.replacen(
         "\"manifest_version\": 1,",
         "\"manifest_version\": 1, \"surprise\": true,",
         1,
@@ -114,7 +133,7 @@ fn strict_parser_rejects_unknown_fields() {
         Err(ManifestError::Json(_))
     ));
 
-    let missing_required = DUFS.replace("  \"dependencies\": [],\n", "");
+    let missing_required = PROCESS_FIXTURE.replace("  \"dependencies\": [],\n", "");
     assert!(matches!(
         PluginManifest::parse_json(&missing_required),
         Err(ManifestError::Json(_))
@@ -123,20 +142,20 @@ fn strict_parser_rejects_unknown_fields() {
 
 #[test]
 fn dependency_order_is_deterministic_and_topological() {
-    let mut plugins = shipped();
+    let mut plugins = fixtures();
     let host_version = plugins
         .iter()
-        .find(|plugin| plugin.id == "host-monitoring")
+        .find(|plugin| plugin.id == "fixture-host")
         .unwrap()
         .version
         .clone();
     plugins
         .iter_mut()
-        .find(|plugin| plugin.id == "sunshine")
+        .find(|plugin| plugin.id == "fixture-control")
         .unwrap()
         .dependencies
         .push(PluginDependency {
-            id: "host-monitoring".into(),
+            id: "fixture-host".into(),
             version: format!("={host_version}"),
             optional: false,
         });
@@ -146,43 +165,46 @@ fn dependency_order_is_deterministic_and_topological() {
         .map(|plugin| plugin.id.as_str())
         .collect::<Vec<_>>();
     assert!(
-        order
-            .iter()
-            .position(|id| *id == "host-monitoring")
-            .unwrap()
-            < order.iter().position(|id| *id == "sunshine").unwrap()
+        order.iter().position(|id| *id == "fixture-host").unwrap()
+            < order
+                .iter()
+                .position(|id| *id == "fixture-control")
+                .unwrap()
     );
     let shutdown = catalog
         .deactivation_order()
         .map(|plugin| plugin.id.as_str())
         .collect::<Vec<_>>();
     assert!(
-        shutdown.iter().position(|id| *id == "sunshine").unwrap()
+        shutdown
+            .iter()
+            .position(|id| *id == "fixture-control")
+            .unwrap()
             < shutdown
                 .iter()
-                .position(|id| *id == "host-monitoring")
+                .position(|id| *id == "fixture-host")
                 .unwrap()
     );
 }
 
 #[test]
 fn cycles_missing_dependencies_and_version_mismatches_are_rejected() {
-    let mut plugins = shipped();
-    let sentinel_index = plugins
+    let mut plugins = fixtures();
+    let media_index = plugins
         .iter()
-        .position(|plugin| plugin.id == "sentinel-monitor")
+        .position(|plugin| plugin.id == "fixture-media")
         .unwrap();
-    let photo_index = plugins
+    let library_index = plugins
         .iter()
-        .position(|plugin| plugin.id == "photo-backup")
+        .position(|plugin| plugin.id == "fixture-library")
         .unwrap();
-    plugins[sentinel_index].dependencies.push(PluginDependency {
-        id: "photo-backup".into(),
+    plugins[media_index].dependencies.push(PluginDependency {
+        id: "fixture-library".into(),
         version: "*".into(),
         optional: false,
     });
-    plugins[photo_index].dependencies.push(PluginDependency {
-        id: "sentinel-monitor".into(),
+    plugins[library_index].dependencies.push(PluginDependency {
+        id: "fixture-media".into(),
         version: "*".into(),
         optional: false,
     });
@@ -191,7 +213,7 @@ fn cycles_missing_dependencies_and_version_mismatches_are_rejected() {
         Err(CatalogError::DependencyCycle(_))
     ));
 
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     plugin.dependencies.push(PluginDependency {
         id: "missing-plugin".into(),
         version: "^1.0.0".into(),
@@ -202,7 +224,7 @@ fn cycles_missing_dependencies_and_version_mismatches_are_rejected() {
         Err(CatalogError::MissingDependency { .. })
     ));
 
-    let mut plugins = shipped();
+    let mut plugins = fixtures();
     let dependency_id = plugins[1].id.clone();
     plugins[0].dependencies.push(PluginDependency {
         id: dependency_id,
@@ -217,7 +239,7 @@ fn cycles_missing_dependencies_and_version_mismatches_are_rejected() {
 
 #[test]
 fn optional_missing_dependency_does_not_block_activation() {
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     plugin.dependencies.push(PluginDependency {
         id: "optional-plugin".into(),
         version: "^1.0.0".into(),
@@ -228,7 +250,7 @@ fn optional_missing_dependency_does_not_block_activation() {
 
 #[test]
 fn compatibility_ranges_are_enforced_before_activation() {
-    let catalog = PluginCatalog::new(shipped()).unwrap();
+    let catalog = PluginCatalog::new(fixtures()).unwrap();
     catalog
         .ensure_platform_compatible(
             &PlatformVersions::parse("0.5.0", PLATFORM_API_VERSION, PLUGIN_API_VERSION).unwrap(),
@@ -247,21 +269,21 @@ fn compatibility_ranges_are_enforced_before_activation() {
 
 #[test]
 fn traversal_foreign_routes_permissions_and_components_fail_closed() {
-    let mut plugin = shipped().remove(2);
+    let mut plugin = fixtures().remove(2);
     plugin.frontend.entry = "../remote.js".into();
     assert!(matches!(
         plugin.validate(),
         Err(ManifestError::UnsafeBundlePath { .. })
     ));
 
-    let mut plugin = shipped().remove(2);
+    let mut plugin = fixtures().remove(2);
     plugin.frontend.routes[0].path = "/modules/other".into();
     assert!(matches!(
         plugin.validate(),
         Err(ManifestError::InvalidField { .. })
     ));
 
-    let mut plugin = shipped().remove(2);
+    let mut plugin = fixtures().remove(2);
     plugin.backend.routes[0].auth = sarmg_platform_core::RouteAuth::Platform;
     plugin.backend.routes[0].permission = Some("other.admin".into());
     assert!(matches!(
@@ -269,7 +291,7 @@ fn traversal_foreign_routes_permissions_and_components_fail_closed() {
         Err(ManifestError::UnknownPermission { .. })
     ));
 
-    let mut plugin = shipped().remove(2);
+    let mut plugin = fixtures().remove(2);
     plugin.frontend.routes[0].component = "Undeclared".into();
     assert!(matches!(
         plugin.validate(),
@@ -279,7 +301,7 @@ fn traversal_foreign_routes_permissions_and_components_fail_closed() {
 
 #[test]
 fn route_rewrites_auth_modes_and_reserved_environment_fail_closed() {
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     plugin.backend.routes[0].upstream_path = "/internal/{other}".into();
     assert!(matches!(
         plugin.validate(),
@@ -289,7 +311,7 @@ fn route_rewrites_auth_modes_and_reserved_environment_fail_closed() {
         })
     ));
 
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     plugin.backend.routes[0].auth = RouteAuth::Platform;
     plugin.backend.routes[0].permission = None;
     assert!(matches!(
@@ -300,7 +322,7 @@ fn route_rewrites_auth_modes_and_reserved_environment_fail_closed() {
         })
     ));
 
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     let Execution::Process { environment, .. } = &mut plugin.execution else {
         unreachable!()
     };
@@ -319,9 +341,9 @@ fn route_rewrites_auth_modes_and_reserved_environment_fail_closed() {
 
 #[test]
 fn encoded_and_equally_specific_overlapping_routes_fail_closed() {
-    let mut plugin = shipped()
+    let mut plugin = fixtures()
         .into_iter()
-        .find(|plugin| plugin.id == "dufs")
+        .find(|plugin| plugin.id == "fixture-storage")
         .unwrap();
     let mut first = plugin.backend.routes[1].clone();
     first.id = "ambiguous-first".into();
@@ -340,7 +362,7 @@ fn encoded_and_equally_specific_overlapping_routes_fail_closed() {
         })
     ));
 
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     plugin.backend.routes[0].path = "/%2e%2e/{*path}".into();
     plugin.backend.routes[0].upstream_path = "/%2e%2e/{*path}".into();
     assert!(matches!(
@@ -352,8 +374,8 @@ fn encoded_and_equally_specific_overlapping_routes_fail_closed() {
     ));
 
     assert!(
-        sarmg_platform_core::route_specificity("/cameras/{camera_id}/ptz")
-            > sarmg_platform_core::route_specificity("/cameras/{*path}")
+        sarmg_platform_core::route_specificity("/resources/{resource_id}/actions")
+            > sarmg_platform_core::route_specificity("/resources/{*path}")
     );
     assert!(
         sarmg_platform_core::route_specificity("/")
@@ -363,10 +385,10 @@ fn encoded_and_equally_specific_overlapping_routes_fail_closed() {
 
 #[test]
 fn execution_modes_and_health_kinds_are_paired() {
-    let mut plugin = shipped().remove(0);
+    let mut plugin = fixtures().remove(0);
     plugin.execution = Execution::InProcess {
         runtime: sarmg_platform_core::InProcessRuntime::WasiComponentV1,
-        artifact: "backend/sentinel-monitor.wasm".into(),
+        artifact: "backend/fixture-module.wasm".into(),
         entrypoint: "activate".into(),
     };
     assert!(matches!(
@@ -382,11 +404,11 @@ fn execution_modes_and_health_kinds_are_paired() {
     plugin.validate().unwrap();
 
     plugin.execution = Execution::Container {
-        image: "registry.example/sentinel:1.0.0".into(),
+        image: "registry.example/fixture:1.0.0".into(),
         digest: "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".into(),
     };
     plugin.health = HealthDefinition::Http {
-        service: "sunshine.api".into(),
+        service: "fixture-control.api".into(),
         liveness_path: "/health/live".into(),
         readiness_path: "/health/ready".into(),
         interval_seconds: 10,
@@ -397,14 +419,14 @@ fn execution_modes_and_health_kinds_are_paired() {
 
 #[test]
 fn embedded_migrations_cannot_claim_a_directory() {
-    let dufs = shipped()
+    let storage = fixtures()
         .into_iter()
-        .find(|plugin| plugin.id == "dufs")
+        .find(|plugin| plugin.id == "fixture-storage")
         .unwrap();
-    assert_eq!(dufs.migrations[0].engine, MigrationEngine::Embedded);
-    assert!(dufs.migrations[0].directory.is_none());
+    assert_eq!(storage.migrations[0].engine, MigrationEngine::Embedded);
+    assert!(storage.migrations[0].directory.is_none());
 
-    let mut invalid = dufs;
+    let mut invalid = storage;
     invalid.migrations[0].directory = Some("migrations".into());
     assert!(matches!(
         invalid.validate(),

@@ -1,0 +1,128 @@
+{
+  "manifest_version": 1,
+  "id": "fixture-module",
+  "display_name": "Fixture Module",
+  "description": "Generic process plugin used only by platform contract tests",
+  "version": "1.2.3",
+  "version_metadata": {
+    "channel": "stable",
+    "distribution": "bundled",
+    "license": "Apache-2.0",
+    "release_notes": "version/RELEASE-NOTES.md"
+  },
+  "compatibility": {
+    "core": ">=0.5.0, <0.6.0",
+    "platform_api": "^1.0.0",
+    "plugin_api": "^1.0.0"
+  },
+  "dependencies": [],
+  "execution": {
+    "mode": "process",
+    "executable": "backend/fixture-module",
+    "args": ["serve"],
+    "environment": [
+      { "name": "FIXTURE_DATABASE_URL", "config_pointer": "/database_url" },
+      { "name": "FIXTURE_DATA_DIR", "config_pointer": "/data_dir" },
+      { "name": "FIXTURE_MAX_BATCH", "config_pointer": "/max_batch" },
+      { "name": "FIXTURE_REQUIRE_TLS", "config_pointer": "/require_tls" },
+      { "name": "FIXTURE_OPTIONAL_TOKEN", "config_pointer": "/optional_token" }
+    ],
+    "bind": {
+      "host": "127.0.0.1",
+      "port": 0,
+      "environment": "FIXTURE_BIND"
+    }
+  },
+  "backend": {
+    "api_version": "v1",
+    "base_path": "/api/modules/fixture-module",
+    "service": "fixture-module.api",
+    "routes": [
+      {
+        "id": "items-read",
+        "path": "/items/{id}",
+        "upstream_path": "/v1/items/{id}",
+        "methods": ["GET"],
+        "auth": "platform",
+        "permission": "fixture-module.items.read"
+      },
+      {
+        "id": "device-ingest",
+        "path": "/device/events",
+        "upstream_path": "/v1/device/events",
+        "methods": ["POST"],
+        "auth": "module",
+        "permission": null
+      }
+    ]
+  },
+  "frontend": {
+    "entry": "frontend/entry.js",
+    "styles": ["frontend/styles.css"],
+    "components": ["FixtureOverview"],
+    "api_base": "/api/modules/fixture-module",
+    "routes": [
+      {
+        "path": "/modules/fixture-module",
+        "component": "FixtureOverview",
+        "permission": "fixture-module.items.read"
+      }
+    ],
+    "menu": [
+      {
+        "id": "overview",
+        "label": "Fixture",
+        "route": "/modules/fixture-module",
+        "permission": "fixture-module.items.read",
+        "order": 100
+      }
+    ]
+  },
+  "permissions": [
+    {
+      "id": "fixture-module.items.read",
+      "description": "Read fixture items",
+      "default_roles": ["admin"]
+    }
+  ],
+  "migrations": [
+    {
+      "id": "schema-v1",
+      "engine": "postgresql",
+      "directory": "migrations",
+      "schema": "fixture_module"
+    }
+  ],
+  "configuration": {
+    "schema": "config/schema.json",
+    "version": 1,
+    "secret_fields": ["/database_url", "/optional_token"]
+  },
+  "health": {
+    "kind": "http",
+    "service": "fixture-module.api",
+    "liveness_path": "/health/live",
+    "readiness_path": "/health/ready",
+    "interval_seconds": 10,
+    "timeout_seconds": 2
+  },
+  "lifecycle": {
+    "startup_timeout_seconds": 30,
+    "shutdown_timeout_seconds": 30,
+    "restart_policy": "on_failure",
+    "max_restarts": 5
+  },
+  "services": [
+    {
+      "name": "fixture-module.api",
+      "protocol": "http",
+      "visibility": "platform"
+    }
+  ],
+  "events": {
+    "publishes": [
+      { "topic": "fixture-module.item.changed", "version": 1 }
+    ],
+    "subscribes": []
+  }
+}

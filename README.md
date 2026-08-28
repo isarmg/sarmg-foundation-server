@@ -18,8 +18,10 @@ Sunshine、主机监控、Sentinel、Photo Backup 或 Dufs 的业务逻辑。
 - `sarmg-platform-axum`：可选的 Axum host adapter；Core/SDK/Event 均不依赖 Web framework。
 
 机器契约在 [`contracts/plugin-manifest-v1.schema.json`](contracts/plugin-manifest-v1.schema.json)，
-Rust 权威语义校验在 `sarmg-platform-core`。五份内置 manifest 是迁移基线，不是编译期 allow-list。
-完整可复制包见 [`examples/process-module`](examples/process-module)。
+Rust 权威语义校验在 `sarmg-platform-core`。每个模块仓库中的 `manifest.json` 是该模块清单的唯一
+事实源；Platform 不保存业务 Manifest 镜像，也不维护编译期 allow-list。Builder 组包时直接读取
+模块仓库清单，并同时执行 schema 与 Rust 语义校验。完整可复制包见
+[`examples/process-module`](examples/process-module)；`tests/fixtures` 仅用于验证通用契约行为。
 
 ## 核心保证
 

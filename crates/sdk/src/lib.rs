@@ -408,21 +408,20 @@ mod tests {
     use super::*;
     use sarmg_platform_core::PluginManifest;
 
-    const PHOTO_BACKUP_MANIFEST: &str = include_str!("../../../modules/photo-backup.json");
-    const DUFS_MANIFEST: &str = include_str!("../../../modules/dufs.json");
+    const PROCESS_FIXTURE: &str = include_str!("../../../tests/fixtures/process-module.json");
 
     fn context(path: PathBuf, root: PathBuf) -> ProcessContext {
         ProcessContext {
-            plugin_id: "photo-backup".into(),
-            plugin_version: "0.1.0".into(),
+            plugin_id: "fixture-module".into(),
+            plugin_version: "1.2.3".into(),
             bind: "127.0.0.1:18102".parse().unwrap(),
             package_root: root,
             configuration_path: path,
             gateway: GatewayEnvironment {
                 protocol: "gateway-v1".into(),
-                audience: "photo-backup".into(),
+                audience: "fixture-module".into(),
                 token: "0".repeat(64),
-                prefix: "/api/modules/photo-backup".into(),
+                prefix: "/api/modules/fixture-module".into(),
             },
         }
     }
@@ -468,37 +467,37 @@ mod tests {
 
     #[test]
     fn configuration_environment_bindings_are_scalar_and_non_shell() {
-        let manifest = PluginManifest::parse_json(PHOTO_BACKUP_MANIFEST).unwrap();
+        let manifest = PluginManifest::parse_json(PROCESS_FIXTURE).unwrap();
         let values = serde_json::json!({
-            "database_url": "postgresql://localhost/photo",
-            "data_dir": "/srv/photo",
-            "admin": {"username": "admin", "password": "secret-secret"},
-            "max_part_bytes": 1024,
-            "require_https": true
+            "database_url": "postgresql://localhost/fixture",
+            "data_dir": "/srv/fixture",
+            "max_batch": 1024,
+            "require_tls": true
         });
         let environment = resolve_environment_bindings(&manifest, &values).unwrap();
-        assert_eq!(environment["MAX_PART_BYTES"], "1024");
-        assert_eq!(environment["REQUIRE_HTTPS"], "true");
-        assert_eq!(environment["ADMIN_USERNAME"], "admin");
-        assert!(!environment.contains_key("METRICS_TOKEN"));
+        assert_eq!(environment["FIXTURE_MAX_BATCH"], "1024");
+        assert_eq!(environment["FIXTURE_REQUIRE_TLS"], "true");
+        assert_eq!(environment["FIXTURE_DATA_DIR"], "/srv/fixture");
+        assert!(!environment.contains_key("FIXTURE_OPTIONAL_TOKEN"));
     }
 
     #[test]
     fn handshake_uses_api_versions_not_crate_version() {
-        let manifest = PluginManifest::parse_json(DUFS_MANIFEST).unwrap();
+        let manifest = PluginManifest::parse_json(PROCESS_FIXTURE).unwrap();
         let handshake = PluginHandshake::for_manifest(&manifest);
         assert_eq!(handshake.platform_api_version, "1.0.0");
         assert_eq!(handshake.plugin_api_version, "1.0.0");
-        assert_eq!(handshake.plugin_version, "0.49.7");
+        assert_eq!(handshake.plugin_id, "fixture-module");
+        assert_eq!(handshake.plugin_version, "1.2.3");
     }
 
     #[test]
     fn gateway_debug_output_redacts_process_token() {
         let gateway = GatewayEnvironment {
             protocol: "gateway-v1".into(),
-            audience: "dufs".into(),
+            audience: "fixture-module".into(),
             token: "a".repeat(64),
-            prefix: "/api/modules/dufs".into(),
+            prefix: "/api/modules/fixture-module".into(),
         };
         let rendered = format!("{gateway:?}");
         assert!(rendered.contains("[REDACTED]"));

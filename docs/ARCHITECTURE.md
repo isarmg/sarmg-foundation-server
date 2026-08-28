@@ -19,6 +19,10 @@ Core 不包含业务判断。Builder 可组合不同发行内容，但不会把�
 root 只能指向当前发行的只读 modules 目录，Manifest 的 `distribution` 必须为 `bundled`。staging、
 健康检查和原子切换可用于新发行升级，不等于允许从网络安装未知模块。
 
+模块仓库拥有自身 `manifest.json`，并且是该清单的唯一事实源。Platform 只发布 schema、Rust
+validator、SDK 和通用测试夹具，不复制具体业务清单。Builder 从所选模块的源码 revision 直接读取
+并校验清单，再把校验通过的原件装入发行包；因此清单变更不需要同步修改 Platform 仓库。
+
 ## 生命周期顺序
 
 Runtime 对当前发行目录执行：
