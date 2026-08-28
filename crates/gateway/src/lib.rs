@@ -13,6 +13,22 @@ pub const PROTOCOL_HEADER: &str = "x-union-module-protocol";
 pub const AUDIENCE_HEADER: &str = "x-union-module-audience";
 pub const TOKEN_HEADER: &str = "x-union-module-token";
 pub const PREFIX_HEADER: &str = "x-forwarded-prefix";
+pub const PRINCIPAL_HEADER: &str = "x-union-principal";
+pub const MAX_PRINCIPAL_BYTES: usize = 128;
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum PrincipalHeaderError {
+    #[error("X-Union-Principal is required")]
+    Missing,
+    #[error("X-Union-Principal must occur exactly once")]
+    Multiple,
+    #[error("X-Union-Principal must be valid UTF-8")]
+    Encoding,
+    #[error(
+        "X-Union-Principal must contain 1-{MAX_PRINCIPAL_BYTES} bytes without surrounding whitespace or control characters"
+    )]
+    Invalid,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GatewayIdentity {
@@ -132,6 +148,45 @@ fn header_matches(headers: &HeaderMap, name: &str, expected: &str) -> bool {
         && provided.as_bytes().ct_eq(expected.as_bytes()).unwrap_u8() == 1
 }
 
+/// Read the authenticated Union operator forwarded by Core.
+///
+/// `HeaderValue::to_str` accepts visible ASCII only, while Union usernames are UTF-8. Reading the
+/// raw bytes here keeps the wire contract lossless without weakening its canonical-form checks.
+pub fn parse_principal(headers: &HeaderMap) -> Result<&str, PrincipalHeaderError> {
+    let mut values = headers.get_all(PRINCIPAL_HEADER).iter();
+    let value = values.next().ok_or(PrincipalHeaderError::Missing)?;
+    if values.next().is_some() {
+        return Err(PrincipalHeaderError::Multiple);
+    }
+    let principal =
+        std::str::from_utf8(value.as_bytes()).map_err(|_| PrincipalHeaderError::Encoding)?;
+    validate_principal(principal)?;
+    Ok(principal)
+}
+
+/// Replace any untrusted value with one canonical operator identity.
+pub fn insert_principal(
+    headers: &mut HeaderMap,
+    principal: &str,
+) -> Result<(), PrincipalHeaderError> {
+    validate_principal(principal)?;
+    let value =
+        HeaderValue::from_bytes(principal.as_bytes()).map_err(|_| PrincipalHeaderError::Invalid)?;
+    headers.insert(PRINCIPAL_HEADER, value);
+    Ok(())
+}
+
+fn validate_principal(principal: &str) -> Result<(), PrincipalHeaderError> {
+    if principal.is_empty()
+        || principal.len() > MAX_PRINCIPAL_BYTES
+        || principal.trim() != principal
+        || principal.chars().any(char::is_control)
+    {
+        return Err(PrincipalHeaderError::Invalid);
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -194,5 +249,49 @@ mod tests {
         assert_eq!(headers[PROTOCOL_HEADER], PROTOCOL);
         assert_eq!(headers[AUDIENCE_HEADER], "photo-backup");
         assert!(!headers.contains_key(TOKEN_HEADER));
+    }
+
+    #[test]
+    fn principal_header_round_trips_utf8_and_replaces_untrusted_values() {
+        let mut headers = HeaderMap::new();
+        headers.append(PRINCIPAL_HEADER, HeaderValue::from_static("attacker-one"));
+        headers.append(PRINCIPAL_HEADER, HeaderValue::from_static("attacker-two"));
+        assert_eq!(
+            parse_principal(&headers),
+            Err(PrincipalHeaderError::Multiple)
+        );
+
+        insert_principal(&mut headers, "管理员").unwrap();
+        assert_eq!(parse_principal(&headers), Ok("管理员"));
+        assert_eq!(headers.get_all(PRINCIPAL_HEADER).iter().count(), 1);
+    }
+
+    #[test]
+    fn principal_header_rejects_noncanonical_or_invalid_values() {
+        let mut headers = HeaderMap::new();
+        assert_eq!(
+            parse_principal(&headers),
+            Err(PrincipalHeaderError::Missing)
+        );
+
+        for invalid in ["", " admin", "admin ", "admin\troot"] {
+            assert_eq!(
+                insert_principal(&mut headers, invalid),
+                Err(PrincipalHeaderError::Invalid)
+            );
+        }
+        assert_eq!(
+            insert_principal(&mut headers, &"a".repeat(MAX_PRINCIPAL_BYTES + 1)),
+            Err(PrincipalHeaderError::Invalid)
+        );
+
+        headers.insert(
+            PRINCIPAL_HEADER,
+            HeaderValue::from_bytes(&[0xff]).expect("obs-text is a legal header byte"),
+        );
+        assert_eq!(
+            parse_principal(&headers),
+            Err(PrincipalHeaderError::Encoding)
+        );
     }
 }

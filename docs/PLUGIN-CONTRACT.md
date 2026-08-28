@@ -63,6 +63,12 @@ Core 不按 module id 特判。新模块应直接读取标准配置文件与 bin
 内部 `UNION_MODULE_PREFIX` 是 `/api/modules/<id>`；前端资源前缀另为
 `/modules/<id>/assets/`，二者不得混用。token 只用于 runtime-to-worker 身份，不是用户权限。
 
+`auth=platform` 路由还必须携带唯一的 `X-Union-Principal`。该值是 1–128 字节的规范
+UTF-8 用户名（无首尾空白或控制字符），由 Core 在完成会话认证与 RBAC 后覆盖写入；Worker
+必须通过 `sarmg-platform-gateway::parse_principal` 读取，不能使用仅接受 ASCII 的
+`HeaderValue::to_str`，也不能回退到本地 Cookie/Bearer 身份。`auth=module` 路由不得把该头当作
+设备凭据，其能力令牌仍由模块自己的稳定协议定义。
+
 ## Platform SDK
 
 `sarmg-platform-sdk` 暴露 configuration、authorization、audit、structured log、task、notification、
