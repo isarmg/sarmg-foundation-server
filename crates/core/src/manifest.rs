@@ -139,6 +139,32 @@ pub struct BackendRoute {
     pub methods: Vec<HttpMethod>,
     pub auth: RouteAuth,
     pub permission: Option<String>,
+    /// Core-enforced ingress bounds. Worker limits may be stricter, but can never extend these
+    /// values. The timeout is absolute from request admission until body EOF, so slow drip uploads
+    /// cannot retain a Core/Gateway/worker connection indefinitely.
+    #[serde(default)]
+    pub request_body: RequestBodyPolicy,
+}
+
+pub const DEFAULT_ROUTE_REQUEST_MAX_BYTES: u64 = 1024 * 1024;
+pub const DEFAULT_ROUTE_REQUEST_TOTAL_TIMEOUT_SECONDS: u32 = 30;
+pub const MAX_ROUTE_REQUEST_MAX_BYTES: u64 = 1024 * 1024 * 1024 * 1024;
+pub const MAX_ROUTE_REQUEST_TOTAL_TIMEOUT_SECONDS: u32 = 24 * 60 * 60;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequestBodyPolicy {
+    pub max_bytes: u64,
+    pub total_timeout_seconds: u32,
+}
+
+impl Default for RequestBodyPolicy {
+    fn default() -> Self {
+        Self {
+            max_bytes: DEFAULT_ROUTE_REQUEST_MAX_BYTES,
+            total_timeout_seconds: DEFAULT_ROUTE_REQUEST_TOTAL_TIMEOUT_SECONDS,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -693,6 +719,24 @@ fn validate_backend(manifest: &PluginManifest) -> Result<(), ManifestError> {
             )?,
             (RouteAuth::Module, None) => {}
             _ => return invalid(manifest, "backend.routes.auth", &route.id),
+        }
+        if route.request_body.max_bytes == 0
+            || route.request_body.max_bytes > MAX_ROUTE_REQUEST_MAX_BYTES
+        {
+            return invalid(
+                manifest,
+                "backend.routes.request_body.max_bytes",
+                &route.request_body.max_bytes.to_string(),
+            );
+        }
+        if route.request_body.total_timeout_seconds == 0
+            || route.request_body.total_timeout_seconds > MAX_ROUTE_REQUEST_TOTAL_TIMEOUT_SECONDS
+        {
+            return invalid(
+                manifest,
+                "backend.routes.request_body.total_timeout_seconds",
+                &route.request_body.total_timeout_seconds.to_string(),
+            );
         }
         for previous in &validated_routes {
             let shared_method = route

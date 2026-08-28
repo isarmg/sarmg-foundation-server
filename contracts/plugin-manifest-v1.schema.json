@@ -199,7 +199,16 @@
             { "$ref": "#/$defs/dottedId" },
             { "type": "null" }
           ]
-        }
+        },
+        "request_body": { "$ref": "#/$defs/requestBodyPolicy" }
+      }
+    },
+    "requestBodyPolicy": {
+      "type": "object", "additionalProperties": false,
+      "required": ["max_bytes", "total_timeout_seconds"],
+      "properties": {
+        "max_bytes": { "type": "integer", "minimum": 1, "maximum": 1099511627776 },
+        "total_timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 86400 }
       }
     },
     "frontend": {

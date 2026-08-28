@@ -28,6 +28,10 @@ health / lifecycle / services / events
 依赖版本不匹配、required dependency 缺失、自依赖、循环依赖、重复 service、权限越界、route
 capture 不同构、未知组件、menu 指向未声明 route、路径 traversal 或不合法 migration 形状均拒绝。
 
+每条 backend route 的可选 `request_body` 声明 `max_bytes` 和 `total_timeout_seconds`。省略时使用
+1 MiB/30 秒安全默认值；Core 必须在 Gateway 读取/转发时同时执行两项上限，worker 可以进一步
+收紧但不能放宽。大文件模块应只给精确上传 route 较大的窗口，不应放宽整个模块 API。
+
 PostgreSQL migration 必须有安全目录和 schema；SQLite migration 必须有目录；`embedded` 用于
 编译在模块内部的迁移，必须不声明虚假目录/schema。
 

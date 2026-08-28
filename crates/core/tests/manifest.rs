@@ -119,6 +119,29 @@ fn json_schema_tracks_rust_contract_and_all_execution_modes() {
     for field in ["styles", "components", "platform_api", "plugin_api"] {
         assert!(serialized.contains(field));
     }
+    assert!(serialized.contains("request_body"));
+}
+
+#[test]
+fn route_request_body_policy_is_bounded_and_defaults_securely() {
+    let mut plugin = fixture("fixture-body-policy", "1.0.0");
+    assert_eq!(plugin.backend.routes[0].request_body.max_bytes, 1024 * 1024);
+    assert_eq!(
+        plugin.backend.routes[0].request_body.total_timeout_seconds,
+        30
+    );
+
+    plugin.backend.routes[0].request_body.max_bytes = 0;
+    assert!(matches!(
+        plugin.validate(),
+        Err(ManifestError::InvalidField { .. })
+    ));
+    plugin.backend.routes[0].request_body.max_bytes = 1024;
+    plugin.backend.routes[0].request_body.total_timeout_seconds = 86_401;
+    assert!(matches!(
+        plugin.validate(),
+        Err(ManifestError::InvalidField { .. })
+    ));
 }
 
 #[test]

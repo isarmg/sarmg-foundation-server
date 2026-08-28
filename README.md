@@ -28,7 +28,8 @@ Rust 权威语义校验在 `sarmg-platform-core`。每个模块仓库中的 `man
 - Manifest 每层对象拒绝未知字段；所有版本和 compatibility range 使用 SemVer。
 - dependency 必须存在且版本匹配，激活按确定性拓扑顺序进行；循环依赖拒绝。
 - 可执行文件、前端、配置、migration 与 release notes 均为安全 bundle 相对路径，禁止 traversal。
-- canonical API 固定 `/api/modules/<id>`；每条 route 显式声明安全 `upstream_path` 和认证边界。
+- canonical API 固定 `/api/modules/<id>`；每条 route 显式声明安全 `upstream_path`、认证边界，并可
+  收紧 Core 强制的 request-body 字节/绝对时限（默认 1 MiB/30 秒）。
 - `auth=platform` 必须引用模块已声明权限；`auth=module` 必须 `permission=null`，但仍只能经 Core 公共 Gateway。
 - 前端资源固定 `/modules/<id>/assets/<relative>`；route 固定 `/modules/<id>` 命名空间。
 - process 仅 loopback，配置由只读 JSON 文件传入；旧 env 只能通过 `config_pointer` 显式映射且不经 shell。
