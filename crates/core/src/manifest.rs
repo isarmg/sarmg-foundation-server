@@ -644,6 +644,7 @@ fn validate_backend(manifest: &PluginManifest) -> Result<(), ManifestError> {
     let permissions = permission_ids(manifest);
     let mut ids = BTreeSet::new();
     let mut signatures = BTreeSet::new();
+    let mut validated_routes: Vec<&BackendRoute> = Vec::new();
     for route in &manifest.backend.routes {
         if !valid_local_id(&route.id) {
             return invalid(manifest, "backend.routes.id", &route.id);
@@ -693,6 +694,26 @@ fn validate_backend(manifest: &PluginManifest) -> Result<(), ManifestError> {
             (RouteAuth::Module, None) => {}
             _ => return invalid(manifest, "backend.routes.auth", &route.id),
         }
+        for previous in &validated_routes {
+            let shared_method = route
+                .methods
+                .iter()
+                .any(|method| previous.methods.contains(method));
+            if shared_method
+                && route_patterns_overlap(&route.path, &previous.path)
+                && route_specificity(&route.path) == route_specificity(&previous.path)
+            {
+                return invalid(
+                    manifest,
+                    "backend.routes.path+method",
+                    &format!(
+                        "{} overlaps {} with equal specificity",
+                        route.id, previous.id
+                    ),
+                );
+            }
+        }
+        validated_routes.push(route);
     }
     Ok(())
 }
@@ -1104,11 +1125,67 @@ fn valid_route_path(value: &str) -> bool {
     value.starts_with('/')
         && !value.starts_with("//")
         && value.len() <= 512
-        && !value.contains(['?', '#', '\\'])
+        && !value.contains(['?', '#', '\\', '%'])
         && !value.chars().any(char::is_control)
         && !value
             .split('/')
             .any(|segment| matches!(segment, "." | ".."))
+}
+
+/// Ordering used by the gateway's most-specific route selection. Static segments win first,
+/// followed by the number of non-wildcard segments and finally an exact (non-wildcard) ending.
+pub fn route_specificity(value: &str) -> (usize, usize, bool) {
+    let segments = value
+        .split('/')
+        .skip(1)
+        .filter(|segment| !segment.is_empty());
+    let mut static_segments = 0;
+    let mut non_wildcard_segments = 0;
+    let mut wildcard = false;
+    for segment in segments {
+        if segment.starts_with("{*") {
+            wildcard = true;
+        } else {
+            non_wildcard_segments += 1;
+            if !(segment.starts_with('{') && segment.ends_with('}')) {
+                static_segments += 1;
+            }
+        }
+    }
+    (static_segments, non_wildcard_segments, !wildcard)
+}
+
+fn route_patterns_overlap(left: &str, right: &str) -> bool {
+    let left = left
+        .split('/')
+        .skip(1)
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>();
+    let right = right
+        .split('/')
+        .skip(1)
+        .filter(|segment| !segment.is_empty())
+        .collect::<Vec<_>>();
+    let mut index = 0;
+    loop {
+        match (left.get(index), right.get(index)) {
+            (None, None) => return true,
+            (Some(segment), None) | (None, Some(segment)) => {
+                return segment.starts_with("{*");
+            }
+            (Some(left), Some(right)) => {
+                if left.starts_with("{*") || right.starts_with("{*") {
+                    return true;
+                }
+                let left_parameter = left.starts_with('{');
+                let right_parameter = right.starts_with('{');
+                if !left_parameter && !right_parameter && left != right {
+                    return false;
+                }
+            }
+        }
+        index += 1;
+    }
 }
 
 fn same_route_parameters(left: &str, right: &str) -> bool {

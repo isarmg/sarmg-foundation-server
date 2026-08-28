@@ -29,7 +29,8 @@
     "service": "sunshine.api",
     "routes": [
       { "id": "hosts-read", "path": "/hosts", "upstream_path": "/api/services/sunshine/hosts", "methods": ["GET"], "auth": "platform", "permission": "sunshine.hosts.read" },
-      { "id": "hosts-write", "path": "/hosts/{*path}", "upstream_path": "/api/services/sunshine/hosts/{*path}", "methods": ["POST", "PUT", "DELETE"], "auth": "platform", "permission": "sunshine.hosts.write" },
+      { "id": "hosts-create", "path": "/hosts", "upstream_path": "/api/services/sunshine/hosts", "methods": ["POST"], "auth": "platform", "permission": "sunshine.hosts.write" },
+      { "id": "hosts-write", "path": "/hosts/{*path}", "upstream_path": "/api/services/sunshine/hosts/{*path}", "methods": ["POST", "PATCH", "DELETE"], "auth": "platform", "permission": "sunshine.hosts.write" },
       { "id": "proxy", "path": "/hosts/{*path}", "upstream_path": "/api/services/sunshine/hosts/{*path}", "methods": ["GET"], "auth": "platform", "permission": "sunshine.proxy.use" }
     ]
   },

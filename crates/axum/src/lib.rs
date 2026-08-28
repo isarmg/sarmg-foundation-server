@@ -46,7 +46,8 @@ where
 mod tests {
     use super::*;
     use axum::routing::get;
-    use sarmg_platform_core::manifests;
+
+    const EXAMPLE_MANIFEST: &str = include_str!("../../../modules/dufs.json");
 
     fn descriptor(raw: &str) -> ModuleDescriptor {
         serde_json::from_str(raw).unwrap()
@@ -55,7 +56,7 @@ mod tests {
     #[test]
     fn assembles_gateway_adapters_without_business_router_categories() {
         let assembled = assemble_gateways::<()>(vec![AxumGatewayAdapter {
-            descriptor: descriptor(manifests::DUFS),
+            descriptor: descriptor(EXAMPLE_MANIFEST),
             gateway_routes: || {
                 Router::new().route("/api/modules/dufs/files/{*path}", get(|| async {}))
             },

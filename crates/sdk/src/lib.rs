@@ -406,7 +406,10 @@ fn read_limited_regular_file(path: &Path) -> Result<Vec<u8>, ProcessContextError
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sarmg_platform_core::{PluginManifest, manifests};
+    use sarmg_platform_core::PluginManifest;
+
+    const PHOTO_BACKUP_MANIFEST: &str = include_str!("../../../modules/photo-backup.json");
+    const DUFS_MANIFEST: &str = include_str!("../../../modules/dufs.json");
 
     fn context(path: PathBuf, root: PathBuf) -> ProcessContext {
         ProcessContext {
@@ -465,7 +468,7 @@ mod tests {
 
     #[test]
     fn configuration_environment_bindings_are_scalar_and_non_shell() {
-        let manifest = PluginManifest::parse_json(manifests::PHOTO_BACKUP).unwrap();
+        let manifest = PluginManifest::parse_json(PHOTO_BACKUP_MANIFEST).unwrap();
         let values = serde_json::json!({
             "database_url": "postgresql://localhost/photo",
             "data_dir": "/srv/photo",
@@ -482,7 +485,7 @@ mod tests {
 
     #[test]
     fn handshake_uses_api_versions_not_crate_version() {
-        let manifest = PluginManifest::parse_json(manifests::DUFS).unwrap();
+        let manifest = PluginManifest::parse_json(DUFS_MANIFEST).unwrap();
         let handshake = PluginHandshake::for_manifest(&manifest);
         assert_eq!(handshake.platform_api_version, "1.0.0");
         assert_eq!(handshake.plugin_api_version, "1.0.0");

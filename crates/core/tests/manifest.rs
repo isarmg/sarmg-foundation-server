@@ -3,11 +3,24 @@ use std::collections::BTreeSet;
 use sarmg_platform_core::{
     CatalogError, EnvironmentBinding, Execution, HealthDefinition, ManifestError, MigrationEngine,
     PLATFORM_API_VERSION, PLUGIN_API_VERSION, PlatformVersions, PluginCatalog, PluginDependency,
-    PluginManifest, RouteAuth, manifests,
+    PluginManifest, RouteAuth,
 };
 
+const SUNSHINE: &str = include_str!("../../../modules/sunshine.json");
+const HOST_MONITORING: &str = include_str!("../../../modules/host-monitoring.json");
+const SENTINEL_MONITOR: &str = include_str!("../../../modules/sentinel-monitor.json");
+const PHOTO_BACKUP: &str = include_str!("../../../modules/photo-backup.json");
+const DUFS: &str = include_str!("../../../modules/dufs.json");
+const SHIPPED: [&str; 5] = [
+    SUNSHINE,
+    HOST_MONITORING,
+    SENTINEL_MONITOR,
+    PHOTO_BACKUP,
+    DUFS,
+];
+
 fn shipped() -> Vec<PluginManifest> {
-    manifests::ALL
+    SHIPPED
         .into_iter()
         .map(|raw| PluginManifest::parse_json(raw).unwrap())
         .collect()
@@ -91,7 +104,7 @@ fn json_schema_tracks_rust_contract_and_all_execution_modes() {
 
 #[test]
 fn strict_parser_rejects_unknown_fields() {
-    let raw = manifests::DUFS.replacen(
+    let raw = DUFS.replacen(
         "\"manifest_version\": 1,",
         "\"manifest_version\": 1, \"surprise\": true,",
         1,
@@ -101,7 +114,7 @@ fn strict_parser_rejects_unknown_fields() {
         Err(ManifestError::Json(_))
     ));
 
-    let missing_required = manifests::DUFS.replace("  \"dependencies\": [],\n", "");
+    let missing_required = DUFS.replace("  \"dependencies\": [],\n", "");
     assert!(matches!(
         PluginManifest::parse_json(&missing_required),
         Err(ManifestError::Json(_))
@@ -302,6 +315,50 @@ fn route_rewrites_auth_modes_and_reserved_environment_fail_closed() {
             ..
         })
     ));
+}
+
+#[test]
+fn encoded_and_equally_specific_overlapping_routes_fail_closed() {
+    let mut plugin = shipped()
+        .into_iter()
+        .find(|plugin| plugin.id == "dufs")
+        .unwrap();
+    let mut first = plugin.backend.routes[1].clone();
+    first.id = "ambiguous-first".into();
+    first.path = "/lookup/{value}".into();
+    first.upstream_path = "/lookup/{value}".into();
+    let mut second = first.clone();
+    second.id = "ambiguous-second".into();
+    second.path = "/lookup/{other}".into();
+    second.upstream_path = "/lookup/{other}".into();
+    plugin.backend.routes.extend([first, second]);
+    assert!(matches!(
+        plugin.validate(),
+        Err(ManifestError::InvalidField {
+            field: "backend.routes.path+method",
+            ..
+        })
+    ));
+
+    let mut plugin = shipped().remove(0);
+    plugin.backend.routes[0].path = "/%2e%2e/{*path}".into();
+    plugin.backend.routes[0].upstream_path = "/%2e%2e/{*path}".into();
+    assert!(matches!(
+        plugin.validate(),
+        Err(ManifestError::InvalidField {
+            field: "backend.routes.path",
+            ..
+        })
+    ));
+
+    assert!(
+        sarmg_platform_core::route_specificity("/cameras/{camera_id}/ptz")
+            > sarmg_platform_core::route_specificity("/cameras/{*path}")
+    );
+    assert!(
+        sarmg_platform_core::route_specificity("/")
+            > sarmg_platform_core::route_specificity("/{*path}")
+    );
 }
 
 #[test]

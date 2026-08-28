@@ -35,22 +35,6 @@ pub const RESERVED_PROCESS_ENVIRONMENT: [&str; 10] = [
     UNION_MODULE_PREFIX_ENV,
 ];
 
-/// Built-in manifests are migration baselines, not a compile-time allow-list.
-pub mod manifests {
-    pub const SUNSHINE: &str = include_str!("../../../modules/sunshine.json");
-    pub const HOST_MONITORING: &str = include_str!("../../../modules/host-monitoring.json");
-    pub const SENTINEL_MONITOR: &str = include_str!("../../../modules/sentinel-monitor.json");
-    pub const PHOTO_BACKUP: &str = include_str!("../../../modules/photo-backup.json");
-    pub const DUFS: &str = include_str!("../../../modules/dufs.json");
-    pub const ALL: [&str; 5] = [
-        SUNSHINE,
-        HOST_MONITORING,
-        SENTINEL_MONITOR,
-        PHOTO_BACKUP,
-        DUFS,
-    ];
-}
-
 /// Transitional names for code moving from the old static module catalog.
 pub type ModuleCatalog = PluginCatalog;
 pub type ModuleDescriptor = PluginManifest;
