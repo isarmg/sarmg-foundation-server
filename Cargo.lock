@@ -756,6 +756,7 @@ dependencies = [
  "argon2",
  "base64",
  "hmac",
+ "http",
  "sha2",
  "thiserror",
 ]

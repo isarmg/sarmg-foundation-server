@@ -143,6 +143,18 @@ pub fn csrf_token() -> String {
     URL_SAFE_NO_PAD.encode(nonce)
 }
 
+pub fn parse_cookie_token(name: &str, headers: &http::HeaderMap) -> Option<String> {
+    headers
+        .get(http::header::COOKIE)?
+        .to_str()
+        .ok()?
+        .split(';')
+        .find_map(|part| {
+            let (key, value) = part.trim().split_once('=')?;
+            (key == name && !value.is_empty()).then(|| value.to_string())
+        })
+}
+
 fn unix_seconds() -> Result<u64, AuthError> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
