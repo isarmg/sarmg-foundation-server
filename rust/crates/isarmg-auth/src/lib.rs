@@ -1,8 +1,8 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
 };
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use hmac::{Hmac, Mac};
@@ -103,8 +103,7 @@ impl SessionIssuer {
     }
 
     fn sign(&self, payload: &str) -> String {
-        let mut mac =
-            SessionHmac::new_from_slice(&self.secret).expect("validated session secret");
+        let mut mac = SessionHmac::new_from_slice(&self.secret).expect("validated session secret");
         mac.update(payload.as_bytes());
         URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
     }

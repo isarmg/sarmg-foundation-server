@@ -2,8 +2,7 @@ use anyhow::Context;
 use serde::de::DeserializeOwned;
 
 pub fn load_toml<T: DeserializeOwned>(path: &std::path::Path) -> anyhow::Result<T> {
-    let text = std::fs::read_to_string(path)
-        .with_context(|| format!("read {}", path.display()))?;
+    let text = std::fs::read_to_string(path).with_context(|| format!("read {}", path.display()))?;
     toml::from_str(&text).with_context(|| format!("parse {}", path.display()))
 }
 
