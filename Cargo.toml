@@ -7,9 +7,8 @@ members = [
   "rust/crates/isarmg-sqlite",
   "rust/crates/isarmg-observability",
   "rust/crates/isarmg-config",
-  "rust/crates/isarmg-rooted-storage",
+  "rust/crates/isarmg-path-validation",
   "rust/crates/isarmg-operations",
-  "rust/crates/isarmg-postgres",
 ]
 
 [workspace.package]

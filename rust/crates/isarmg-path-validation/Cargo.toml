@@ -1,5 +1,5 @@
 [package]
-name = "isarmg-rooted-storage"
+name = "isarmg-path-validation"
 description = "Relative-path and root-bound filesystem safety types"
 version.workspace = true
 edition.workspace = true
