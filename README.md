@@ -37,8 +37,9 @@ Rust 权威语义校验在 `sarmg-platform-core`。每个模块仓库中的 `man
 
 ## 版本
 
-平台 crate 当前为 `0.2.0`。`platform_api=1.0.0` 与 `plugin_api=1.0.0` 是独立兼容面，不能从
-crate 版本推导。当前 Union Core 插件兼容窗口为 `>=0.5.0, <0.6.0`。
+平台 crate 当前为 `0.3.0`。`platform_api=1.0.0` 与 `plugin_api=2.0.0` 是独立兼容面，不能从
+crate 版本推导。当前 Union Core 插件兼容窗口为 `>=0.6.0, <0.7.0`。Manifest v2 只接受标准
+`UNION_PLUGIN_BIND`，不再声明或注入模块专属 bind 环境变量别名。
 
 ## 文档与验证
 

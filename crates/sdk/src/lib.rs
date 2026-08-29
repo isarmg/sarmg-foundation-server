@@ -242,8 +242,6 @@ pub enum ProcessContextError {
     UnsafePath(PathBuf),
     #[error("configuration exceeds {MAX_CONFIGURATION_BYTES} bytes")]
     ConfigurationTooLarge,
-    #[error("configuration binding is missing or is not scalar: {0}")]
-    InvalidBinding(String),
     #[error("configuration I/O failed")]
     Io(#[source] std::io::Error),
     #[error("configuration JSON is invalid")]
@@ -319,42 +317,6 @@ impl ProcessContext {
     pub fn load_configuration_value(&self) -> Result<serde_json::Value, ProcessContextError> {
         self.load_configuration()
     }
-}
-
-/// Resolve legacy environment aliases from already schema-validated configuration. Values are
-/// passed directly to `Command::env`; no shell or string interpolation is involved.
-pub fn resolve_environment_bindings(
-    manifest: &PluginManifest,
-    configuration: &serde_json::Value,
-) -> Result<BTreeMap<String, String>, ProcessContextError> {
-    let Execution::Process { environment, .. } = &manifest.execution else {
-        return Ok(BTreeMap::new());
-    };
-    environment
-        .iter()
-        .filter_map(|binding| {
-            let value = configuration.pointer(&binding.config_pointer)?;
-            Some(
-                scalar_to_string(value)
-                    .map(|value| (binding.name.clone(), value))
-                    .ok_or_else(|| {
-                        ProcessContextError::InvalidBinding(binding.config_pointer.clone())
-                    }),
-            )
-        })
-        .collect()
-}
-
-fn scalar_to_string(value: &serde_json::Value) -> Option<String> {
-    let rendered = match value {
-        serde_json::Value::String(value) => Some(value.clone()),
-        serde_json::Value::Bool(value) => Some(value.to_string()),
-        serde_json::Value::Number(value) => Some(value.to_string()),
-        serde_json::Value::Null | serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
-            None
-        }
-    }?;
-    (rendered.len() <= 65_536 && !rendered.contains('\0')).then_some(rendered)
 }
 
 fn required_env(name: &'static str) -> Result<String, ProcessContextError> {
@@ -466,27 +428,11 @@ mod tests {
     }
 
     #[test]
-    fn configuration_environment_bindings_are_scalar_and_non_shell() {
-        let manifest = PluginManifest::parse_json(PROCESS_FIXTURE).unwrap();
-        let values = serde_json::json!({
-            "database_url": "postgresql://localhost/fixture",
-            "data_dir": "/srv/fixture",
-            "max_batch": 1024,
-            "require_tls": true
-        });
-        let environment = resolve_environment_bindings(&manifest, &values).unwrap();
-        assert_eq!(environment["FIXTURE_MAX_BATCH"], "1024");
-        assert_eq!(environment["FIXTURE_REQUIRE_TLS"], "true");
-        assert_eq!(environment["FIXTURE_DATA_DIR"], "/srv/fixture");
-        assert!(!environment.contains_key("FIXTURE_OPTIONAL_TOKEN"));
-    }
-
-    #[test]
     fn handshake_uses_api_versions_not_crate_version() {
         let manifest = PluginManifest::parse_json(PROCESS_FIXTURE).unwrap();
         let handshake = PluginHandshake::for_manifest(&manifest);
         assert_eq!(handshake.platform_api_version, "1.0.0");
-        assert_eq!(handshake.plugin_api_version, "1.0.0");
+        assert_eq!(handshake.plugin_api_version, "2.0.0");
         assert_eq!(handshake.plugin_id, "fixture-module");
         assert_eq!(handshake.plugin_version, "1.2.3");
     }

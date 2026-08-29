@@ -4,21 +4,21 @@
 //! bridge and must be called again when the active runtime catalog changes.
 
 use axum::Router;
-use sarmg_platform_core::{CatalogError, ModuleCatalog, ModuleDescriptor};
+use sarmg_platform_core::{CatalogError, PluginCatalog, PluginManifest};
 
 pub struct AxumGatewayAdapter<S> {
-    pub descriptor: ModuleDescriptor,
+    pub descriptor: PluginManifest,
     pub gateway_routes: fn() -> Router<S>,
 }
 
 pub struct AssembledGateways<S> {
-    pub catalog: ModuleCatalog,
+    pub catalog: PluginCatalog,
     pub gateway_routes: Router<S>,
 }
 
 /// Assemble adapters for the validated active runtime catalog.
 ///
-/// `ModuleCatalog::new` validates compatibility, dependencies, paths, permissions and service
+/// `PluginCatalog::new` validates compatibility, dependencies, paths, permissions and service
 /// names before any route becomes reachable.
 pub fn assemble_gateways<S>(
     adapters: Vec<AxumGatewayAdapter<S>>,
@@ -26,7 +26,7 @@ pub fn assemble_gateways<S>(
 where
     S: Clone + Send + Sync + 'static,
 {
-    let catalog = ModuleCatalog::new(
+    let catalog = PluginCatalog::new(
         adapters
             .iter()
             .map(|adapter| adapter.descriptor.clone())
@@ -49,7 +49,7 @@ mod tests {
 
     const PROCESS_FIXTURE: &str = include_str!("../../../tests/fixtures/process-module.json");
 
-    fn descriptor(raw: &str) -> ModuleDescriptor {
+    fn descriptor(raw: &str) -> PluginManifest {
         serde_json::from_str(raw).unwrap()
     }
 

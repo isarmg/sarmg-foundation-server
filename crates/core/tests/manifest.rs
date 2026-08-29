@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use sarmg_platform_core::{
-    CatalogError, EnvironmentBinding, Execution, HealthDefinition, ManifestError, MigrationEngine,
+    CatalogError, Execution, HealthDefinition, ManifestError, MigrationEngine,
     PLATFORM_API_VERSION, PLUGIN_API_VERSION, PlatformVersions, PluginCatalog, PluginDependency,
     PluginManifest, RouteAuth,
 };
@@ -58,7 +58,7 @@ fn five_module_style_fixture_is_a_valid_process_catalog() {
     let catalog = PluginCatalog::new(fixtures()).unwrap();
     assert_eq!(catalog.manifests().count(), 5);
     assert_eq!(PLATFORM_API_VERSION, "1.0.0");
-    assert_eq!(PLUGIN_API_VERSION, "1.0.0");
+    assert_eq!(PLUGIN_API_VERSION, "2.0.0");
     assert_eq!(catalog.get("fixture-storage").unwrap().version, "1.4.0");
     for plugin in catalog.manifests() {
         let Execution::Process {
@@ -147,8 +147,8 @@ fn route_request_body_policy_is_bounded_and_defaults_securely() {
 #[test]
 fn strict_parser_rejects_unknown_fields() {
     let raw = PROCESS_FIXTURE.replacen(
-        "\"manifest_version\": 1,",
-        "\"manifest_version\": 1, \"surprise\": true,",
+        "\"manifest_version\": 2,",
+        "\"manifest_version\": 2, \"surprise\": true,",
         1,
     );
     assert!(matches!(
@@ -276,7 +276,7 @@ fn compatibility_ranges_are_enforced_before_activation() {
     let catalog = PluginCatalog::new(fixtures()).unwrap();
     catalog
         .ensure_platform_compatible(
-            &PlatformVersions::parse("0.5.0", PLATFORM_API_VERSION, PLUGIN_API_VERSION).unwrap(),
+            &PlatformVersions::parse("0.6.0", PLATFORM_API_VERSION, PLUGIN_API_VERSION).unwrap(),
         )
         .unwrap();
     assert!(matches!(
@@ -341,22 +341,6 @@ fn route_rewrites_auth_modes_and_reserved_environment_fail_closed() {
         plugin.validate(),
         Err(ManifestError::InvalidField {
             field: "backend.routes.auth",
-            ..
-        })
-    ));
-
-    let mut plugin = fixtures().remove(0);
-    let Execution::Process { environment, .. } = &mut plugin.execution else {
-        unreachable!()
-    };
-    environment.push(EnvironmentBinding {
-        name: "UNION_PLUGIN_CONFIG".into(),
-        config_pointer: "/secret".into(),
-    });
-    assert!(matches!(
-        plugin.validate(),
-        Err(ManifestError::InvalidField {
-            field: "execution.environment.name",
             ..
         })
     ));

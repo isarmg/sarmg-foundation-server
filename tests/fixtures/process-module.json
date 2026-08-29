@@ -1,5 +1,5 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "id": "fixture-module",
   "display_name": "Fixture Module",
   "description": "Generic process plugin used only by platform contract tests",
@@ -11,27 +11,16 @@
     "release_notes": "version/RELEASE-NOTES.md"
   },
   "compatibility": {
-    "core": ">=0.5.0, <0.6.0",
+    "core": ">=0.6.0, <0.7.0",
     "platform_api": "^1.0.0",
-    "plugin_api": "^1.0.0"
+    "plugin_api": "^2.0.0"
   },
   "dependencies": [],
   "execution": {
     "mode": "process",
     "executable": "backend/fixture-module",
     "args": ["serve"],
-    "environment": [
-      { "name": "FIXTURE_DATABASE_URL", "config_pointer": "/database_url" },
-      { "name": "FIXTURE_DATA_DIR", "config_pointer": "/data_dir" },
-      { "name": "FIXTURE_MAX_BATCH", "config_pointer": "/max_batch" },
-      { "name": "FIXTURE_REQUIRE_TLS", "config_pointer": "/require_tls" },
-      { "name": "FIXTURE_OPTIONAL_TOKEN", "config_pointer": "/optional_token" }
-    ],
-    "bind": {
-      "host": "127.0.0.1",
-      "port": 0,
-      "environment": "FIXTURE_BIND"
-    }
+    "bind": { "host": "127.0.0.1", "port": 0 }
   },
   "backend": {
     "api_version": "v1",

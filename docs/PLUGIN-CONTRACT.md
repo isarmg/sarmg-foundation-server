@@ -56,9 +56,9 @@ UNION_MODULE_PREFIX
 `ProcessContext::from_env` 校验身份、loopback bind、端口、package/config 路径和 gateway token；
 `load_configuration<T>` 只读取 regular、non-symlink、最大 1 MiB 的 JSON。
 
-旧 worker 变量用 Manifest `environment:[{name,config_pointer}]` 显式桥接。Runtime 只接受 scalar
-配置值并用 `Command::env` 直接注入，不执行 shell/模板。旧 bind 变量用 `bind.environment` 声明；
-Core 不按 module id 特判。新模块应直接读取标准配置文件与 bind 变量。
+Manifest v2 不再桥接模块专属配置或 bind 环境变量。Worker 必须从 `UNION_PLUGIN_CONFIG` 指向的
+已验证 JSON 读取配置，并只从 `UNION_PLUGIN_BIND` 读取 Core 分配的监听地址；Core 不按 module id
+特判，也不向子进程注入旧名称别名。
 
 内部 `UNION_MODULE_PREFIX` 是 `/api/modules/<id>`；前端资源前缀另为
 `/modules/<id>/assets/`，二者不得混用。token 只用于 runtime-to-worker 身份，不是用户权限。

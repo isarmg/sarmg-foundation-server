@@ -4,7 +4,7 @@ use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{MANIFEST_VERSION, RESERVED_PROCESS_ENVIRONMENT};
+use crate::MANIFEST_VERSION;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -83,7 +83,6 @@ pub enum Execution {
     Process {
         executable: String,
         args: Vec<String>,
-        environment: Vec<EnvironmentBinding>,
         bind: ProcessBind,
     },
     Container {
@@ -107,18 +106,6 @@ pub struct ProcessBind {
     pub host: String,
     /// `0` asks the runtime to allocate an ephemeral port.
     pub port: u16,
-    /// Optional legacy alias receiving the same socket value as `UNION_PLUGIN_BIND`.
-    #[serde(default)]
-    pub environment: Option<String>,
-}
-
-/// Transitional, explicit mapping from validated configuration to a child environment variable.
-/// Standard runtime identity variables are reserved and injected independently by the runtime.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct EnvironmentBinding {
-    pub name: String,
-    pub config_pointer: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -547,7 +534,6 @@ fn validate_execution(manifest: &PluginManifest) -> Result<(), ManifestError> {
         Execution::Process {
             executable,
             args,
-            environment,
             bind,
         } => {
             ensure_bundle_path(manifest, "execution.executable", executable)?;
@@ -562,33 +548,8 @@ fn validate_execution(manifest: &PluginManifest) -> Result<(), ManifestError> {
                     return invalid(manifest, "execution.args", argument);
                 }
             }
-            let mut names = BTreeSet::new();
-            for binding in environment {
-                if !valid_environment_name(&binding.name)
-                    || RESERVED_PROCESS_ENVIRONMENT.contains(&binding.name.as_str())
-                {
-                    return invalid(manifest, "execution.environment.name", &binding.name);
-                }
-                if !valid_json_pointer(&binding.config_pointer) {
-                    return invalid(
-                        manifest,
-                        "execution.environment.config_pointer",
-                        &binding.config_pointer,
-                    );
-                }
-                if !names.insert(&binding.name) {
-                    return duplicate(manifest, "execution.environment.name", &binding.name);
-                }
-            }
             if !matches!(bind.host.as_str(), "127.0.0.1" | "::1") {
                 return invalid(manifest, "execution.bind.host", &bind.host);
-            }
-            if let Some(name) = &bind.environment
-                && (!valid_environment_name(name)
-                    || RESERVED_PROCESS_ENVIRONMENT.contains(&name.as_str())
-                    || !names.insert(name))
-            {
-                return invalid(manifest, "execution.bind.environment", name);
             }
         }
         Execution::Container { image, digest } => {
@@ -1312,18 +1273,6 @@ fn valid_sha256_digest(value: &str) -> bool {
                 .bytes()
                 .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     })
-}
-
-fn valid_environment_name(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 128
-        && value
-            .bytes()
-            .next()
-            .is_some_and(|byte| byte.is_ascii_uppercase())
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
 }
 
 fn valid_postgres_identifier(value: &str) -> bool {
