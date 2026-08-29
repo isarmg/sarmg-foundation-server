@@ -1,0 +1,15 @@
+[package]
+name = "isarmg-auth"
+description = "Password, session and CSRF primitives shared by ISArmg products"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+argon2 = { version = "0.5", features = ["std"] }
+base64.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+thiserror.workspace = true

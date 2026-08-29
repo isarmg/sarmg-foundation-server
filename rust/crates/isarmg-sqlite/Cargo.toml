@@ -1,0 +1,12 @@
+[package]
+name = "isarmg-sqlite"
+description = "Shared SQLite open, migration and backup primitives"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+rusqlite.workspace = true
+thiserror.workspace = true

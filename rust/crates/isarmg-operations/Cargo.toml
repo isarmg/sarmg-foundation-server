@@ -1,0 +1,11 @@
+[package]
+name = "isarmg-operations"
+description = "Persistent operation state model"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+uuid = { version = "1", features = ["v4", "serde"] }

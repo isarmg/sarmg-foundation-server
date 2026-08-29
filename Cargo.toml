@@ -1,22 +1,35 @@
 [workspace]
 resolver = "3"
 members = [
-  "crates/core",
-  "crates/events",
-  "crates/sdk",
-  "crates/axum",
-  "crates/gateway",
-  "crates/postgres",
+  "rust/crates/isarmg-error",
+  "rust/crates/isarmg-http",
+  "rust/crates/isarmg-auth",
+  "rust/crates/isarmg-sqlite",
+  "rust/crates/isarmg-observability",
+  "rust/crates/isarmg-config",
+  "rust/crates/isarmg-rooted-storage",
+  "rust/crates/isarmg-operations",
+  "rust/crates/isarmg-postgres",
 ]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.1.0"
 edition = "2024"
 authors = ["sarmg <isarmg@163.com>"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
+anyhow = "1"
+axum = "0.8"
+base64 = "0.22"
+hmac = "0.12"
+http = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 semver = "1"
 thiserror = "2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
