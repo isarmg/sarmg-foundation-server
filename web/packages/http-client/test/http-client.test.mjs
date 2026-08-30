@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -6,6 +7,14 @@ import {
   isApiClientError,
   requestJson,
 } from "../dist/index.js";
+
+test("0.2 declarations do not re-export contract types", () => {
+  const declarations = readFileSync(
+    new URL("../dist/index.d.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(declarations, /export type\s*\{\s*ErrorEnvelope\s*\}/);
+});
 
 function jsonResponse(value, init = {}) {
   const headers = new Headers(init.headers);

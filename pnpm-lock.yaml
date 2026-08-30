@@ -35,7 +35,7 @@ importers:
   web/packages/http-client:
     dependencies:
       '@isarmg/contracts':
-        specifier: workspace:*
+        specifier: workspace:0.2.0
         version: link:../contracts
     devDependencies:
       typescript:

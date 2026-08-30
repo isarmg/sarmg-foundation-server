@@ -15,4 +15,5 @@ const host = await requestJson<Host>("/api/hosts/1", {
 
 Callers should branch on `ApiClientError.code` or `status`, never on display text. Passing a CSRF
 token adds it only to unsafe methods. This package remains 0.x and must be integration-tested in
-each product before replacing a mature local client.
+each product before replacing a mature local client. Import wire types such as `ErrorEnvelope`
+directly from `@isarmg/contracts`; this package does not re-export contract types.

@@ -1,6 +1,6 @@
 {
   "name": "@isarmg/http-client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -21,7 +21,7 @@
     "test": "pnpm --filter @isarmg/contracts build && pnpm run build && node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@isarmg/contracts": "workspace:*"
+    "@isarmg/contracts": "workspace:0.2.0"
   },
   "devDependencies": {
     "typescript": "5.8.3"

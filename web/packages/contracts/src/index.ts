@@ -10,9 +10,6 @@ export type ErrorEnvelope = {
   details?: Record<string, unknown>;
 };
 
-/** Backward-compatible name retained while packages are still experimental. */
-export type ApiError = ErrorEnvelope;
-
 const ERROR_CODE_PATTERN = /^[a-z][a-z0-9._-]*$/;
 
 export function isErrorCode(value: unknown): value is ErrorCode {

@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import { isErrorCode, isErrorEnvelope } from "../dist/index.js";
+
+test("0.2 declarations expose only the authoritative error wire type", () => {
+  const declarations = readFileSync(
+    new URL("../dist/index.d.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(declarations, /export type ErrorEnvelope\b/);
+  assert.doesNotMatch(declarations, /\bApiError\b/);
+});
 
 test("error codes match the Rust wire contract", () => {
   for (const value of [

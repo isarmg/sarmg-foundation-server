@@ -30,7 +30,7 @@ complete production security boundary yet:
 - `isarmg-operations` contains state data types only. It does not provide persistence, leases,
   idempotency, retries, an outbox or crash recovery.
 - `isarmg-error` and `@isarmg/contracts` share a validated, machine-readable `ErrorEnvelope`
-  wire shape. They remain 0.x: product-specific codes and adoption still require compatibility
+  wire shape. They remain 0.x: product-specific codes and adoption still require contract
   tests in each consumer.
 - `@isarmg/http-client` now ships compiled output with bounded JSON reads, same-origin credentials,
   timeouts, CSRF propagation and typed errors. It is still experimental until adopted and tested
@@ -58,6 +58,9 @@ rust/crates/
 ```
 
 ## Web packages
+
+All Web packages are versioned `0.2.0`. Removed `0.1` names and entry points are not aliased or
+re-exported; consumers must update imports explicitly.
 
 ```text
 web/packages/

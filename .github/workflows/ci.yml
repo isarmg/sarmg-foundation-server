@@ -54,3 +54,5 @@ jobs:
         run: pnpm typecheck
       - name: Build packages
         run: pnpm build
+      - name: Test packages
+        run: pnpm test
