@@ -32,6 +32,9 @@ complete production security boundary yet:
 - `isarmg-error` and `@isarmg/contracts` share a validated, machine-readable `ErrorEnvelope`
   wire shape. They remain 0.x: product-specific codes and adoption still require compatibility
   tests in each consumer.
+- `@isarmg/http-client` now ships compiled output with bounded JSON reads, same-origin credentials,
+  timeouts, CSRF propagation and typed errors. It is still experimental until adopted and tested
+  by at least two products.
 - The Web packages are source-level prototypes unless their own package metadata explicitly
   declares a build and distributable `dist` output.
 
