@@ -8,14 +8,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./schemas/backup-manifest.schema.json": "./dist/schemas/backup-manifest.schema.json",
+    "./schemas/error-envelope.schema.json": "./dist/schemas/error-envelope.schema.json",
+    "./schemas/release.schema.json": "./dist/schemas/release.schema.json",
+    "./schemas/state-contract.schema.json": "./dist/schemas/state-contract.schema.json"
   },
   "files": [
     "dist",
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/copy-schemas.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "pnpm run build && node --test test/*.test.mjs"
   },

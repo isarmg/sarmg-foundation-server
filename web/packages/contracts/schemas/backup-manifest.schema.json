@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://isarmg.org/schemas/backup-manifest-v2.json",
+  "title": "iSarmg Backup Manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest_version", "tool_version", "product", "application_version", "schema_identity", "created_at_epoch_seconds", "external_requirements", "resources"],
+  "properties": {
+    "manifest_version": { "const": 2 },
+    "tool_version": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+    "product": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+    "application_version": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+    "schema_identity": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["application", "application_version", "schema_revision", "schema_sha256"],
+          "properties": {
+            "application": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+            "application_version": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+            "schema_revision": { "type": "integer", "minimum": 0 },
+            "schema_sha256": { "$ref": "state-contract.schema.json#/$defs/sha256" }
+          }
+        }
+      ]
+    },
+    "created_at_epoch_seconds": { "type": "integer", "minimum": 0 },
+    "external_requirements": { "type": "array" },
+    "resources": { "type": "array", "minItems": 1 }
+  }
+}

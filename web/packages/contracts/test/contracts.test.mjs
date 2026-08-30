@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { isErrorCode, isErrorEnvelope } from "../dist/index.js";
+import { isErrorCode, isErrorEnvelope, isStateContract } from "../dist/index.js";
 
 test("0.2 declarations expose only the authoritative error wire type", () => {
   const declarations = readFileSync(
@@ -11,6 +11,26 @@ test("0.2 declarations expose only the authoritative error wire type", () => {
   );
   assert.match(declarations, /export type ErrorEnvelope\b/);
   assert.doesNotMatch(declarations, /\bApiError\b/);
+});
+
+test("state contracts fail closed on malformed and unknown fields", () => {
+  const contract = {
+    contract_version: 1,
+    application: "photo-backup",
+    application_version: "0.2.0",
+    source_revision: "a".repeat(40),
+    schema: { revision: 1, sha256: "b".repeat(64) },
+    maintenance_locks: ["database", "data-tree"],
+    resources: [
+      { name: "database", kind: "sqlite", required: true },
+      { name: "blobs", kind: "data-tree", required: true },
+    ],
+    external_requirements: [],
+    companion_contracts: [],
+  };
+  assert.equal(isStateContract(contract), true);
+  assert.equal(isStateContract({ ...contract, compatibility: true }), false);
+  assert.equal(isStateContract({ ...contract, source_revision: "unbound" }), false);
 });
 
 test("error codes match the Rust wire contract", () => {

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://isarmg.org/schemas/error-envelope-v1.json",
+  "title": "iSarmg Error Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "message", "retryable"],
+  "properties": {
+    "code": { "type": "string", "pattern": "^[a-z][a-z0-9._-]{0,127}$" },
+    "message": { "type": "string" },
+    "request_id": { "type": "string" },
+    "retryable": { "type": "boolean" },
+    "details": { "type": "object" }
+  }
+}

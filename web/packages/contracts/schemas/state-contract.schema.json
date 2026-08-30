@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://isarmg.org/schemas/state-contract-v1.json",
+  "title": "iSarmg State Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "application", "application_version", "source_revision", "schema", "maintenance_locks", "resources", "external_requirements", "companion_contracts"],
+  "properties": {
+    "contract_version": { "const": 1 },
+    "application": { "$ref": "#/$defs/identifier" },
+    "application_version": { "$ref": "#/$defs/identifier" },
+    "source_revision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "schema": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["revision", "sha256"],
+          "properties": {
+            "revision": { "type": "integer", "minimum": 0 },
+            "sha256": { "$ref": "#/$defs/sha256" }
+          }
+        }
+      ]
+    },
+    "maintenance_locks": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "required"],
+        "properties": {
+          "name": { "$ref": "#/$defs/identifier" },
+          "kind": { "enum": ["sqlite", "configuration", "data-tree", "recordings", "companion-contract"] },
+          "required": { "type": "boolean" }
+        }
+      }
+    },
+    "external_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "kid", "algorithm", "envelope_version"],
+        "properties": {
+          "kind": { "$ref": "#/$defs/identifier" },
+          "kid": { "$ref": "#/$defs/identifier" },
+          "algorithm": { "$ref": "#/$defs/identifier" },
+          "envelope_version": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "companion_contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "platform", "sha256"],
+        "properties": {
+          "name": { "$ref": "#/$defs/identifier" },
+          "version": { "$ref": "#/$defs/identifier" },
+          "platform": { "$ref": "#/$defs/identifier" },
+          "sha256": { "$ref": "#/$defs/sha256" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}
