@@ -35,8 +35,9 @@ complete production security boundary yet:
 - `@isarmg/http-client` now ships compiled output with bounded JSON reads, same-origin credentials,
   timeouts, CSRF propagation and typed errors. It is still experimental until adopted and tested
   by at least two products.
-- The Web packages are source-level prototypes unless their own package metadata explicitly
-  declares a build and distributable `dist` output.
+- The Web workspace contains only packages with a build and distributable `dist` output.
+  Placeholder UI, shell, authentication, testkit and global API-prefix packages were deleted;
+  products own those concerns until a tested shared implementation has real consumers.
 
 Business products must keep their existing stronger local implementations until a Foundation
 replacement has equivalent behavior, tests and at least two real consumers.
@@ -65,13 +66,8 @@ re-exported; consumers must update imports explicitly.
 ```text
 web/packages/
 ├── design-tokens
-├── ui
-├── app-shell
 ├── http-client
-├── web-config
-├── contracts
-├── auth-ui
-└── testkit
+└── contracts
 ```
 
 When a package becomes publishable, business projects should depend on an exact released version.

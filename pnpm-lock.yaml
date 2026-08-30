@@ -8,18 +8,6 @@ importers:
 
   .: {}
 
-  web/packages/app-shell:
-    dependencies:
-      react:
-        specifier: '>=18'
-        version: 19.2.8
-
-  web/packages/auth-ui:
-    dependencies:
-      react:
-        specifier: '>=18'
-        version: 19.2.8
-
   web/packages/contracts:
     devDependencies:
       typescript:
@@ -42,21 +30,7 @@ importers:
         specifier: 5.8.3
         version: 5.8.3
 
-  web/packages/testkit: {}
-
-  web/packages/ui:
-    dependencies:
-      react:
-        specifier: '>=18'
-        version: 19.2.8
-
-  web/packages/web-config: {}
-
 packages:
-
-  react@19.2.8:
-    resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
-    engines: {node: '>=0.10.0'}
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
@@ -64,7 +38,5 @@ packages:
     hasBin: true
 
 snapshots:
-
-  react@19.2.8: {}
 
   typescript@5.8.3: {}
