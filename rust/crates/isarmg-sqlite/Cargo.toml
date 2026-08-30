@@ -1,6 +1,6 @@
 [package]
 name = "isarmg-sqlite"
-description = "Experimental synchronous SQLite connection and integrity primitives"
+description = "Experimental SQLx SQLite pool and integrity primitives"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -9,4 +9,9 @@ license.workspace = true
 [dependencies]
 anyhow.workspace = true
 rusqlite.workspace = true
+sqlx.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

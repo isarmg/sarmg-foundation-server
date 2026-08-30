@@ -22,8 +22,9 @@ complete production security boundary yet:
 - `isarmg-auth` provides password hashing and a signed, stateless token primitive; it does not
   provide persistent sessions, revocation, idle expiry, session-bound CSRF verification or login
   admission control.
-- `isarmg-sqlite` opens a synchronous `rusqlite` connection and runs integrity checks; it is not the
-  shared async SQLx pool, migration and backup layer described by the long-term architecture.
+- `isarmg-sqlite` provides an async SQLx pool baseline, migration runner, integrity/foreign-key
+  checks and WAL checkpointing while retaining its legacy synchronous API. It does not yet provide
+  online backups, restore validation, permission enforcement or operational metrics.
 - `isarmg-path-validation` performs lexical relative-path validation only. It does not provide an
   FD-anchored filesystem root or protect callers from symlink and TOCTOU attacks.
 - `isarmg-operations` contains state data types only. It does not provide persistence, leases,
