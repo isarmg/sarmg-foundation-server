@@ -16,19 +16,11 @@ product must continue to run when this repository or its package registries are 
 
 ## Stability
 
-Every package in this repository is currently `0.x` and experimental. None of the packages is a
-complete production security boundary yet:
+Every package in this repository is currently `0.x` and experimental:
 
-- `isarmg-auth` provides password hashing and a signed, stateless token primitive; it does not
-  provide persistent sessions, revocation, idle expiry, session-bound CSRF verification or login
-  admission control.
-- `isarmg-sqlite` provides only the current async SQLx pool baseline, integrity/foreign-key checks
-  and WAL checkpointing. Products own their schema lifecycle; Foundation does not retain an older
-  synchronous database API or run product schema changes.
-- `isarmg-path-validation` performs lexical relative-path validation only. It does not provide an
-  FD-anchored filesystem root or protect callers from symlink and TOCTOU attacks.
-- `isarmg-operations` contains state data types only. It does not provide persistence, leases,
-  idempotency, retries, an outbox or crash recovery.
+- `isarmg-sqlite` provides the current async SQLx pool baseline, integrity/foreign-key checks and
+  WAL checkpointing. Products own their schema lifecycle; Foundation does not retain an older
+  database API or run product schema changes.
 - `isarmg-error` and `@isarmg/contracts` share a validated, machine-readable `ErrorEnvelope`
   wire shape. They remain 0.x: product-specific codes and adoption still require contract
   tests in each consumer.
@@ -39,8 +31,13 @@ complete production security boundary yet:
   Placeholder UI, shell, authentication, testkit and global API-prefix packages were deleted;
   products own those concerns until a tested shared implementation has real consumers.
 
-Business products must keep their existing stronger local implementations until a Foundation
-replacement has equivalent behavior, tests and at least two real consumers.
+The former authentication, HTTP middleware, configuration, observability, path-validation and
+operation-type crates were also deleted. They had no real consumers and were weaker than the
+product-local boundaries. A shared replacement must be designed from current requirements and
+prove itself in at least two products; no removed API will be carried forward as compatibility.
+
+Business products must own stronger local implementations until a Foundation replacement has
+equivalent behavior, tests and at least two real consumers.
 
 ## Rust crates
 
@@ -49,13 +46,7 @@ The Rust workspace is versioned `0.2.0`. Removed `0.1` APIs are not aliased or r
 ```text
 rust/crates/
 ├── isarmg-error
-├── isarmg-http
-├── isarmg-auth
-├── isarmg-sqlite
-├── isarmg-observability
-├── isarmg-config
-├── isarmg-path-validation
-└── isarmg-operations
+└── isarmg-sqlite
 ```
 
 ## Web packages
