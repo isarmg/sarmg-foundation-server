@@ -20,7 +20,11 @@ importers:
         specifier: '>=18'
         version: 19.2.8
 
-  web/packages/contracts: {}
+  web/packages/contracts:
+    devDependencies:
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   web/packages/design-tokens:
     devDependencies:

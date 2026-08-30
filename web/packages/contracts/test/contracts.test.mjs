@@ -1,0 +1,46 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { isErrorCode, isErrorEnvelope } from "../dist/index.js";
+
+test("error codes match the Rust wire contract", () => {
+  for (const value of [
+    "bad_request",
+    "photo.upload_conflict",
+    "host-agent.rate-limited",
+  ]) {
+    assert.equal(isErrorCode(value), true);
+  }
+  for (const value of ["", "BadRequest", "1bad", "has space", "échec"]) {
+    assert.equal(isErrorCode(value), false);
+  }
+  assert.equal(isErrorCode("a".repeat(128)), true);
+  assert.equal(isErrorCode("a".repeat(129)), false);
+});
+
+test("error envelope requires stable branching fields and object details", () => {
+  assert.equal(
+    isErrorEnvelope({
+      code: "too_many_requests",
+      message: "try later",
+      request_id: "request-1",
+      retryable: true,
+      details: { retry_after: 5 },
+    }),
+    true,
+  );
+  assert.equal(
+    isErrorEnvelope({ code: "bad_request", message: "bad", retryable: false }),
+    true,
+  );
+  assert.equal(isErrorEnvelope({ code: "bad_request", message: "bad" }), false);
+  assert.equal(
+    isErrorEnvelope({
+      code: "bad_request",
+      message: "bad",
+      retryable: false,
+      details: [],
+    }),
+    false,
+  );
+});

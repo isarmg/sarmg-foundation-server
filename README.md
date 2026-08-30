@@ -29,6 +29,9 @@ complete production security boundary yet:
   FD-anchored filesystem root or protect callers from symlink and TOCTOU attacks.
 - `isarmg-operations` contains state data types only. It does not provide persistence, leases,
   idempotency, retries, an outbox or crash recovery.
+- `isarmg-error` and `@isarmg/contracts` share a validated, machine-readable `ErrorEnvelope`
+  wire shape. They remain 0.x: product-specific codes and adoption still require compatibility
+  tests in each consumer.
 - The Web packages are source-level prototypes unless their own package metadata explicitly
   declares a build and distributable `dist` output.
 
