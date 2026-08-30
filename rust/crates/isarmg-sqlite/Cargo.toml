@@ -8,9 +8,7 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-rusqlite.workspace = true
 sqlx.workspace = true
-thiserror.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

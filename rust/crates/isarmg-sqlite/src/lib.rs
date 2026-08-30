@@ -1,13 +1,11 @@
-use rusqlite::Connection;
 use sqlx::{
     SqlitePool,
-    migrate::{MigrateError, Migrator},
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
-use std::{path::Path, str::FromStr, time::Duration};
+use std::{str::FromStr, time::Duration};
 
 /// Open an asynchronous SQLite pool with the product baseline applied to every
-/// connection. Callers still own their database file and migrations.
+/// connection. Callers own their database file and schema lifecycle.
 pub async fn open_pool(database_url: &str, max_connections: u32) -> anyhow::Result<SqlitePool> {
     if max_connections == 0 {
         anyhow::bail!("max_connections must be greater than zero");
@@ -23,10 +21,6 @@ pub async fn open_pool(database_url: &str, max_connections: u32) -> anyhow::Resu
         .acquire_timeout(Duration::from_secs(10))
         .connect_with(options)
         .await?)
-}
-
-pub async fn migrate(pool: &SqlitePool, migrator: &Migrator) -> Result<(), MigrateError> {
-    migrator.run(pool).await
 }
 
 pub async fn pool_integrity_check(pool: &SqlitePool) -> Result<bool, sqlx::Error> {
@@ -53,20 +47,6 @@ pub async fn checkpoint(pool: &SqlitePool) -> anyhow::Result<()> {
         anyhow::bail!("SQLite WAL checkpoint is busy");
     }
     Ok(())
-}
-
-pub fn open(path: &Path) -> Result<Connection, rusqlite::Error> {
-    let connection = Connection::open(path)?;
-    connection.pragma_update(None, "journal_mode", "WAL")?;
-    connection.pragma_update(None, "foreign_keys", "ON")?;
-    connection.pragma_update(None, "busy_timeout", 5000)?;
-    connection.pragma_update(None, "synchronous", "FULL")?;
-    Ok(connection)
-}
-
-pub fn integrity_check(connection: &Connection) -> Result<bool, rusqlite::Error> {
-    let result: String = connection.query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
-    Ok(result.eq_ignore_ascii_case("ok"))
 }
 
 #[cfg(test)]
@@ -143,18 +123,5 @@ mod tests {
         assert_eq!(parent, 7);
         assert!(pool_integrity_check(&reopened).await.unwrap());
         assert!(pool_foreign_key_check(&reopened).await.unwrap());
-    }
-
-    #[test]
-    fn legacy_synchronous_connection_keeps_the_same_baseline() {
-        let directory = tempfile::tempdir().unwrap();
-        let connection = open(&directory.path().join("legacy.sqlite3")).unwrap();
-        assert_eq!(
-            connection
-                .pragma_query_value(None, "foreign_keys", |row| row.get::<_, i64>(0))
-                .unwrap(),
-            1
-        );
-        assert!(integrity_check(&connection).unwrap());
     }
 }

@@ -22,9 +22,9 @@ complete production security boundary yet:
 - `isarmg-auth` provides password hashing and a signed, stateless token primitive; it does not
   provide persistent sessions, revocation, idle expiry, session-bound CSRF verification or login
   admission control.
-- `isarmg-sqlite` provides an async SQLx pool baseline, migration runner, integrity/foreign-key
-  checks and WAL checkpointing while retaining its legacy synchronous API. It does not yet provide
-  online backups, restore validation, permission enforcement or operational metrics.
+- `isarmg-sqlite` provides only the current async SQLx pool baseline, integrity/foreign-key checks
+  and WAL checkpointing. Products own their schema lifecycle; Foundation does not retain an older
+  synchronous database API or run product schema changes.
 - `isarmg-path-validation` performs lexical relative-path validation only. It does not provide an
   FD-anchored filesystem root or protect callers from symlink and TOCTOU attacks.
 - `isarmg-operations` contains state data types only. It does not provide persistence, leases,
@@ -42,6 +42,8 @@ Business products must keep their existing stronger local implementations until 
 replacement has equivalent behavior, tests and at least two real consumers.
 
 ## Rust crates
+
+The Rust workspace is versioned `0.2.0`. Removed `0.1` APIs are not aliased or re-exported.
 
 ```text
 rust/crates/
