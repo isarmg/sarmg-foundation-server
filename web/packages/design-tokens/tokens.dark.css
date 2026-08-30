@@ -1,0 +1,6 @@
+:root[data-theme="dark"] {
+  --isarmg-bg-page: #09090b;
+  --isarmg-bg-panel: #18181b;
+  --isarmg-text-primary: #fafafa;
+  --isarmg-text-danger: #f87171;
+}

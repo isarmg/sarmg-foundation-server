@@ -5,6 +5,7 @@ export const tokens = {
     gray50: "#fafafa",
     gray100: "#f4f4f5",
     gray900: "#18181b",
+    red600: "#dc2626",
   },
   space: {
     1: "4px",
