@@ -1,6 +1,6 @@
 [package]
 name = "isarmg-auth"
-description = "Password, session and CSRF primitives shared by ISArmg products"
+description = "Experimental password hashing, stateless token and CSRF token primitives"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

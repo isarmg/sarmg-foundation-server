@@ -1,6 +1,6 @@
 [package]
 name = "isarmg-operations"
-description = "Persistent operation state model"
+description = "Experimental operation state data types"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

@@ -1,6 +1,6 @@
 [package]
 name = "isarmg-sqlite"
-description = "Shared SQLite open, migration and backup primitives"
+description = "Experimental synchronous SQLite connection and integrity primitives"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

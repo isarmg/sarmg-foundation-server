@@ -1,6 +1,6 @@
 # isarmg-foundation
 
-Versioned, build-time shared foundation for the independent ISArmg products:
+Experimental, build-time shared primitives for the independent ISArmg products:
 
 ```text
 photo-backup
@@ -10,8 +10,29 @@ sentinel-monitor
 sunshine-manager
 ```
 
-The foundation is not a runtime service. Products compile these crates and packages into their
-own release artifacts and keep their own users, sessions, databases, files and processes.
+The foundation is not a runtime service. Products compile selected crates and packages into their
+own release artifacts and keep their own users, sessions, databases, files and processes. A built
+product must continue to run when this repository or its package registries are unavailable.
+
+## Stability
+
+Every package in this repository is currently `0.x` and experimental. None of the packages is a
+complete production security boundary yet:
+
+- `isarmg-auth` provides password hashing and a signed, stateless token primitive; it does not
+  provide persistent sessions, revocation, idle expiry, session-bound CSRF verification or login
+  admission control.
+- `isarmg-sqlite` opens a synchronous `rusqlite` connection and runs integrity checks; it is not the
+  shared async SQLx pool, migration and backup layer described by the long-term architecture.
+- `isarmg-path-validation` performs lexical relative-path validation only. It does not provide an
+  FD-anchored filesystem root or protect callers from symlink and TOCTOU attacks.
+- `isarmg-operations` contains state data types only. It does not provide persistence, leases,
+  idempotency, retries, an outbox or crash recovery.
+- The Web packages are source-level prototypes unless their own package metadata explicitly
+  declares a build and distributable `dist` output.
+
+Business products must keep their existing stronger local implementations until a Foundation
+replacement has equivalent behavior, tests and at least two real consumers.
 
 ## Rust crates
 
@@ -23,17 +44,31 @@ rust/crates/
 ├── isarmg-sqlite
 ├── isarmg-observability
 ├── isarmg-config
-├── isarmg-rooted-storage
-├── isarmg-operations
-└── isarmg-postgres
+├── isarmg-path-validation
+└── isarmg-operations
 ```
 
-Business projects should depend on pinned, published versions. During local development the
-workspace may use path dependencies; release CI must replace them with registry versions.
+## Web packages
+
+```text
+web/packages/
+├── design-tokens
+├── ui
+├── app-shell
+├── http-client
+├── web-config
+├── contracts
+├── auth-ui
+└── testkit
+```
+
+When a package becomes publishable, business projects should depend on an exact released version.
+Already built products must never load Foundation code from a shared runtime service or CDN.
 
 ## Development
 
 ```bash
 cargo check --workspace --all-targets
+cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
