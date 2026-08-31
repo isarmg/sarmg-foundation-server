@@ -1,5 +1,5 @@
 {
-  "name": "@isarmg/http-client",
+  "name": "@sarmg/http-client",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,17 +11,16 @@
     }
   },
   "files": [
-    "dist",
-    "CHANGELOG.md"
+    "dist"
   ],
   "sideEffects": false,
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm --filter @isarmg/contracts build && pnpm run build && node --test test/*.test.mjs"
+    "test": "pnpm --filter @sarmg/contracts build && pnpm run build && node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@isarmg/contracts": "workspace:0.2.0"
+    "@sarmg/contracts": "workspace:0.2.0"
   },
   "devDependencies": {
     "typescript": "5.8.3"

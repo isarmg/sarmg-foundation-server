@@ -1,7 +1,7 @@
 import {
   isErrorEnvelope,
   type ErrorEnvelope,
-} from "@isarmg/contracts";
+} from "@sarmg/contracts";
 
 export const DEFAULT_TIMEOUT_MS = 10_000;
 export const DEFAULT_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;

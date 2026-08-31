@@ -1,5 +1,5 @@
 [package]
-name = "isarmg-sqlite"
+name = "sarmg-sqlite"
 description = "Experimental SQLx SQLite pool and integrity primitives"
 version.workspace = true
 edition.workspace = true

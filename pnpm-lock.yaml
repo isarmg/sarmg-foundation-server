@@ -8,21 +8,21 @@ importers:
 
   .: {}
 
-  web/packages/contracts:
+  packages/contracts:
     devDependencies:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
 
-  web/packages/design-tokens:
+  packages/design-tokens:
     devDependencies:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
 
-  web/packages/http-client:
+  packages/http-client:
     dependencies:
-      '@isarmg/contracts':
+      '@sarmg/contracts':
         specifier: workspace:0.2.0
         version: link:../contracts
     devDependencies:

@@ -1,0 +1,6 @@
+:root[data-theme="dark"] {
+  --sarmg-bg-page: #09090b;
+  --sarmg-bg-panel: #18181b;
+  --sarmg-text-primary: #fafafa;
+  --sarmg-text-danger: #f87171;
+}

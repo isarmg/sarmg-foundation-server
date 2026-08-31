@@ -1,5 +1,5 @@
 {
-  "name": "@isarmg/design-tokens",
+  "name": "@sarmg/design-tokens",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",

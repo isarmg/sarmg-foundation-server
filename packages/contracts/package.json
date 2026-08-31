@@ -1,5 +1,5 @@
 {
-  "name": "@isarmg/contracts",
+  "name": "@sarmg/contracts",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,8 +15,7 @@
     "./schemas/state-contract.schema.json": "./dist/schemas/state-contract.schema.json"
   },
   "files": [
-    "dist",
-    "CHANGELOG.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-schemas.mjs",

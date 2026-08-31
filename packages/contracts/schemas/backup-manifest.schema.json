@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://isarmg.org/schemas/backup-manifest-v2.json",
-  "title": "iSarmg Backup Manifest v2",
+  "title": "Sarmg Backup Manifest v2",
   "type": "object",
   "additionalProperties": false,
   "required": ["manifest_version", "tool_version", "product", "application_version", "schema_identity", "created_at_epoch_seconds", "external_requirements", "resources"],

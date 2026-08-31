@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://isarmg.org/schemas/release-v1.json",
-  "title": "iSarmg Release Binding",
+  "title": "Sarmg Release Binding",
   "type": "object",
   "additionalProperties": false,
   "required": ["product", "version", "source_revision", "target", "state_contract_sha256", "upgrade_tool"],

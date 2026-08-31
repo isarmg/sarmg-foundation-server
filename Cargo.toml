@@ -1,8 +1,8 @@
 [workspace]
 resolver = "3"
 members = [
-  "rust/crates/isarmg-error",
-  "rust/crates/isarmg-sqlite",
+  "rust/crates/sarmg-error",
+  "rust/crates/sarmg-sqlite",
 ]
 
 [workspace.package]

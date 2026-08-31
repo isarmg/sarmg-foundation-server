@@ -16,7 +16,7 @@ test("0.2 declarations expose only the authoritative error wire type", () => {
 test("state contracts fail closed on malformed and unknown fields", () => {
   const contract = {
     contract_version: 1,
-    application: "photo-backup",
+    application: "media-backup",
     application_version: "0.2.0",
     source_revision: "a".repeat(40),
     schema: { revision: 1, sha256: "b".repeat(64) },

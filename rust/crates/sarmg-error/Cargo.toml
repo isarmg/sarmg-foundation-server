@@ -1,6 +1,6 @@
 [package]
-name = "isarmg-error"
-description = "Versioned error envelope shared by ISArmg products"
+name = "sarmg-error"
+description = "Versioned error envelope shared by Sarmg products"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

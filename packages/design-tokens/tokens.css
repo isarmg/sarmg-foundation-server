@@ -1,0 +1,22 @@
+:root {
+  --sarmg-blue-500: #3b82f6;
+  --sarmg-blue-600: #2563eb;
+  --sarmg-gray-50: #fafafa;
+  --sarmg-gray-100: #f4f4f5;
+  --sarmg-gray-900: #18181b;
+  --sarmg-red-600: #dc2626;
+  --sarmg-space-1: 4px;
+  --sarmg-space-2: 8px;
+  --sarmg-space-3: 12px;
+  --sarmg-space-4: 16px;
+  --sarmg-space-6: 24px;
+  --sarmg-space-8: 32px;
+  --sarmg-radius-sm: 6px;
+  --sarmg-radius-md: 8px;
+  --sarmg-radius-lg: 12px;
+  --sarmg-action-primary: var(--sarmg-blue-600);
+  --sarmg-bg-page: var(--sarmg-gray-50);
+  --sarmg-bg-panel: #fff;
+  --sarmg-text-primary: var(--sarmg-gray-900);
+  --sarmg-text-danger: var(--sarmg-red-600);
+}
