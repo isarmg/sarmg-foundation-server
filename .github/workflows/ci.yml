@@ -22,9 +22,23 @@ jobs:
         with:
           persist-credentials: false
       - name: Enforce workflow supply-chain policy
-        run: python3 scripts/check-workflow-supply-chain.py
+        run: |
+          python3 scripts/check-workflow-supply-chain.py
+          python3 scripts/check-foundation.py
+          python3 -m unittest discover -s tools/tests -p 'test_*.py'
       - name: Install exact Rust toolchain
         run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
+      - name: Prove the server target gate rejects non-canonical targets
+        run: |
+          rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-musl
+          for target in aarch64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+            log="$RUNNER_TEMP/sarmg-server-target-$target.log"
+            if cargo check --locked -p sarmg-server-target --target "$target" 2>"$log"; then
+              echo "::error::sarmg-server-target unexpectedly accepted $target"
+              exit 1
+            fi
+            grep -F "Sarmg server binaries support only x86_64-unknown-linux-gnu" "$log"
+          done
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check all targets
@@ -33,6 +47,8 @@ jobs:
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Test all crates
         run: cargo test --locked --workspace --all-features
+      - name: Reject Rust documentation warnings
+        run: RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-deps
 
   web:
     permissions:
@@ -61,3 +77,5 @@ jobs:
         run: pnpm build
       - name: Test packages
         run: pnpm test
+      - name: Verify publishable tarballs from a clean build
+        run: python3 scripts/package-artifacts.py smoke

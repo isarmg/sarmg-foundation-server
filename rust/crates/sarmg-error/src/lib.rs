@@ -5,12 +5,13 @@ use serde_json::{Map, Value};
 use thiserror::Error;
 
 pub const MAX_ERROR_CODE_BYTES: usize = 128;
+pub const MAX_REQUEST_ID_BYTES: usize = 128;
 
 /// A stable, machine-readable error identifier.
 ///
 /// Codes are deliberately more restrictive than arbitrary strings so they can
 /// be used safely in logs, metrics and client dispatch. Product-specific codes
-/// may use `.` to form namespaces, for example `photo.upload_conflict`.
+/// may use `.` to form namespaces, for example `media.upload_conflict`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(transparent)]
 pub struct ErrorCode(String);
@@ -84,20 +85,103 @@ fn validate_error_code(value: &str) -> Result<(), InvalidErrorCode> {
     Ok(())
 }
 
-/// Version-0.x JSON error contract shared by Rust services and Web clients.
+/// A bounded ASCII correlation identifier safe to copy into logs and headers.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[serde(transparent)]
+pub struct RequestId(String);
+
+impl RequestId {
+    pub fn new(value: impl Into<String>) -> Result<Self, InvalidRequestId> {
+        let value = value.into();
+        validate_request_id(&value)?;
+        Ok(Self(value))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for RequestId {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.0)
+    }
+}
+
+impl AsRef<str> for RequestId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl FromStr for RequestId {
+    type Err = InvalidRequestId;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::new(value)
+    }
+}
+
+impl TryFrom<String> for RequestId {
+    type Error = InvalidRequestId;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::new(value)
+    }
+}
+
+impl<'de> Deserialize<'de> for RequestId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::new(value).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+#[error("request ID must contain between 1 and 128 ASCII letters, digits, '.', '_', ':' or '-'")]
+pub struct InvalidRequestId;
+
+fn validate_request_id(value: &str) -> Result<(), InvalidRequestId> {
+    if value.is_empty()
+        || value.len() > MAX_REQUEST_ID_BYTES
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b':' | b'-'))
+    {
+        return Err(InvalidRequestId);
+    }
+    Ok(())
+}
+
+/// Current JSON error contract shared by Rust services and Web clients.
 ///
 /// `message` is display text and must never be used for client branching.
 /// `details` is an object rather than arbitrary JSON so future fields remain
 /// additive. Sensitive diagnostics belong in server logs, not this envelope.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ErrorEnvelope {
     pub code: ErrorCode,
     pub message: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub request_id: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_present_request_id"
+    )]
+    pub request_id: Option<RequestId>,
     pub retryable: bool,
     #[serde(default, skip_serializing_if = "Map::is_empty")]
     pub details: Map<String, Value>,
+}
+
+fn deserialize_present_request_id<'de, D>(deserializer: D) -> Result<Option<RequestId>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    RequestId::deserialize(deserializer).map(Some)
 }
 
 impl ErrorEnvelope {
@@ -121,9 +205,12 @@ impl ErrorEnvelope {
         }
     }
 
-    pub fn with_request_id(mut self, request_id: impl Into<String>) -> Self {
-        self.request_id = Some(request_id.into());
-        self
+    pub fn with_request_id(
+        mut self,
+        request_id: impl Into<String>,
+    ) -> Result<Self, InvalidRequestId> {
+        self.request_id = Some(RequestId::new(request_id)?);
+        Ok(self)
     }
 
     pub fn retryable(mut self, retryable: bool) -> Self {
@@ -199,6 +286,7 @@ impl HttpStatus {
 
 #[cfg(test)]
 mod tests {
+    use serde::Deserialize;
     use serde_json::json;
 
     use super::*;
@@ -207,8 +295,8 @@ mod tests {
     fn error_codes_are_bounded_machine_identifiers() {
         for valid in [
             "bad_request",
-            "photo.upload_conflict",
-            "host-agent.rate-limited",
+            "media.upload_conflict",
+            "host-monitor.rate-limited",
         ] {
             assert_eq!(valid.parse::<ErrorCode>().unwrap().as_str(), valid);
         }
@@ -227,6 +315,7 @@ mod tests {
     fn envelope_has_one_stable_wire_shape() {
         let envelope = ErrorEnvelope::new(HttpStatus::TooManyRequests, "try later")
             .with_request_id("request-1")
+            .unwrap()
             .with_detail("retry_after", 5);
         assert_eq!(
             serde_json::to_value(&envelope).unwrap(),
@@ -247,6 +336,53 @@ mod tests {
             .unwrap(),
             ErrorEnvelope::new(HttpStatus::NotFound, "missing")
         );
+    }
+
+    #[test]
+    fn shared_error_fixtures_match_the_rust_wire_contract() {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct FixtureSet {
+            valid: Vec<Value>,
+            invalid: Vec<Value>,
+        }
+
+        let fixtures: FixtureSet = serde_json::from_str(include_str!(
+            "../../../../packages/contracts/fixtures/error-envelope.fixtures.json"
+        ))
+        .unwrap();
+        for (index, value) in fixtures.valid.into_iter().enumerate() {
+            serde_json::from_value::<ErrorEnvelope>(value)
+                .unwrap_or_else(|error| panic!("rejected valid shared fixture {index}: {error}"));
+        }
+        for (index, value) in fixtures.invalid.into_iter().enumerate() {
+            assert!(
+                serde_json::from_value::<ErrorEnvelope>(value).is_err(),
+                "accepted invalid shared fixture {index}"
+            );
+        }
+    }
+
+    #[test]
+    fn request_ids_match_the_typescript_and_schema_identifier_contract() {
+        for valid in [
+            "request-1",
+            "host:request_2",
+            &"a".repeat(MAX_REQUEST_ID_BYTES),
+        ] {
+            assert_eq!(valid.parse::<RequestId>().unwrap().as_str(), valid);
+        }
+        for invalid in [
+            "",
+            "request id",
+            "échec",
+            &"a".repeat(MAX_REQUEST_ID_BYTES + 1),
+        ] {
+            assert!(
+                invalid.parse::<RequestId>().is_err(),
+                "accepted {invalid:?}"
+            );
+        }
     }
 
     #[test]

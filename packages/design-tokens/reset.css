@@ -1,0 +1,42 @@
+/*
+ * 显式作用域的最小 reset。消费者必须在应用根节点添加 data-sarmg-scope，
+ * 因而引入本文件不会改变同一页面上不属于 Sarmg 应用的内容。
+ */
+[data-sarmg-scope],
+[data-sarmg-scope] *,
+[data-sarmg-scope] *::before,
+[data-sarmg-scope] *::after {
+  box-sizing: border-box;
+}
+
+[data-sarmg-scope] {
+  min-width: 320px;
+  min-height: 100%;
+  font-family: var(--sarmg-font-sans, system-ui, sans-serif);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  text-size-adjust: 100%;
+}
+
+[data-sarmg-scope] :where(button, input, select, textarea) {
+  font: inherit;
+  line-height: inherit;
+}
+
+[data-sarmg-scope] button:not(:disabled) {
+  cursor: pointer;
+}
+
+[data-sarmg-scope] button:disabled {
+  cursor: not-allowed;
+}
+
+[data-sarmg-scope] :where(h1, h2, h3) {
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+[data-sarmg-scope] [hidden] {
+  display: none !important;
+}

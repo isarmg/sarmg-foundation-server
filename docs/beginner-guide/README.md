@@ -1,117 +1,121 @@
 # Sarmg Foundation 初学者学习指南
 
-本手册用十章说明共享代码为何存在、如何发布、消费者承担什么责任，以及怎样避免把 Foundation 变成
-新的运行时单点或兼容层。下方单页内容作为速览，专题章节是设计和评审依据。
+## 1. 这套教程解决什么问题
 
-1. [项目定位、边界与目录](01-project-overview.md)
-2. [工具链、安装与第一次验证](02-environment-and-first-validation.md)
-3. [Rust 错误与 SQLite 基础](03-rust-error-and-sqlite-basics.md)
-4. [Contracts 类型、Guard 与 JSON Schema](04-contracts-types-guards-and-json-schema.md)
-5. [HTTP Client 请求生命周期](05-http-client-request-lifecycle.md)
-6. [Design Tokens 与消费者集成](06-design-tokens-and-consumer-integration.md)
-7. [版本、发布与破坏性变更](07-versioning-publishing-and-breaking-changes.md)
-8. [测试、调试与新增共享能力](08-testing-debugging-and-contribution.md)
-9. [供应链、安全与维护运维](09-supply-chain-security-and-operations.md)
-10. [源码路线、练习与术语表](10-reading-roadmap-and-glossary.md)
+Foundation 同时包含 Rust、TypeScript、React、Vite、CSS、JSON Schema、SQLite 和 Python 发布工具。初学者
+最容易犯的错误不是语法错误，而是把共享 primitive 当成完整产品能力：例如认为一个 TypeScript type 已经
+验证网络 JSON，认为通用 SQLite pool 已经保证文件安全，或者把共享管理员 Session 当成中央账户服务。
 
-以下保留单页速览。
+本教程从边界开始，再逐层进入源码、测试、发布和真实消费者。读完后应能：
 
-## 1. 什么是 Foundation
+- 解释为什么 Foundation 是 build-time dependency 而不是在线服务；
+- 正确区分管理面唯一 `admin` 角色与设备/Agent/媒体资源等数据面概念；
+- 把管理员 username、密码、Argon2id、token、same-origin、CSRF 组合进产品而不削弱规则；
+- 区分 TypeScript type、runtime guard、JSON Schema、fixture 与 Rust serde validation；
+- 解释 Schema fingerprint 为什么对 SQL bytes、排序和 metadata shape 都严格；
+- 使用 `requestJson` 和 `createAdministratorApiClient` 时避免跨源、无界响应和认证竞态；
+- 判断一项重复代码是否值得共享，以及怎样发布一个可复核的不可变版本。
 
-Foundation 是源码/包级复用仓库，不是“所有产品必须在线连接的基础服务”。消费者在构建时取得一个
-精确版本，将代码编译/打包到自己的制品；上线后即使 Foundation 仓库、registry 或网络不可用，产品
-仍必须完整运行。
+## 2. 十章路线
 
-只有至少两个真实产品拥有相同需求、边界和测试时，能力才适合共享。身份、业务 Schema、路由、运行
-锁和迁移通常高度产品化，不应为了减少几行代码强行抽象。
+1. [项目定位、硬边界与目录](01-project-overview.md)
+2. [固定工具链、安装与第一次验证](02-environment-and-first-validation.md)
+3. [Rust 管理员认证、错误、Server Target 与 SQLite](03-rust-error-and-sqlite-basics.md)
+4. [Contracts、Schema Identity、Guard 与 JSON Schema](04-contracts-types-guards-and-json-schema.md)
+5. [HTTP Client、Admin Web 与 React 认证生命周期](05-http-client-request-lifecycle.md)
+6. [Design Tokens 与真实消费者集成](06-design-tokens-and-consumer-integration.md)
+7. [版本、Package、Release 与破坏性变更](07-versioning-publishing-and-breaking-changes.md)
+8. [测试、调试、代码评审与新增共享能力](08-testing-debugging-and-contribution.md)
+9. [供应链、安全事件与日常运维](09-supply-chain-security-and-operations.md)
+10. [源码阅读路线、练习与术语表](10-reading-roadmap-and-glossary.md)
 
-## 2. Monorepo 结构
+建议先顺序读 1～5；前端开发者再读 6，发布/维护人员继续读 7～9。第 10 章提供按问题查入口的索引和可
+操作练习。
 
-Rust 使用 Cargo workspace，Web 使用 pnpm workspace：
+## 3. 一页架构速览
 
 ```text
-sarmg-foundation
-├─ rust/crates/
-│  ├─ sarmg-error
-│  └─ sarmg-sqlite
-└─ packages/
-   ├─ contracts
-   ├─ http-client
-   └─ design-tokens
+Rust Server
+├─ sarmg-admin-auth        username/密码/token/header/cookie安全原语
+├─ sarmg-contracts         管理员、Error、State、Release、Backup wire类型
+├─ sarmg-error             machine error envelope
+├─ sarmg-schema-identity   driver-independent SQLite身份算法
+├─ sarmg-server-target     只允许x86_64-unknown-linux-gnu Server
+└─ sarmg-sqlite            SQLx连接与诊断adapter
+
+React/Vite管理Web（Dufs除外）
+├─ @sarmg/contracts        type + runtime guard + Schema + fixture
+├─ @sarmg/http-client      同源、有界JSON transport
+├─ @sarmg/admin-web        内存Session、竞态安全client、React hook、Vite baseline
+└─ @sarmg/design-tokens    scoped CSS/TS primitive
+
+离线/发布工具
+├─ contracts/Schema identity供sarmg-upgrade复用
+├─ package-artifacts审计真实tgz
+└─ release-tree验证本地普通文件树
 ```
 
-Rust workspace edition 2024；Web 是 ESM package，TypeScript 编译到各自 `dist/`。
+## 4. 最重要的五条边界
 
-## 3. Rust：错误合同
+### 4.1 管理面只有 Administrator
 
-`sarmg-error` 提供：
+所有管理 Web 的 Session 都是：
 
-- `ErrorCode`：最长 128 bytes，以小写 ASCII 字母开头，只含小写字母、数字、`.`、`_`、`-`。
-- `ErrorEnvelope`：`code`、展示用 `message`、可选 `request_id`、`retryable` 和对象型 `details`。
-- `HttpStatus`：明确的 400/401/403/404/409/422/429/500/503 映射。
+```json
+{
+  "authenticated": true,
+  "user_id": "一个有界标识符",
+  "username": "admin",
+  "role": "admin",
+  "csrf_token": "43字符URL-safe token"
+}
+```
 
-客户端必须按 `code`/HTTP status 分支，不能解析展示文字。Secret 和内部诊断只进服务日志，不能放进
-envelope。
+数据库通常无需 `role` 列，wire 中的 `admin` 是固定常量。设备 credential、Host 配对、移动端 API key、
+摄像头凭据和资源字段 `role=primary/thumbnail` 仍可存在，但不是管理 RBAC。
 
-## 4. Rust：SQLite baseline
+### 4.2 Server 只有 AMD64 GNU/Linux
 
-`sarmg-sqlite::open_pool` 配置 SQLx：WAL、foreign keys、5 秒 busy timeout、`synchronous=FULL`、10 秒
-acquire timeout 与调用方给出的正连接数。另提供 integrity、foreign key check 与会报告 busy 的
-TRUNCATE checkpoint。
+业务 Server 唯一 target 是 `x86_64-unknown-linux-gnu`。`sarmg-server-target` 在编译期拒绝 ARM、musl、
+Windows、macOS 和32位目标。这个限制不能误加到 Host Monitor Agent、Android/iOS、移动FFI或其他客户端。
 
-它会 `create_if_missing`，因此消费者必须在调用前完成自己的路径、安全、锁、当前 Schema 与“是否
-允许创建”判断。Foundation 不知道任何产品表，也不执行 migration/backup/restore。
+### 4.3 Web 统一但 Dufs 例外
 
-## 5. Web：contracts
+Host、Media、Sentinel、Sunshine 的管理 Web 位于 `clients/web`，使用精确 React/Vite/TypeScript/Node基线。
+Dufs 保留原生 ES modules 和嵌入 binary 的交付模型，但仍使用相同管理员 wire、username/密码/token和Server端
+同源/CSRF规则。
 
-`@sarmg/contracts` 提供 TypeScript 类型、运行时 guard 和四个 JSON Schema：error envelope、state
-contract、release、backup manifest。`isStateContract` 要求 exact keys、40 位小写 revision、SHA-256、
-资源/外部 Secret/companion 列表结构，拒绝宽松对象。
-
-Wire contract 的 TS 类型不是运行时验证。外部 JSON 必须先经过 guard 或 JSON Schema validator。
-
-## 6. Web：http-client
-
-`requestJson<T>` 默认同源 credential、10 秒 timeout、2 MiB 成功响应上限；允许上限最多 64 MiB。
-它验证 JSON Content-Type，以 streaming reader 执行实际字节上限，规范解析 `ErrorEnvelope` 与
-`Retry-After`，只给 unsafe method 添加有效 CSRF，并把 401 回调与权威 API error 隔离。
+### 4.4 类型不等于验证
 
 ```ts
-import { requestJson, ApiClientError } from "@sarmg/http-client";
-
-const host = await requestJson<Host>("/api/v2/hosts/1", {
-  csrfToken: session.csrfToken,
-  onUnauthorized: () => session.clear(),
-});
+const value = await response.json() as AdministratorSession;
 ```
 
-泛型 `T` 不会自动验证成功响应业务结构；消费者仍需自己的 schema/guard。
+上面只骗过编译器。真正信任前必须运行 `isAdministratorSession(value)`。JSON Schema 也只有在调用一个
+经过选择的 validator 时才执行；把 Schema 文件放在仓库里不会自动保护网络边界。
 
-## 7. Web：design-tokens
+### 4.5 current-only 不等于忽略状态
 
-包导出 TypeScript `tokens` 和 `tokens.css`/`tokens.dark.css`。当前仅含经过实际使用的颜色、间距和圆角。
-它不提供组件、全局 reset、字体加载、主题状态管理或远程 CDN。
+当前产品只接受当前字段、Schema、密码散列和发行树，发现不匹配就失败。若未来确实有稳定版本之间的状态
+转换，放到 `sarmg-upgrade` 离线执行；在线产品不同时支持两个版本。
 
-## 8. 开发工作流
+## 5. 第一次阅读源码前
 
-```bash
-cargo +1.98.0 test --workspace
-pnpm install --frozen-lockfile
-pnpm typecheck && pnpm build && pnpm test
-```
+先看根 `Cargo.toml` 和 `package.json`，确认公开组件与工具链；再读各 crate/package README和 `src`；随后
+看测试，最后看 Python policy、CI、release。不要从 `target`、`node_modules` 或生成的 `dist` 反推公共API，
+它们可能是缓存或已过期产物。
 
-Web build 必须产生可发布 `dist`；测试从已构建输出导入，防止源码能工作而 package export 失效。
+## 6. 学习过程中的安全约定
 
-## 9. 引入共享能力的判断
+- 示例只使用 `.test` 域、随机测试 token 和临时目录，不使用真实账号、密码、数据库或生产路径。
+- 不通过关闭证书校验、same-origin、CSRF、hash policy 或size limit来排障。
+- 不在浏览器存储中保存 Session/CSRF；页面重载通过 HttpOnly Cookie和`restore()`重建内存状态。
+- 不修改消费者 lock或发布资产来“配合”本地 sibling path；本地联调与最终不可变依赖是两个明确阶段。
+- 本教程中的命令在代码全部完成后的统一验证阶段执行；修改源码时先保持工作树范围清晰。
 
-先在产品中证明需求与安全边界，再确认第二个真实消费者，并写出稳定最小 API、负例、版本破坏策略和
-退出方案。若共享实现比产品本地实现弱、需要运行时依赖、或要携带旧 API alias，则不应进入 Foundation。
+## 7. 学成标准
 
-## 10. 术语
-
-- **build-time dependency**：只在编译/打包阶段需要，上线不联网加载。
-- **wire contract**：跨进程/语言传输的数据形状与语义。
-- **runtime guard**：对 `unknown` 数据执行的真实运行时检查。
-- **re-export**：一个包再次导出另一个包的符号；会隐藏依赖所有权并扩大兼容面。
-- **WAL**：SQLite Write-Ahead Log。
-- **0.x**：语义化版本中尚未承诺稳定公共 API 的阶段。
+你能画出一次管理员 login 从 raw headers、strict JSON、username/密码策略、Argon2、Session persistence到React
+状态的完整路径；能解释每一层还缺什么产品责任；能用一个正例和至少四类负例评审新合同；能从真实tgz
+而不是workspace import验证package；能指出为何Dufs、客户端多架构和Foundation无Server是合理差异；能在
+不添加兼容代码的前提下设计一次新当前版本。

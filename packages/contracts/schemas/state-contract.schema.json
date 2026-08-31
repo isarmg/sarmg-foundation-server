@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://isarmg.org/schemas/state-contract-v1.json",
+  "$id": "https://sarmg.org/schemas/state-contract-v1.json",
   "title": "Sarmg State Contract",
   "type": "object",
   "additionalProperties": false,
@@ -18,7 +18,7 @@
           "additionalProperties": false,
           "required": ["revision", "sha256"],
           "properties": {
-            "revision": { "type": "integer", "minimum": 0 },
+            "revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
             "sha256": { "$ref": "#/$defs/sha256" }
           }
         }
@@ -48,7 +48,7 @@
           "kind": { "$ref": "#/$defs/identifier" },
           "kid": { "$ref": "#/$defs/identifier" },
           "algorithm": { "$ref": "#/$defs/identifier" },
-          "envelope_version": { "type": "integer", "minimum": 1 }
+          "envelope_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
         }
       }
     },

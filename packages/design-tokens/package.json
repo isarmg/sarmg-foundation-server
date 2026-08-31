@@ -1,18 +1,41 @@
 {
   "name": "@sarmg/design-tokens",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "description": "Sarmg Web 项目的语义设计令牌、reset 与可访问性基线",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isarmg/sarmg-foundation.git",
+    "directory": "packages/design-tokens"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./accessibility.css": "./dist/accessibility.css",
+    "./reset.css": "./dist/reset.css",
     "./tokens.css": "./dist/tokens.css",
     "./tokens.dark.css": "./dist/tokens.dark.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-css.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "clean": "node scripts/clean.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.json && node scripts/copy-css.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/test.mjs"
   },
   "devDependencies": {
     "typescript": "5.8.3"

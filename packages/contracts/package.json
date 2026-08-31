@@ -1,6 +1,20 @@
 {
   "name": "@sarmg/contracts",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "description": "Sarmg 跨语言 wire contract、严格运行时守卫与 JSON Schema",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isarmg/sarmg-foundation.git",
+    "directory": "packages/contracts"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,16 +24,23 @@
       "import": "./dist/index.js"
     },
     "./schemas/backup-manifest.schema.json": "./dist/schemas/backup-manifest.schema.json",
+    "./schemas/administrator-auth.schema.json": "./dist/schemas/administrator-auth.schema.json",
     "./schemas/error-envelope.schema.json": "./dist/schemas/error-envelope.schema.json",
     "./schemas/release.schema.json": "./dist/schemas/release.schema.json",
-    "./schemas/state-contract.schema.json": "./dist/schemas/state-contract.schema.json"
+    "./schemas/state-contract.schema.json": "./dist/schemas/state-contract.schema.json",
+    "./fixtures/backup-manifest.fixtures.json": "./dist/fixtures/backup-manifest.fixtures.json",
+    "./fixtures/administrator-auth.fixtures.json": "./dist/fixtures/administrator-auth.fixtures.json",
+    "./fixtures/error-envelope.fixtures.json": "./dist/fixtures/error-envelope.fixtures.json",
+    "./fixtures/release.fixtures.json": "./dist/fixtures/release.fixtures.json",
+    "./fixtures/state-contract.fixtures.json": "./dist/fixtures/state-contract.fixtures.json"
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-schemas.mjs",
-    "typecheck": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.json && node scripts/copy-contract-data.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm run build && node --test test/*.test.mjs"
   },
   "devDependencies": {

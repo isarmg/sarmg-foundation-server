@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://isarmg.org/schemas/backup-manifest-v2.json",
+  "$id": "https://sarmg.org/schemas/backup-manifest-v2.json",
   "title": "Sarmg Backup Manifest v2",
   "type": "object",
   "additionalProperties": false,
@@ -19,14 +19,44 @@
           "properties": {
             "application": { "$ref": "state-contract.schema.json#/$defs/identifier" },
             "application_version": { "$ref": "state-contract.schema.json#/$defs/identifier" },
-            "schema_revision": { "type": "integer", "minimum": 0 },
+            "schema_revision": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
             "schema_sha256": { "$ref": "state-contract.schema.json#/$defs/sha256" }
           }
         }
       ]
     },
-    "created_at_epoch_seconds": { "type": "integer", "minimum": 0 },
-    "external_requirements": { "type": "array" },
-    "resources": { "type": "array", "minItems": 1 }
+    "created_at_epoch_seconds": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "external_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "kid", "sha256", "algorithm", "envelope_version"],
+        "properties": {
+          "kind": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+          "kid": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+          "sha256": { "$ref": "state-contract.schema.json#/$defs/sha256" },
+          "algorithm": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+          "envelope_version": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "path", "bytes", "files", "sha256"],
+        "properties": {
+          "name": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+          "kind": { "enum": ["sqlite", "configuration", "data-tree", "recordings", "companion-contract"] },
+          "path": { "type": "string", "minLength": 1 },
+          "bytes": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+          "files": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+          "sha256": { "$ref": "state-contract.schema.json#/$defs/sha256" }
+        }
+      }
+    }
   }
 }

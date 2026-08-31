@@ -1,6 +1,20 @@
 {
   "name": "@sarmg/http-client",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "description": "带有 same-origin、响应大小和取消边界的 Sarmg JSON HTTP 客户端",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isarmg/sarmg-foundation.git",
+    "directory": "packages/http-client"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,14 +29,16 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm --filter @sarmg/contracts build && pnpm run build && node --test test/*.test.mjs"
   },
-  "dependencies": {
-    "@sarmg/contracts": "workspace:0.2.0"
+  "peerDependencies": {
+    "@sarmg/contracts": "0.3.0"
   },
   "devDependencies": {
+    "@sarmg/contracts": "workspace:0.3.0",
     "typescript": "5.8.3"
   }
 }

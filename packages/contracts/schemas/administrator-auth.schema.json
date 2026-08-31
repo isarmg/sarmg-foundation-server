@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sarmg.org/schemas/administrator-auth-v1.json",
+  "title": "Sarmg Administrator Authentication Contract",
+  "oneOf": [
+    { "$ref": "#/$defs/loginRequest" },
+    { "$ref": "#/$defs/session" }
+  ],
+  "$defs": {
+    "administratorUsernameCandidate": {
+      "description": "Bounded printable-ASCII login candidate, not an accepted identity; the current server authentication primitive trims and ASCII-lowercases it before requiring canonical form.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[\\u0020-\\u007E]+$"
+    },
+    "canonicalAdministratorUsername": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])$"
+    },
+    "authenticationToken": {
+      "type": "string",
+      "minLength": 43,
+      "maxLength": 43,
+      "pattern": "^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$"
+    },
+    "secretText": {
+      "description": "Bounded untrusted password candidate; accepting this wire shape does not accept a noncurrent password hash policy.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "loginRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["username", "password"],
+      "properties": {
+        "username": { "$ref": "#/$defs/administratorUsernameCandidate" },
+        "password": { "$ref": "#/$defs/secretText" }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authenticated", "user_id", "username", "role", "csrf_token"],
+      "properties": {
+        "authenticated": { "const": true },
+        "user_id": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+        "username": { "$ref": "#/$defs/canonicalAdministratorUsername" },
+        "role": { "const": "admin" },
+        "csrf_token": { "$ref": "#/$defs/authenticationToken" }
+      }
+    }
+  }
+}

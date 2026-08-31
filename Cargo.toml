@@ -1,20 +1,32 @@
 [workspace]
 resolver = "3"
 members = [
+  "rust/crates/sarmg-admin-auth",
+  "rust/crates/sarmg-contracts",
   "rust/crates/sarmg-error",
+  "rust/crates/sarmg-schema-identity",
+  "rust/crates/sarmg-server-target",
   "rust/crates/sarmg-sqlite",
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
+rust-version = "1.98"
 authors = ["sarmg <isarmg@163.com>"]
 license = "Apache-2.0"
+repository = "https://github.com/isarmg/sarmg-foundation"
+homepage = "https://github.com/isarmg/sarmg-foundation"
 
 [workspace.dependencies]
 anyhow = "1"
+argon2 = { version = "0.5", features = ["std"] }
+base64 = "0.22"
+getrandom = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
+subtle = "2.6"
 sqlx = { version = "0.8", default-features = false, features = [
   "sqlite",
   "runtime-tokio",
@@ -22,3 +34,10 @@ sqlx = { version = "0.8", default-features = false, features = [
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"

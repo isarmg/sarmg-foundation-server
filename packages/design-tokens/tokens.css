@@ -16,7 +16,7 @@
   --sarmg-radius-lg: 12px;
   --sarmg-action-primary: var(--sarmg-blue-600);
   --sarmg-bg-page: var(--sarmg-gray-50);
-  --sarmg-bg-panel: #fff;
+  --sarmg-bg-panel: #ffffff;
   --sarmg-text-primary: var(--sarmg-gray-900);
   --sarmg-text-danger: var(--sarmg-red-600);
 }

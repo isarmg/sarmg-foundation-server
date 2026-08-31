@@ -1,5 +1,6 @@
 import {
   isErrorEnvelope,
+  isRequestId,
   type ErrorEnvelope,
 } from "@sarmg/contracts";
 
@@ -15,6 +16,7 @@ export type RequestJsonOptions = Omit<RequestInit, "signal"> & {
   signal?: AbortSignal;
   timeoutMs?: number;
   maxResponseBytes?: number;
+  baseUrl?: string | URL;
   csrfToken?: string;
   fetchImpl?: typeof fetch;
   onUnauthorized?: (error: ApiClientError) => void | Promise<void>;
@@ -63,6 +65,7 @@ export async function requestJson<T>(
   const {
     timeoutMs = DEFAULT_TIMEOUT_MS,
     maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
+    baseUrl,
     csrfToken,
     fetchImpl = globalThis.fetch,
     onUnauthorized,
@@ -74,41 +77,53 @@ export async function requestJson<T>(
   if (typeof fetchImpl !== "function") {
     throw new TypeError("fetchImpl must be a function");
   }
+  const requestUrl = resolveSameOriginUrl(url, baseUrl);
+  if (requestInit.redirect !== undefined && requestInit.redirect !== "error") {
+    throw new TypeError("redirect must be 'error' so same-origin validation cannot be bypassed");
+  }
 
   const headers = new Headers(requestInit.headers);
   if (!headers.has("accept")) headers.set("accept", "application/json");
+  if (requestInit.method !== undefined && typeof requestInit.method !== "string") {
+    throw new TypeError("method must be a string");
+  }
   const method = (requestInit.method ?? "GET").toUpperCase();
   if (csrfToken !== undefined && isUnsafeMethod(method)) {
-    if (csrfToken.length === 0 || /[\r\n]/.test(csrfToken)) {
+    if (typeof csrfToken !== "string" || csrfToken.length === 0 || /[\r\n]/.test(csrfToken)) {
       throw new TypeError("csrfToken must be a non-empty single-line value");
     }
     headers.set(CSRF_HEADER, csrfToken);
   }
 
   const controller = new AbortController();
-  let timedOut = false;
+  let abortSource: "caller" | "timeout" | undefined;
+  const abort = (source: "caller" | "timeout", reason: unknown) => {
+    if (controller.signal.aborted) return;
+    abortSource = source;
+    controller.abort(reason);
+  };
   const timeout = setTimeout(() => {
-    timedOut = true;
-    controller.abort(new DOMException("request timed out", "TimeoutError"));
+    abort("timeout", new DOMException("request timed out", "TimeoutError"));
   }, timeoutMs);
-  const abortFromCaller = () => controller.abort(callerSignal?.reason);
+  const abortFromCaller = () => abort("caller", callerSignal?.reason);
   if (callerSignal?.aborted) abortFromCaller();
   else callerSignal?.addEventListener("abort", abortFromCaller, { once: true });
 
   try {
     let response: Response;
     try {
-      response = await fetchImpl(url, {
+      response = await fetchImpl(requestUrl, {
         ...requestInit,
         credentials: requestInit.credentials ?? "same-origin",
         headers,
+        redirect: "error",
         signal: controller.signal,
       });
     } catch (cause) {
-      if (timedOut) {
+      if (abortSource === "timeout") {
         throw localError("request_timeout", "Request timed out", true, cause);
       }
-      if (callerSignal?.aborted) {
+      if (abortSource === "caller") {
         throw localError("request_aborted", "Request was aborted", false, cause);
       }
       throw localError("network_error", "Network request failed", true, cause);
@@ -119,7 +134,7 @@ export async function requestJson<T>(
       const error = await responseError(response, requestId, controller.signal);
       if (response.status === 401 && onUnauthorized) {
         try {
-          void Promise.resolve(onUnauthorized(error)).catch(() => undefined);
+          await onUnauthorized(error);
         } catch {
           // Session cleanup must not replace the authoritative API error.
         }
@@ -158,10 +173,10 @@ export async function requestJson<T>(
     }
   } catch (cause) {
     if (isApiClientError(cause)) throw cause;
-    if (timedOut) {
+    if (abortSource === "timeout") {
       throw localError("request_timeout", "Request timed out", true, cause);
     }
-    if (callerSignal?.aborted) {
+    if (abortSource === "caller") {
       throw localError("request_aborted", "Request was aborted", false, cause);
     }
     throw localError("network_error", "Network request failed", true, cause);
@@ -231,6 +246,11 @@ async function readBoundedText(
 ): Promise<string> {
   const declared = response.headers.get("content-length");
   if (declared !== null && /^\d+$/.test(declared) && Number(declared) > maximumBytes) {
+    try {
+      await response.body?.cancel();
+    } catch {
+      // The declared size violation remains authoritative if cancellation fails.
+    }
     throw responseTooLarge(response.status, requestId);
   }
   if (!response.body) return "";
@@ -294,10 +314,60 @@ function isJsonContentType(value: string | null): boolean {
 }
 
 function safeRequestId(value: string | undefined | null): string | undefined {
-  if (value === undefined || value === null || value.length === 0 || value.length > 256) {
+  return isRequestId(value) ? value : undefined;
+}
+
+function resolveSameOriginUrl(
+  input: string | URL,
+  configuredBaseUrl: string | URL | undefined,
+): string {
+  const baseInput = configuredBaseUrl ?? runtimeLocationHref();
+  if (baseInput === undefined) {
+    throw new TypeError("baseUrl is required when no HTTP(S) runtime location is available");
+  }
+  const base = parseHttpUrl(baseInput, undefined, "baseUrl");
+  const target = parseHttpUrl(input, base, "url");
+  if (target.origin !== base.origin) {
+    throw new TypeError("url must have the same origin as baseUrl");
+  }
+  return target.href;
+}
+
+function runtimeLocationHref(): string | undefined {
+  try {
+    return typeof globalThis.location?.href === "string"
+      ? globalThis.location.href
+      : undefined;
+  } catch {
     return undefined;
   }
-  return /[\r\n\u0000-\u001f\u007f]/.test(value) ? undefined : value;
+}
+
+function parseHttpUrl(
+  input: string | URL,
+  base: URL | undefined,
+  name: "baseUrl" | "url",
+): URL {
+  if (typeof input !== "string" && !(input instanceof URL)) {
+    throw new TypeError(`${name} must be a string or URL`);
+  }
+  const serialized = input instanceof URL ? input.href : input;
+  if (serialized.length === 0 || /[\u0000-\u001f\u007f]/.test(serialized)) {
+    throw new TypeError(`${name} must be a non-empty URL without control characters`);
+  }
+  let parsed: URL;
+  try {
+    parsed = base === undefined ? new URL(serialized) : new URL(serialized, base);
+  } catch {
+    throw new TypeError(`${name} must be a valid URL`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new TypeError(`${name} must use HTTP or HTTPS`);
+  }
+  if (parsed.username !== "" || parsed.password !== "") {
+    throw new TypeError(`${name} must not contain user information`);
+  }
+  return parsed;
 }
 
 function parseRetryAfter(value: string | null, now = Date.now()): number | undefined {
@@ -309,8 +379,11 @@ function parseRetryAfter(value: string | null, now = Date.now()): number | undef
       ? Math.min(seconds, MAX_RETRY_AFTER_SECONDS)
       : undefined;
   }
+  if (
+    !/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(trimmed)
+  ) return undefined;
   const date = Date.parse(trimmed);
-  if (!Number.isFinite(date)) return undefined;
+  if (!Number.isFinite(date) || new Date(date).toUTCString() !== trimmed) return undefined;
   return Math.min(
     Math.max(0, Math.ceil((date - now) / 1_000)),
     MAX_RETRY_AFTER_SECONDS,

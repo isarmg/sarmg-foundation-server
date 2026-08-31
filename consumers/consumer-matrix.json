@@ -1,0 +1,56 @@
+{
+  "$schema": "./consumer-matrix.schema.json",
+  "format": "sarmg.consumer-matrix.v1",
+  "foundation_version": "0.3.0",
+  "updated_on": "2026-08-31",
+  "consumers": [
+    {
+      "repository": "dufs-ram",
+      "commit": "74d55586feb97cad1a0cf3d3b79d971b652b014e",
+      "adopted_version": null,
+      "packages": [],
+      "status": "not-integrated",
+      "last_verified_commit": null
+    },
+    {
+      "repository": "host-monitoring",
+      "commit": "f66e0b74706598565414fd91e47189a7c3e00e54",
+      "adopted_version": null,
+      "packages": [],
+      "status": "not-integrated",
+      "last_verified_commit": null
+    },
+    {
+      "repository": "media-backup",
+      "commit": "04b6ba05816290a5b70cd0eaad804e2b28da0fda",
+      "adopted_version": null,
+      "packages": [],
+      "status": "not-integrated",
+      "last_verified_commit": null
+    },
+    {
+      "repository": "sarmg-upgrade",
+      "commit": "ae45fb373a52edbd3694d8034c2535b7357fcfc0",
+      "adopted_version": null,
+      "packages": [],
+      "status": "not-integrated",
+      "last_verified_commit": null
+    },
+    {
+      "repository": "sentinel-monitor",
+      "commit": "cba7364a547e9838a58dd1a8eb124be7462d9065",
+      "adopted_version": null,
+      "packages": [],
+      "status": "not-integrated",
+      "last_verified_commit": null
+    },
+    {
+      "repository": "sunshine-manager",
+      "commit": "0b7b14af81b5246fb82660afbfc6000baa87f2a2",
+      "adopted_version": null,
+      "packages": [],
+      "status": "not-integrated",
+      "last_verified_commit": null
+    }
+  ]
+}

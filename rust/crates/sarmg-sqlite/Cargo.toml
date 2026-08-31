@@ -1,14 +1,21 @@
 [package]
 name = "sarmg-sqlite"
-description = "Experimental SQLx SQLite pool and integrity primitives"
+description = "Strict SQLx SQLite connection, integrity, and schema identity adapters"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
 
 [dependencies]
-anyhow.workspace = true
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.3.0" }
 sqlx.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -20,4 +20,26 @@ export const tokens = {
     md: "8px",
     lg: "12px",
   },
-};
+} as const;
+
+/**
+ * Semantic values are exported for build-time consumers that cannot resolve
+ * CSS custom properties. Keep these values byte-for-byte aligned with the
+ * effective values in tokens.css and tokens.dark.css.
+ */
+export const semanticTokens = {
+  light: {
+    actionPrimary: tokens.color.blue600,
+    bgPage: tokens.color.gray50,
+    bgPanel: "#ffffff",
+    textPrimary: tokens.color.gray900,
+    textDanger: tokens.color.red600,
+  },
+  dark: {
+    actionPrimary: tokens.color.blue600,
+    bgPage: "#09090b",
+    bgPanel: "#18181b",
+    textPrimary: "#fafafa",
+    textDanger: "#f87171",
+  },
+} as const;

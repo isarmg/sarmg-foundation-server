@@ -1,0 +1,21 @@
+[package]
+name = "sarmg-contracts"
+description = "Strict current-version wire contracts shared by Sarmg Rust products"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.3.0" }
+sarmg-error = { path = "../sarmg-error", version = "=0.3.0" }
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.3.0" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

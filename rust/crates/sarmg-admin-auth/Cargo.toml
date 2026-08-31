@@ -1,0 +1,21 @@
+[package]
+name = "sarmg-admin-auth"
+description = "Current-only administrator username, password, token and cookie primitives for Sarmg services"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+argon2.workspace = true
+base64.workspace = true
+getrandom.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

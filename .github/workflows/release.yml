@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+env:
+  RUSTUP_TOOLCHAIN: 1.98.0
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Enforce workflow and release identity policy
+        run: |
+          python3 scripts/check-workflow-supply-chain.py
+          python3 scripts/check-foundation.py
+      - name: Install exact Rust toolchain
+        run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
+      - name: Prove the server target gate rejects non-canonical targets
+        run: |
+          rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-musl
+          for target in aarch64-unknown-linux-gnu x86_64-unknown-linux-musl; do
+            log="$RUNNER_TEMP/sarmg-server-target-$target.log"
+            if cargo check --locked -p sarmg-server-target --target "$target" 2>"$log"; then
+              echo "::error::sarmg-server-target unexpectedly accepted $target"
+              exit 1
+            fi
+            grep -F "Sarmg server binaries support only x86_64-unknown-linux-gnu" "$log"
+          done
+      - name: Install exact Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.7.0
+          check-latest: false
+      - name: Install exact pnpm
+        run: npm install --global pnpm@10.12.1 --ignore-scripts
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Verify Rust components
+        run: |
+          cargo fmt --all -- --check
+          cargo check --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          cargo test --locked --workspace --all-features
+          RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-deps
+      - name: Verify Web packages and Python tooling
+        run: |
+          pnpm typecheck
+          pnpm test
+          python3 -m unittest discover -s tools/tests -p 'test_*.py'
+          python3 scripts/package-artifacts.py smoke
+      - name: Build exact release tree
+        run: >-
+          python3 scripts/build-release-assets.py
+          --output "$RUNNER_TEMP/sarmg-foundation-release"
+          --source-revision "$GITHUB_SHA"
+          --tag "$GITHUB_REF_NAME"
+      - name: Publish immutable GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          "$RUNNER_TEMP/sarmg-foundation-release/artifacts/"*
+          "$RUNNER_TEMP/sarmg-foundation-release/release-tree.json"
+          --verify-tag
+          --title "Sarmg Foundation ${GITHUB_REF_NAME}"
+          --notes "当前版构建期契约、安全原语与发布工具；不包含旧版本兼容层。"
