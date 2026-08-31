@@ -1,8 +1,9 @@
 //! Database-driver-independent SQLite schema identity primitives.
 //!
-//! Products continue to own their DDL and migration lifecycle. This crate only
-//! defines the current `product_metadata` contract and the byte-exact schema
-//! fingerprint shared by products and offline tooling.
+//! Products own only their exact current DDL and schema identity. Historical
+//! migration, backup and restore belong to the independent `sarmg-upgrade`
+//! repository. This crate defines the current `product_metadata` contract and
+//! the byte-exact schema fingerprint shared by products and offline tooling.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
