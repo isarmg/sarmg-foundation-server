@@ -1,73 +1,41 @@
-# isarmg-foundation
+# Sarmg Foundation
 
-Experimental, build-time shared primitives for the independent ISArmg products:
+Sarmg Foundation `0.2.0` 提供少量经过验证、仅在构建期复用的 Rust 与 Web 基础组件。它不是运行时
+服务：业务产品把选定 crate/package 编译进自己的不可变制品，并继续独立拥有用户、Session、数据库、
+文件、进程和发布周期。
 
-```text
-photo-backup
-host-monitoring
-dufs-ram
-sentinel-monitor
-sunshine-manager
-```
+所有包仍为实验性 `0.x`。新版本不会保留旧 API alias 或 re-export；消费者必须显式修改并在自身仓库
+完成集成测试。
 
-The foundation is not a runtime service. Products compile selected crates and packages into their
-own release artifacts and keep their own users, sessions, databases, files and processes. A built
-product must continue to run when this repository or its package registries are unavailable.
-
-## Stability
-
-Every package in this repository is currently `0.x` and experimental:
-
-- `isarmg-sqlite` provides the current async SQLx pool baseline, integrity/foreign-key checks and
-  WAL checkpointing. Products own their schema lifecycle; Foundation does not retain an older
-  database API or run product schema changes.
-- `isarmg-error` and `@isarmg/contracts` share a validated, machine-readable `ErrorEnvelope`
-  wire shape. They remain 0.x: product-specific codes and adoption still require contract
-  tests in each consumer.
-- `@isarmg/http-client` now ships compiled output with bounded JSON reads, same-origin credentials,
-  timeouts, CSRF propagation and typed errors. It is still experimental until adopted and tested
-  by at least two products.
-- The Web workspace contains only packages with a build and distributable `dist` output.
-  Placeholder UI, shell, authentication, testkit and global API-prefix packages were deleted;
-  products own those concerns until a tested shared implementation has real consumers.
-
-The former authentication, HTTP middleware, configuration, observability, path-validation and
-operation-type crates were also deleted. They had no real consumers and were weaker than the
-product-local boundaries. A shared replacement must be designed from current requirements and
-prove itself in at least two products; no removed API will be carried forward as compatibility.
-
-Business products must own stronger local implementations until a Foundation replacement has
-equivalent behavior, tests and at least two real consumers.
-
-## Rust crates
-
-The Rust workspace is versioned `0.2.0`. Removed `0.1` APIs are not aliased or re-exported.
+## 当前组件
 
 ```text
-rust/crates/
-├── isarmg-error
-└── isarmg-sqlite
+rust/crates/sarmg-error    严格 ErrorCode、ErrorEnvelope 与 HTTP 状态映射
+rust/crates/sarmg-sqlite   SQLx SQLite pool、完整性/外键检查与 WAL checkpoint
+packages/contracts         Error、State、Release、Backup 等 wire contract/JSON Schema
+packages/http-client       有界 same-origin JSON fetch client
+packages/design-tokens     TypeScript token 与明/暗色 CSS
 ```
 
-## Web packages
-
-All Web packages are versioned `0.2.0`. Removed `0.1` names and entry points are not aliased or
-re-exported; consumers must update imports explicitly.
-
-```text
-web/packages/
-├── design-tokens
-├── http-client
-└── contracts
-```
-
-When a package becomes publishable, business projects should depend on an exact released version.
-Already built products must never load Foundation code from a shared runtime service or CDN.
-
-## Development
+## 快速验证
 
 ```bash
-cargo check --workspace --all-targets
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo +1.98.0 fmt --all -- --check
+cargo +1.98.0 check --workspace --all-targets
+cargo +1.98.0 clippy --workspace --all-targets -- -D warnings
+cargo +1.98.0 test --workspace
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
+pnpm test
 ```
+
+## 文档
+
+- [文档总览](docs/README.md)
+- [初学者学习指南](docs/beginner-guide/README.md)
+- [项目工作流程与流程树](docs/project-workflow.md)
+- [完整功能与取舍清单](docs/feature-inventory-and-tradeoffs.md)
+- [版本、依赖、发布与故障运维](docs/operations.md)
+
+代码采用 [Apache License 2.0](LICENSE)。
