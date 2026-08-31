@@ -34,7 +34,7 @@ Package/Release
 
 ## 9.3 Git与Tag
 
-release要求完整40位source revision、工作树无tracked/untracked变化、唯一`v0.3.0` tag指向HEAD。annotated
+release要求完整40位source revision、工作树无tracked/untracked变化、唯一`v0.3.1` tag指向HEAD。annotated
 tag和Release一旦公开不移动或覆盖。若发现问题，保留证据并发新版本。
 
 GitHub organization名、域名和部署namespace不等于项目旧名称；身份变更必须区分项目名与组织所有者，
@@ -55,6 +55,11 @@ YAML anchor/alias/merge被禁，是因为文本和解析结构间差异可能绕
 
 package release前审查真实tgz，而不是只看src。离线空目录安装证明依赖完整；`--ignore-scripts`减少安装时
 第三方执行面。
+
+Rust crate 也不能只在 workspace 根声明 `license="Apache-2.0"`。`cargo vendor` 会把每个 crate 展平为
+独立 package；若 crate 根没有自己的普通 `LICENSE`，消费者生成第三方 notices 时不能安全借用另一个项目的
+通用文本。Foundation 因此要求六个 crate 各携带与根文件 byte-exact 的许可证，并用真实
+`cargo package --list` 证明文件确实进入分发清单。
 
 ## 9.6 Release资产复核
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import stat
@@ -10,10 +11,13 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "0.3.0"
+CURRENT_VERSION = "0.3.1"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.12.1"
 RUST_VERSION = "1.98.0"
+APACHE_2_LICENSE_SHA256 = (
+    "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+)
 ADMIN_WEB_DEV_DEPENDENCIES = {
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
@@ -36,6 +40,9 @@ KNOWN_PACKAGES = {
     "sarmg-server-target",
     "sarmg-sqlite",
 }
+RUST_PACKAGES = tuple(
+    sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
+)
 KNOWN_CONSUMERS = {
     "dufs-ram",
     "host-monitoring",
@@ -52,6 +59,24 @@ def _regular_file(path: Path) -> None:
     metadata = path.lstat()
     if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
         raise FoundationPolicyError(f"{path}: must be one regular, unlinked file")
+
+
+def read_audited_root_license(path: Path) -> bytes:
+    _regular_file(path)
+    content = path.read_bytes()
+    if hashlib.sha256(content).hexdigest() != APACHE_2_LICENSE_SHA256:
+        raise FoundationPolicyError(
+            f"{path}: content differs from the audited Apache-2.0 text"
+        )
+    return content
+
+
+def require_license_copy(path: Path, expected: bytes) -> None:
+    _regular_file(path)
+    if path.read_bytes() != expected:
+        raise FoundationPolicyError(
+            f"{path}: content differs from the audited root LICENSE"
+        )
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -82,6 +107,9 @@ def _exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None
 
 
 def check_versions(root: Path) -> None:
+    root_license = root / "LICENSE"
+    root_license_bytes = read_audited_root_license(root_license)
+
     root_package = _json(root / "package.json")
     if root_package.get("version") != CURRENT_VERSION:
         raise FoundationPolicyError("package.json: workspace version differs from policy")
@@ -152,9 +180,7 @@ def check_versions(root: Path) -> None:
             )
 
     members = set(cargo.get("workspace", {}).get("members", []))
-    expected_members = {
-        f"rust/crates/{name}" for name in KNOWN_PACKAGES if not name.startswith("@")
-    }
+    expected_members = {f"rust/crates/{name}" for name in RUST_PACKAGES}
     if members != expected_members:
         raise FoundationPolicyError(f"Rust workspace members differ: {sorted(members)}")
     for member in sorted(members):
@@ -163,6 +189,12 @@ def check_versions(root: Path) -> None:
         package = manifest.get("package", {})
         if package.get("name") != Path(member).name or package.get("version") != {"workspace": True}:
             raise FoundationPolicyError(f"{manifest_path}: crate identity is not workspace-owned")
+        if package.get("license") != {"workspace": True} or "license-file" in package:
+            raise FoundationPolicyError(
+                f"{manifest_path}: crate must inherit the Apache-2.0 SPDX expression"
+            )
+        crate_license = root / member / "LICENSE"
+        require_license_copy(crate_license, root_license_bytes)
         if manifest.get("lints") != {"workspace": True}:
             raise FoundationPolicyError(f"{manifest_path}: workspace lints are not enabled")
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):

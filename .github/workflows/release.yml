@@ -50,6 +50,7 @@ jobs:
       - name: Verify Rust components
         run: |
           cargo fmt --all -- --check
+          python3 scripts/check-rust-package-licenses.py
           cargo check --locked --workspace --all-targets --all-features
           cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
           cargo test --locked --workspace --all-features

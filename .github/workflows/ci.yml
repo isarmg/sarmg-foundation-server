@@ -41,6 +41,8 @@ jobs:
           done
       - name: Check formatting
         run: cargo fmt --all -- --check
+      - name: Verify every Cargo package carries its audited license text
+        run: python3 scripts/check-rust-package-licenses.py
       - name: Check all targets
         run: cargo check --locked --workspace --all-targets --all-features
       - name: Lint all targets

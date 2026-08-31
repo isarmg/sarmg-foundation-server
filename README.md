@@ -1,6 +1,6 @@
 # Sarmg Foundation
 
-Sarmg Foundation `0.3.0` 是 Sarmg 产品的构建期共享层。它把已经由多个产品证明一致的安全原语、跨语言
+Sarmg Foundation `0.3.1` 是 Sarmg 产品的构建期共享层。它把已经由多个产品证明一致的安全原语、跨语言
 wire contract、SQLite Schema 身份算法、管理员 Web 基线、设计令牌和发布校验工具集中维护。消费者在
 编译或打包时锁定一个不可变版本并把代码带进自己的制品；生产环境不连接 Foundation，也不依赖本仓库、
 GitHub、npm registry 或任何中央认证服务在线可用。
@@ -86,7 +86,7 @@ sarmg-foundation/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.3.0` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.3.1` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
@@ -97,6 +97,7 @@ smoke 和所有消费者验证。
 
 ```bash
 python3 scripts/check-foundation.py
+python3 scripts/check-rust-package-licenses.py
 python3 scripts/check-workflow-supply-chain.py
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
 cargo fmt --all -- --check
@@ -115,15 +116,20 @@ git diff --check
 审计 tar member，再在临时空目录离线安装并解析每个公开入口。workspace 中能 import 但 tarball 不能安装，
 不算通过。
 
+`check-rust-package-licenses.py` 会调用 Cargo 查看六个真实 crate 的 package 清单，并要求每个包根恰好包含
+一个 `LICENSE`。repository policy 同时要求这六个文件都是普通、单链接文件，且字节与经过摘要固定的根
+Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平后仍保留可审计许可证，不依赖消费者
+仓库的通用 license fallback。
+
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.3.0"`。
+   并同时声明 `version = "=0.3.1"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.3.0` tag 的专用 release job 可获得 `contents: write`。
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.3.1` tag 的专用 release job 可获得 `contents: write`。
 5. 发布资产包含 4 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、

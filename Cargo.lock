@@ -710,7 +710,7 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "sarmg-admin-auth"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "argon2",
  "base64",
@@ -722,7 +722,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-contracts"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "sarmg-admin-auth",
  "sarmg-error",
@@ -734,7 +734,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-error"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-schema-identity"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -753,11 +753,11 @@ dependencies = [
 
 [[package]]
 name = "sarmg-server-target"
-version = "0.3.0"
+version = "0.3.1"
 
 [[package]]
 name = "sarmg-sqlite"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "sarmg-schema-identity",
  "sqlx",

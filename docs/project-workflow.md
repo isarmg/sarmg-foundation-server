@@ -321,7 +321,8 @@ React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依
 main 工作树完全干净
 ├─ 全部 Rust/Web/Python/package 门禁通过
 ├─ Cargo/npm/policy/consumer matrix 版本一致
-├─ 创建唯一 annotated v0.3.0 tag
+├─ 六个 Cargo package 均携带审核过的根 LICENSE
+├─ 创建唯一 annotated v0.3.1 tag
 ├─ push tag 触发唯一 release job
 ├─ 再次运行全部门禁
 ├─ 生成 4 个 npm tgz

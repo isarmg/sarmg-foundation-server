@@ -1,6 +1,6 @@
 {
   "name": "sarmg-foundation",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Sarmg 项目的构建期契约、安全原语与发布工具工作区",
   "license": "Apache-2.0",

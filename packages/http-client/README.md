@@ -1,6 +1,6 @@
 # @sarmg/http-client
 
-`@sarmg/http-client@0.3.0` 提供一个公开请求函数 `requestJson<T>` 和结构化错误 `ApiClientError`。它统一
+`@sarmg/http-client@0.3.1` 提供一个公开请求函数 `requestJson<T>` 和结构化错误 `ApiClientError`。它统一
 same-origin URL、cookie credential、unsafe method CSRF、超时/调用方取消、响应字节预算、严格 JSON
 Content-Type、Error Envelope 与 `Retry-After` 解析。
 
@@ -22,5 +22,5 @@ const candidate: unknown = await requestJson("/api/v2/health", {
 await，但其异常不会覆盖服务返回的权威错误。请求从不自动重试，因为通用层无法判断 mutation 是否幂等。
 泛型 `T` 只改善编译体验，不验证成功响应。
 
-本包把 `@sarmg/contracts@0.3.0` 声明为精确 peer dependency；消费者必须同时锁定两者。它不支持跨
+本包把 `@sarmg/contracts@0.3.1` 声明为精确 peer dependency；消费者必须同时锁定两者。它不支持跨
 origin、文件流、无界响应、自动 retry、业务 DTO guard、认证状态机或旧 Error Envelope。

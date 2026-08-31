@@ -1,12 +1,12 @@
 {
   "$schema": "./consumer-matrix.schema.json",
   "format": "sarmg.consumer-matrix.v1",
-  "foundation_version": "0.3.0",
+  "foundation_version": "0.3.1",
   "updated_on": "2026-08-31",
   "consumers": [
     {
       "repository": "dufs-ram",
-      "commit": "74d55586feb97cad1a0cf3d3b79d971b652b014e",
+      "commit": "ae469eae20a5c327f6d4e67d8bf054268bd4be19",
       "adopted_version": null,
       "packages": [],
       "status": "not-integrated",
@@ -14,7 +14,7 @@
     },
     {
       "repository": "host-monitoring",
-      "commit": "f66e0b74706598565414fd91e47189a7c3e00e54",
+      "commit": "4ac8caf81f11a78301abc4a47c8353243a5c93ee",
       "adopted_version": null,
       "packages": [],
       "status": "not-integrated",
@@ -22,7 +22,7 @@
     },
     {
       "repository": "media-backup",
-      "commit": "04b6ba05816290a5b70cd0eaad804e2b28da0fda",
+      "commit": "66bc0512fb991797e4907e6abb188a9b707af551",
       "adopted_version": null,
       "packages": [],
       "status": "not-integrated",
@@ -30,7 +30,7 @@
     },
     {
       "repository": "sarmg-upgrade",
-      "commit": "ae45fb373a52edbd3694d8034c2535b7357fcfc0",
+      "commit": "6b79807ffd368abe988698b251c0bd99931c5e3c",
       "adopted_version": null,
       "packages": [],
       "status": "not-integrated",
@@ -38,7 +38,7 @@
     },
     {
       "repository": "sentinel-monitor",
-      "commit": "cba7364a547e9838a58dd1a8eb124be7462d9065",
+      "commit": "7856774c05658971dfde679043df2889a71089a6",
       "adopted_version": null,
       "packages": [],
       "status": "not-integrated",
@@ -46,7 +46,7 @@
     },
     {
       "repository": "sunshine-manager",
-      "commit": "0b7b14af81b5246fb82660afbfc6000baa87f2a2",
+      "commit": "296f6a9dcd41eb123e5efe8aa780d1db730aabf1",
       "adopted_version": null,
       "packages": [],
       "status": "not-integrated",

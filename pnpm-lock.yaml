@@ -11,10 +11,10 @@ importers:
   packages/admin-web:
     devDependencies:
       '@sarmg/contracts':
-        specifier: workspace:0.3.0
+        specifier: workspace:0.3.1
         version: link:../contracts
       '@sarmg/http-client':
-        specifier: workspace:0.3.0
+        specifier: workspace:0.3.1
         version: link:../http-client
       '@types/react':
         specifier: 19.2.18
@@ -53,7 +53,7 @@ importers:
   packages/http-client:
     devDependencies:
       '@sarmg/contracts':
-        specifier: workspace:0.3.0
+        specifier: workspace:0.3.1
         version: link:../contracts
       typescript:
         specifier: 5.8.3

@@ -16,7 +16,7 @@ from pathlib import Path, PurePath
 FIXED_RUNNER = "ubuntu-24.04"
 MAX_TIMEOUT_MINUTES = 30
 MAX_WORKFLOW_BYTES = 1024 * 1024
-CLI_VERSION = "0.3.0"
+CLI_VERSION = "0.3.1"
 PINNED_OFFICIAL_ACTIONS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions/setup-node": "820762786026740c76f36085b0efc47a31fe5020",
