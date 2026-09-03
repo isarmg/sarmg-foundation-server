@@ -1,0 +1,11 @@
+format = 1
+product = "dufs-ram"
+source_commit = "86b1b6c3d8d9c3d450e0ac3fe90942ef121080ea"
+product_version = "0.50.1"
+state_kind = "sqlite-data-tree-configuration"
+schema_revision = 1
+schema_sha256 = "3659ff0c703515f555af95f0f1c08c35fa0555a8978f5f0e5a658fd93d225423"
+foundation_version = "0.3.1"
+foundation_rev = "7c6a210cd5fc8bf987e0f50fccee69b7c58cbdf0"
+fixture = "sarmg-upgrade/tests/fixtures/sources/dufs-ram/0.50.1"
+fixture_status = "sanitized-current-state"

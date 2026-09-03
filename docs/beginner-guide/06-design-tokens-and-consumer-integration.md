@@ -100,7 +100,7 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 按最小需要选crate。一个只需Schema fingerprint的rusqlite工具不应引入`sarmg-sqlite`；客户端crate不应
 引入`sarmg-server-target`；只做错误输出的service adapter可以仅用`sarmg-error`。
 
-本地path联调后改成Foundation release commit完整rev与`version="=0.3.1"`。Git branch、短SHA和永久path都
+本地path联调后改成Foundation release commit完整rev与`version="=0.4.0"`。Git branch、短SHA和永久path都
 不能提供不可变来源。
 
 ## 6.9 产品边界不能在接入时丢失

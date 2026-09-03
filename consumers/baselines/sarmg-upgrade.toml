@@ -1,0 +1,8 @@
+format = 1
+product = "sarmg-upgrade"
+source_commit = "6b79807ffd368abe988698b251c0bd99931c5e3c"
+product_version = "0.2.0"
+state_kind = "none"
+foundation_version = "0.3.0"
+foundation_rev = "1fe326081cfd896f05ff502e80f99504797c14c6"
+fixture_status = "not-applicable"

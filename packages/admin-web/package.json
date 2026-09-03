@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/admin-web",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Sarmg 管理员专用 React/Vite Web 的认证、请求与构建基线",
   "license": "Apache-2.0",
   "repository": {
@@ -44,8 +44,8 @@
     "test": "pnpm --filter @sarmg/contracts build && pnpm --filter @sarmg/http-client build && pnpm run build && node --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@sarmg/contracts": "0.3.1",
-    "@sarmg/http-client": "0.3.1",
+    "@sarmg/contracts": "0.4.0",
+    "@sarmg/http-client": "0.4.0",
     "@vitejs/plugin-react": "4.7.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -58,8 +58,8 @@
     "vite": { "optional": true }
   },
   "devDependencies": {
-    "@sarmg/contracts": "workspace:0.3.1",
-    "@sarmg/http-client": "workspace:0.3.1",
+    "@sarmg/contracts": "workspace:0.4.0",
+    "@sarmg/http-client": "workspace:0.4.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "4.7.0",

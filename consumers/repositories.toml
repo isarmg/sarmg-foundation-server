@@ -1,0 +1,67 @@
+format = 1
+
+[[repositories]]
+product = "dufs-ram"
+url = "https://github.com/isarmg/dufs-ram"
+commit = "86b1b6c3d8d9c3d450e0ac3fe90942ef121080ea"
+foundation_version = "0.3.1"
+profiles = ["server-filesystem", "web-embedded-native"]
+capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2", "durable-operations", "native-esm", "admin-client", "design-tokens", "maple-font"]
+packages = ["sarmg-admin-auth", "sarmg-contracts", "sarmg-schema-identity", "sarmg-server-target"]
+status = "temporary-exception"
+exceptions = ["local-platform-stack"]
+
+[[repositories]]
+product = "host-monitoring"
+url = "https://github.com/isarmg/host-monitoring"
+commit = "4ac8caf81f11a78301abc4a47c8353243a5c93ee"
+foundation_version = "0.3.0"
+profiles = ["server-control-plane", "web-react-admin", "desktop-agent"]
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font", "private-state", "bounded-spool", "https-delivery", "doctor"]
+packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target", "sarmg-sqlite"]
+status = "temporary-exception"
+exceptions = ["local-platform-stack"]
+
+[[repositories]]
+product = "media-backup"
+url = "https://github.com/isarmg/media-backup"
+commit = "66bc0512fb991797e4907e6abb188a9b707af551"
+foundation_version = "0.3.0"
+profiles = ["server-control-plane", "web-react-admin", "mobile-agent"]
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font", "mobile-queue", "mobile-state", "mobile-ffi", "https-delivery"]
+packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-server-target"]
+status = "temporary-exception"
+exceptions = ["local-platform-stack"]
+
+[[repositories]]
+product = "sarmg-upgrade"
+url = "https://github.com/isarmg/sarmg-upgrade"
+commit = "6b79807ffd368abe988698b251c0bd99931c5e3c"
+foundation_version = "0.3.0"
+profiles = ["offline-tool"]
+capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2", "secret-envelope"]
+packages = ["sarmg-contracts", "sarmg-schema-identity"]
+status = "migration-in-progress"
+exceptions = []
+
+[[repositories]]
+product = "sentinel-monitor"
+url = "https://github.com/isarmg/sentinel-monitor"
+commit = "7856774c05658971dfde679043df2889a71089a6"
+foundation_version = "0.3.0"
+profiles = ["server-control-plane", "web-react-admin"]
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secure-http", "secure-xml", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
+packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target"]
+status = "temporary-exception"
+exceptions = ["local-platform-stack"]
+
+[[repositories]]
+product = "sunshine-manager"
+url = "https://github.com/isarmg/sunshine-manager"
+commit = "296f6a9dcd41eb123e5efe8aa780d1db730aabf1"
+foundation_version = "0.3.0"
+profiles = ["server-control-plane", "web-react-admin"]
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
+packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target", "sarmg-sqlite"]
+status = "temporary-exception"
+exceptions = ["local-platform-stack"]

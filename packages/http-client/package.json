@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/http-client",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "带有 same-origin、响应大小和取消边界的 Sarmg JSON HTTP 客户端",
   "license": "Apache-2.0",
   "repository": {
@@ -35,10 +35,10 @@
     "test": "pnpm --filter @sarmg/contracts build && pnpm run build && node --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@sarmg/contracts": "0.3.1"
+    "@sarmg/contracts": "0.4.0"
   },
   "devDependencies": {
-    "@sarmg/contracts": "workspace:0.3.1",
+    "@sarmg/contracts": "workspace:0.4.0",
     "typescript": "5.8.3"
   }
 }

@@ -1,0 +1,12 @@
+format = 1
+id = "mobile-agent"
+kind = "agent"
+formal_targets = [
+  "aarch64-linux-android",
+  "aarch64-apple-ios",
+  "aarch64-apple-ios-sim",
+]
+http_adapters = []
+web_profiles = []
+required_capabilities = ["mobile-queue", "mobile-state", "mobile-ffi", "https-delivery"]
+optional_capabilities = ["secret-envelope"]

@@ -1,0 +1,11 @@
+format = 1
+product = "media-backup"
+source_commit = "66bc0512fb991797e4907e6abb188a9b707af551"
+product_version = "0.2.0"
+state_kind = "sqlite-data-tree"
+schema_revision = 1
+schema_sha256 = "2563e6afc3fff272d02b7a5615272cc773862243bfd15aec51655abf1d9c6b1c"
+foundation_version = "0.3.0"
+foundation_rev = "1fe326081cfd896f05ff502e80f99504797c14c6"
+fixture = "sarmg-upgrade/tests/fixtures/sources/media-backup/0.2.0"
+fixture_status = "sanitized-current-state"

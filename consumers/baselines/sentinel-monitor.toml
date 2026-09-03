@@ -1,0 +1,11 @@
+format = 1
+product = "sentinel-monitor"
+source_commit = "7856774c05658971dfde679043df2889a71089a6"
+product_version = "0.2.0"
+state_kind = "sqlite-configuration-recordings"
+schema_revision = 1
+schema_sha256 = "f547ddc817d830d23b5305bb1f88b29898d6531568edd6eb194c2b629eb560c0"
+foundation_version = "0.3.0"
+foundation_rev = "1fe326081cfd896f05ff502e80f99504797c14c6"
+fixture = "sarmg-upgrade/tests/fixtures/sources/sentinel-monitor/0.2.0"
+fixture_status = "sanitized-current-state"

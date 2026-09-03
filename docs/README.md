@@ -1,13 +1,15 @@
 # Sarmg Foundation 文档总览
 
-本目录只记录 `0.3.1` 当前实现，不保存旧版教程、迁移步骤或兼容说明。发生版本变化时，以源码、Cargo/npm
-manifest、JSON Schema、fixture、测试和发布 policy 为事实源，在同一变更中更新这里。
+本目录记录 `0.4.0` 冻结实现与平台化目标，不保存旧版兼容说明。发生版本变化时，以源码、Cargo/npm
+manifest、Profile、JSON Schema、fixture、测试和发布 policy 为事实源，在同一变更中更新这里。
 
 | 分类 | 文档 | 适合回答的问题 |
 |---|---|---|
 | 必要 README | [仓库 README](../README.md) | Foundation 是什么、当前组件、硬边界、验证与消费入口 |
 | 初学者学习指南 | [十章教程](beginner-guide/README.md) | 如何阅读认证、合同、SQLite、Web、发布和测试源码 |
 | 工作流程与流程树 | [project-workflow.md](project-workflow.md) | 一个需求怎样进入 Foundation、怎样跨产品落地、如何删除或发布 |
+| 架构决策 | [architecture/README.md](architecture/README.md) | 平台所有权、Profile、升级和依赖方向为何如此定义 |
+| 平台规范 | [platform-specifications](platform-specifications/platform-migration-roadmap.md) | 平台迁移阶段与 Profile/Capability 的正式边界 |
 | 完整功能与取舍清单 | [feature-inventory-and-tradeoffs.md](feature-inventory-and-tradeoffs.md) | 每项能力的实现锚点、分类、复杂度、删除后果、验证和明确排除项 |
 | 运维文档 | [operations.md](operations.md) | 固定工具链、CI/package/release 运维、故障处置、消费者追踪和安全事件 |
 

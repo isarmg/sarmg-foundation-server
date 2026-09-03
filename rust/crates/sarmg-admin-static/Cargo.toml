@@ -1,0 +1,22 @@
+[package]
+name = "sarmg-admin-static"
+description = "Static PHC administrator configuration with bounded in-memory sessions"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.4.0" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.4.0" }
+thiserror.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

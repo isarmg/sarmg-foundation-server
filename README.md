@@ -1,27 +1,43 @@
 # Sarmg Foundation
 
-Sarmg Foundation `0.3.1` 是 Sarmg 产品的构建期共享层。它把已经由多个产品证明一致的安全原语、跨语言
-wire contract、SQLite Schema 身份算法、管理员 Web 基线、设计令牌和发布校验工具集中维护。消费者在
-编译或打包时锁定一个不可变版本并把代码带进自己的制品；生产环境不连接 Foundation，也不依赖本仓库、
-GitHub、npm registry 或任何中央认证服务在线可用。
+Sarmg Foundation 是所有 Sarmg 产品的上游平台规范、基础实现、工具链和一致性验证系统。产品实现可以
+作为 Foundation 的设计输入；一项能力进入 Foundation 后，Foundation 就成为唯一事实源，产品必须通过
+Profile、Capability 和业务 Adapter 使用它，不得要求 Foundation 永久兼容产品本地实现，也不得继续维护
+第二套平台能力。
+
+Foundation 是构建期中央平台，不是生产环境中的中央服务。每个产品仍编译、发布并独立运行自己的正式
+二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
+不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
+
+当前 `0.4.0` 是平台化迁移的冻结基线，不是 Foundation 1.0 完成声明。已有 primitive 继续提供唯一当前
+合同；尚未完成的平台能力必须按[平台迁移路线](docs/platform-specifications/platform-migration-roadmap.md)
+纵向落地，并由临时例外明确记录，不能把计划能力写成已完成能力。
 
 本版本只定义一套当前合同：不提供旧名称、旧字段、旧 Schema、deprecated wrapper、双读写、隐式降级或
 兼容 fallback。历史状态的识别、备份、恢复和升级属于独立的 `sarmg-upgrade` 仓库；各在线产品只读取其
-当前状态。Foundation 本身无 daemon、无业务数据库、无用户表、无 Session 表、无文件树，也不拥有产品的
-发布周期。
+当前状态。Foundation 本身无 daemon、无产品业务数据库、无产品业务表和文件树，也不拥有产品的发布周期；
+但平台数据库 DDL、管理员与 Session 机制、Server/Agent/Web Runtime 等平台能力由 Foundation 定义和发布。
+历史状态的读取与转换始终只属于 `sarmg-upgrade`。
 
-## 1. 当前组件
+## 1. 当前迁移基线组件
 
 ### 1.1 Rust crate
 
 | 组件 | 当前职责 | 明确不负责 |
 |---|---|---|
-| `sarmg-admin-auth` | 管理员 username、密码/Argon2id、Session/CSRF token、Cookie 提取、Origin/Host/Sec-Fetch-Site 同源校验 | 用户表、Session 持久化、Cookie 名称/TTL/属性、登录限流、审计、框架 middleware |
+| `sarmg-admin-auth` | 迁移前管理员 username、密码/Argon2id、Session/CSRF token、Cookie 与同源检查 primitive | 目标能力由 Admin Core、Store 和 HTTP Adapter 取代；产品不得据此永久保留本地控制面 |
 | `sarmg-contracts` | 管理员登录/Session、State、Release、Backup、Error 的严格 Rust wire 类型与共享 fixture | 产品业务 DTO、HTTP router、历史 manifest reader、物理路径检查 |
 | `sarmg-error` | 有界 `ErrorCode`、`RequestId`、严格 `ErrorEnvelope`、常用 HTTP status/retry 默认值 | 产品错误码全集、日志脱敏、Axum rejection 和响应 middleware |
 | `sarmg-schema-identity` | 驱动无关的五列 `product_metadata`、Schema fingerprint v1、精确 current identity 校验 | 打开数据库、执行 DDL/migration、路径安全、业务 Schema |
 | `sarmg-server-target` | 在编译期把所有 Sarmg Server 限定为 `x86_64-unknown-linux-gnu`，并导出唯一 target 常量 | 限制 Android/iOS/Windows/macOS/Linux Agent 等客户端；构建或安装 Server |
 | `sarmg-sqlite` | SQLx existing/create 显式打开、固定 PRAGMA、integrity/FK/checkpoint、Schema identity adapter | 产品实例锁、业务 transaction、初始化 DDL、backup/restore、文件 no-follow |
+| `sarmg-state-file` | 带摘要、权限和原子替换约束的小型平台状态文件 | 产品业务文件树、历史格式转换 |
+| `sarmg-platform-db` | 平台 metadata DDL、保留表前缀和当前 generation 验证 | 产品业务 DDL、在线 migration |
+| `sarmg-admin-core` | 管理员政策、登录准入、Session/CSRF 状态机与 Store 合同 | 具体数据库、HTTP 框架、产品授权 |
+| `sarmg-admin-sqlite` | 持久管理员、Session 和安全审计的 SQLite Store | 业务账户、业务审计 |
+| `sarmg-admin-static` | 静态 PHC 管理员与进程内 Session Store | Web 管理员增删、跨重启 Session |
+| `sarmg-admin-axum` | Foundation Auth Router、Cookie、Origin/CSRF 与 Axum 请求认证 | 产品业务路由和业务权限 |
+| `sarmg-admin-hyper` | 与 Admin Core 同语义的 Hyper 请求/响应适配边界 | 文件服务业务实现 |
 
 ### 1.2 npm package
 
@@ -59,24 +75,35 @@ GitHub、npm registry 或任何中央认证服务在线可用。
 sarmg-foundation/
 ├─ rust/crates/
 │  ├─ sarmg-admin-auth/
+│  ├─ sarmg-admin-axum/
+│  ├─ sarmg-admin-core/
+│  ├─ sarmg-admin-hyper/
+│  ├─ sarmg-admin-sqlite/
+│  ├─ sarmg-admin-static/
 │  ├─ sarmg-contracts/
 │  ├─ sarmg-error/
+│  ├─ sarmg-platform-db/
 │  ├─ sarmg-schema-identity/
 │  ├─ sarmg-server-target/
-│  └─ sarmg-sqlite/
+│  ├─ sarmg-sqlite/
+│  └─ sarmg-state-file/
 ├─ packages/
 │  ├─ admin-web/
 │  ├─ contracts/
 │  ├─ design-tokens/
 │  └─ http-client/
-├─ consumers/                 # 真实消费者采用状态与机器可验证 Schema
+├─ profiles/                  # Foundation 发布的有限 Profile/Capability 组合
+├─ schemas/                   # 产品清单及后续平台 DDL 的机器可读 Schema
+├─ exceptions/                # 迁移期、到期且不降低安全下限的例外
+├─ consumers/                 # 自动生成的真实消费者采用状态
 ├─ scripts/                   # 稳定命令入口
 ├─ tools/                     # policy、package、release-tree 的严格实现与测试
 └─ docs/                      # 中文学习、流程、功能边界和运维文档
 ```
 
 `packages/` 是发布依赖，不是可运行客户端；因此不放入其他产品统一使用的 `clients/web`。本仓没有运行时
-`config/`、`deploy/` 或 `clients/`，因为它没有需要部署的 Server、配置文件或产品 UI。
+`config/`、`deploy/` 或 `clients/`，因为它没有需要部署的 Server、配置文件或产品 UI。目录只在对应纵向
+切片进入实现阶段时创建，不预建空 crate。
 
 ## 4. 固定工具链
 
@@ -86,7 +113,7 @@ sarmg-foundation/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.3.1` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.4.0` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
@@ -97,6 +124,8 @@ smoke 和所有消费者验证。
 
 ```bash
 python3 scripts/check-foundation.py
+python3 scripts/sarmg-conformance.py verify-foundation
+python3 scripts/sarmg-conformance.py verify-consumers
 python3 scripts/check-rust-package-licenses.py
 python3 scripts/check-workflow-supply-chain.py
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
@@ -116,20 +145,20 @@ git diff --check
 审计 tar member，再在临时空目录离线安装并解析每个公开入口。workspace 中能 import 但 tarball 不能安装，
 不算通过。
 
-`check-rust-package-licenses.py` 会调用 Cargo 查看六个真实 crate 的 package 清单，并要求每个包根恰好包含
-一个 `LICENSE`。repository policy 同时要求这六个文件都是普通、单链接文件，且字节与经过摘要固定的根
+`check-rust-package-licenses.py` 会调用 Cargo 查看十三个真实 crate 的 package 清单，并要求每个包根恰好包含
+一个 `LICENSE`。repository policy 同时要求这些文件都是普通、单链接文件，且字节与经过摘要固定的根
 Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平后仍保留可审计许可证，不依赖消费者
 仓库的通用 license fallback。
 
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.3.1"`。
+   并同时声明 `version = "=0.4.0"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.3.1` tag 的专用 release job 可获得 `contents: write`。
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.4.0` tag 的专用 release job 可获得 `contents: write`。
 5. 发布资产包含 4 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、

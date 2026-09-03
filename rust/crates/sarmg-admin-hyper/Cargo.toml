@@ -1,0 +1,28 @@
+[package]
+name = "sarmg-admin-hyper"
+description = "Hyper body and peer adapter for the current Foundation administrator routes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+axum.workspace = true
+bytes.workspace = true
+http-body.workspace = true
+hyper.workspace = true
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.4.0" }
+sarmg-admin-axum = { path = "../sarmg-admin-axum", version = "=0.4.0" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.4.0" }
+sarmg-contracts = { path = "../sarmg-contracts", version = "=0.4.0" }
+tower.workspace = true
+
+[dev-dependencies]
+sarmg-admin-static = { path = "../sarmg-admin-static", version = "=0.4.0" }
+tokio.workspace = true

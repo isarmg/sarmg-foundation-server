@@ -1,0 +1,25 @@
+[package]
+name = "sarmg-admin-sqlite"
+description = "Transactional SQLite administrator store and security audit implementation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.4.0" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.4.0" }
+sqlx.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.4.0" }
+tempfile.workspace = true
+tokio.workspace = true

@@ -1,0 +1,8 @@
+format = 1
+id = "web-embedded-native"
+kind = "web"
+formal_targets = ["browser-es2022"]
+http_adapters = []
+web_profiles = []
+required_capabilities = ["native-esm", "admin-client", "design-tokens", "maple-font"]
+optional_capabilities = []

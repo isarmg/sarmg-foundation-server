@@ -1,0 +1,109 @@
+format = 1
+
+[capabilities.platform-sqlite]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-persistent]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-static]
+owner = "foundation"
+state = "current"
+
+[capabilities.memory-sessions]
+owner = "foundation"
+state = "current"
+
+[capabilities.server-runtime]
+owner = "foundation"
+state = "planned"
+
+[capabilities.server-health]
+owner = "foundation"
+state = "planned"
+
+[capabilities.private-state]
+owner = "foundation"
+state = "current"
+
+[capabilities.bounded-spool]
+owner = "foundation"
+state = "planned"
+
+[capabilities.https-delivery]
+owner = "foundation"
+state = "planned"
+
+[capabilities.doctor]
+owner = "foundation"
+state = "planned"
+
+[capabilities.mobile-queue]
+owner = "foundation"
+state = "planned"
+
+[capabilities.mobile-state]
+owner = "foundation"
+state = "planned"
+
+[capabilities.mobile-ffi]
+owner = "foundation"
+state = "planned"
+
+[capabilities.explicit-paths]
+owner = "foundation"
+state = "planned"
+
+[capabilities.restore-journal]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-client]
+owner = "foundation"
+state = "current"
+
+[capabilities.react-shell]
+owner = "foundation"
+state = "planned"
+
+[capabilities.admin-ui]
+owner = "foundation"
+state = "planned"
+
+[capabilities.design-tokens]
+owner = "foundation"
+state = "current"
+
+[capabilities.maple-font]
+owner = "foundation"
+state = "planned"
+
+[capabilities.native-esm]
+owner = "foundation"
+state = "current"
+
+[capabilities.filesystem-root]
+owner = "product-adapter"
+state = "current"
+
+[capabilities.linux-openat2]
+owner = "foundation"
+state = "planned"
+
+[capabilities.durable-operations]
+owner = "foundation"
+state = "planned"
+
+[capabilities.secure-http]
+owner = "foundation"
+state = "planned"
+
+[capabilities.secure-xml]
+owner = "foundation"
+state = "planned"
+
+[capabilities.secret-envelope]
+owner = "foundation"
+state = "planned"

@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 
-CLI_VERSION = "0.3.1"
+CLI_VERSION = "0.4.0"
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_TARBALL_BYTES = 64 * 1024 * 1024
 PACKAGE_NAME = re.compile(r"@sarmg/[a-z][a-z0-9-]*")

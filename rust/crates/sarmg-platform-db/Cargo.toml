@@ -1,0 +1,24 @@
+[package]
+name = "sarmg-platform-db"
+description = "Validated lifecycle for Sarmg platform SQLite databases"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.4.0" }
+sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.4.0" }
+sarmg-state-file = { path = "../sarmg-state-file", version = "=0.4.0" }
+sqlx.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+tokio.workspace = true

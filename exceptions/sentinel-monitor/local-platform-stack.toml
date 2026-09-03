@@ -1,0 +1,7 @@
+id = "local-platform-stack"
+product = "sentinel-monitor"
+reason = "等待 Admin、Runtime、Schema、Secure HTTP/XML 与 Durable Operations 纵向迁移"
+introduced_at = "0.3.1"
+must_remove_before = "1.0.0"
+security_reduction = false
+rules = ["foundation-route-ownership", "platform-schema-ownership", "platform-policy-ownership", "generated-schema", "single-foundation-release"]

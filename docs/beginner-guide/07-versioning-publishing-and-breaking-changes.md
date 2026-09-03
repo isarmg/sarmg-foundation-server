@@ -2,7 +2,7 @@
 
 ## 7.1 当前版本模型
 
-6个crate和4个package统一为`0.3.1`。0.x允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
+6个crate和4个package统一为`0.4.0`。0.x允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
 不可变合同，一旦tag/asset公开就不移动、不覆盖、不用同版本重新打包。
 
 以下都可能是breaking change：
@@ -37,7 +37,7 @@ source→target edge。开发期未发布数据可重建，不为它写升级代
 `@sarmg/http-client`把contracts作为精确peer；`admin-web`把contracts/http-client与React/Vite需要项作为精确
 peer。这样消费者明确拥有依赖，不会因某个包内部悄悄嵌入另一版本而出现两份合同。
 
-Foundation workspace中的`workspace:0.3.1`只用于dev/build。发布tar manifest不能含workspace协议；真实
+Foundation workspace中的`workspace:0.4.0`只用于dev/build。发布tar manifest不能含workspace协议；真实
 consumer必须同时安装所需tgz。
 
 ## 7.5 Rust消费版本
@@ -47,8 +47,8 @@ consumer必须同时安装所需tgz。
 ```toml
 sarmg-contracts = {
   git = "https://github.com/isarmg/sarmg-foundation.git",
-  rev = "<v0.3.1对应完整40位commit>",
-  version = "=0.3.1"
+  rev = "<v0.4.0对应完整40位commit>",
+  version = "=0.4.0"
 }
 ```
 

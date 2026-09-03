@@ -2,15 +2,22 @@
 resolver = "3"
 members = [
   "rust/crates/sarmg-admin-auth",
+  "rust/crates/sarmg-admin-axum",
+  "rust/crates/sarmg-admin-core",
+  "rust/crates/sarmg-admin-hyper",
+  "rust/crates/sarmg-admin-sqlite",
+  "rust/crates/sarmg-admin-static",
   "rust/crates/sarmg-contracts",
   "rust/crates/sarmg-error",
   "rust/crates/sarmg-schema-identity",
   "rust/crates/sarmg-server-target",
   "rust/crates/sarmg-sqlite",
+  "rust/crates/sarmg-state-file",
+  "rust/crates/sarmg-platform-db",
 ]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.4.0"
 edition = "2024"
 rust-version = "1.98"
 authors = ["sarmg <isarmg@163.com>"]
@@ -21,8 +28,12 @@ homepage = "https://github.com/isarmg/sarmg-foundation"
 [workspace.dependencies]
 anyhow = "1"
 argon2 = { version = "0.5", features = ["std"] }
+async-trait = "0.1"
+axum = "0.8"
 base64 = "0.22"
+bytes = "1"
 getrandom = "0.4"
+rustix = { version = "1.1", features = ["fs", "process"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
@@ -34,6 +45,9 @@ sqlx = { version = "0.8", default-features = false, features = [
 tempfile = "3"
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tower = { version = "0.5", features = ["util"] }
+http-body = "1"
+hyper = { version = "1", features = ["http1", "server"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

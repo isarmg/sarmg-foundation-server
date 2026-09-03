@@ -1,0 +1,21 @@
+[package]
+name = "sarmg-state-file"
+description = "Linux private state directory, secure file identity, and lifecycle locks"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+rustix.workspace = true
+sarmg-server-target = { path = "../sarmg-server-target", version = "=0.4.0" }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

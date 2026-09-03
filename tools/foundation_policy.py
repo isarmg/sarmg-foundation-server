@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "0.3.1"
+CURRENT_VERSION = "0.4.0"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.12.1"
 RUST_VERSION = "1.98.0"
@@ -34,11 +34,18 @@ KNOWN_PACKAGES = {
     "@sarmg/design-tokens",
     "@sarmg/http-client",
     "sarmg-admin-auth",
+    "sarmg-admin-axum",
+    "sarmg-admin-core",
+    "sarmg-admin-hyper",
+    "sarmg-admin-sqlite",
+    "sarmg-admin-static",
     "sarmg-contracts",
     "sarmg-error",
     "sarmg-schema-identity",
     "sarmg-server-target",
     "sarmg-sqlite",
+    "sarmg-state-file",
+    "sarmg-platform-db",
 }
 RUST_PACKAGES = tuple(
     sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
@@ -209,64 +216,15 @@ def check_versions(root: Path) -> None:
 
 
 def check_consumer_matrix(root: Path) -> None:
-    schema = _json(root / "consumers" / "consumer-matrix.schema.json")
-    allowed = set(
-        schema["$defs"]["consumer"]["properties"]["packages"]["items"]["enum"]
-    )
-    if allowed != KNOWN_PACKAGES:
-        raise FoundationPolicyError("consumer matrix schema does not enumerate every component")
+    from sarmg_conformance import ConformanceError, verify_consumer_registry
 
-    matrix = _json(root / "consumers" / "consumer-matrix.json")
-    _exact_keys(
-        matrix,
-        {"$schema", "format", "foundation_version", "updated_on", "consumers"},
-        "consumer matrix",
-    )
-    if matrix["format"] != "sarmg.consumer-matrix.v1":
-        raise FoundationPolicyError("consumer matrix: unsupported format")
-    if matrix["foundation_version"] != CURRENT_VERSION:
-        raise FoundationPolicyError("consumer matrix: foundation_version differs")
-    consumers = matrix["consumers"]
-    if not isinstance(consumers, list):
-        raise FoundationPolicyError("consumer matrix: consumers must be an array")
-    repositories: set[str] = set()
-    for index, consumer in enumerate(consumers):
-        if not isinstance(consumer, dict):
-            raise FoundationPolicyError(f"consumer[{index}]: expected an object")
-        _exact_keys(
-            consumer,
-            {"repository", "commit", "adopted_version", "packages", "status", "last_verified_commit"},
-            f"consumer[{index}]",
-        )
-        repository = consumer["repository"]
-        if repository in repositories:
-            raise FoundationPolicyError(f"consumer matrix: duplicate {repository!r}")
-        repositories.add(repository)
-        if not isinstance(consumer["commit"], str) or SOURCE_REVISION.fullmatch(consumer["commit"]) is None:
-            raise FoundationPolicyError(f"consumer[{index}].commit: invalid revision")
-        packages = consumer["packages"]
-        if not isinstance(packages, list) or len(packages) != len(set(packages)) or not set(packages) <= KNOWN_PACKAGES:
-            raise FoundationPolicyError(f"consumer[{index}].packages: invalid component set")
-        status = consumer["status"]
-        if status not in {"not-integrated", "integration-pending", "passing", "failing"}:
-            raise FoundationPolicyError(f"consumer[{index}].status: invalid status")
-        if status == "not-integrated":
-            if consumer["adopted_version"] is not None or packages or consumer["last_verified_commit"] is not None:
-                raise FoundationPolicyError(f"consumer[{index}]: not-integrated evidence must be empty")
-        else:
-            if consumer["adopted_version"] != CURRENT_VERSION or not packages:
-                raise FoundationPolicyError(f"consumer[{index}]: integrated entry lacks current components")
-            verified = consumer["last_verified_commit"]
-            if verified is not None and (
-                not isinstance(verified, str) or SOURCE_REVISION.fullmatch(verified) is None
-            ):
-                raise FoundationPolicyError(f"consumer[{index}].last_verified_commit: invalid revision")
-            if status == "passing" and verified is None:
-                raise FoundationPolicyError(f"consumer[{index}]: passing entry needs verified commit")
+    try:
+        matrix = verify_consumer_registry(root)
+    except ConformanceError as error:
+        raise FoundationPolicyError(str(error)) from error
+    repositories = {consumer["product"] for consumer in matrix["consumers"]}
     if repositories != KNOWN_CONSUMERS:
-        raise FoundationPolicyError(
-            f"consumer repository set differs: {sorted(repositories)}"
-        )
+        raise FoundationPolicyError(f"consumer repository set differs: {sorted(repositories)}")
 
 
 def check_repository(root: Path) -> None:

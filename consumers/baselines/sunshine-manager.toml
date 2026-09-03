@@ -1,0 +1,11 @@
+format = 1
+product = "sunshine-manager"
+source_commit = "296f6a9dcd41eb123e5efe8aa780d1db730aabf1"
+product_version = "0.7.0"
+state_kind = "sqlite-external-key"
+schema_revision = 1
+schema_sha256 = "a717bcd5a591e7f7cc6da5826af88ad0deab2fdc339ce4649ad84f21ea879dbc"
+foundation_version = "0.3.0"
+foundation_rev = "1fe326081cfd896f05ff502e80f99504797c14c6"
+fixture = "sarmg-upgrade/tests/fixtures/sources/sunshine-manager/0.7.0"
+fixture_status = "sanitized-current-state"

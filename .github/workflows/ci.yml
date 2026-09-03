@@ -25,6 +25,9 @@ jobs:
         run: |
           python3 scripts/check-workflow-supply-chain.py
           python3 scripts/check-foundation.py
+          python3 scripts/sarmg-conformance.py verify-foundation
+          python3 scripts/sarmg-conformance.py verify-consumers
+          python3 scripts/sarmg-conformance.py generate-consumer-matrix --check
           python3 -m unittest discover -s tools/tests -p 'test_*.py'
       - name: Install exact Rust toolchain
         run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
