@@ -8,61 +8,211 @@
       "product": "dufs-ram",
       "commit": "86b1b6c3d8d9c3d450e0ac3fe90942ef121080ea",
       "foundation_version": "0.3.1",
-      "profiles": ["server-filesystem", "web-embedded-native"],
-      "capabilities": ["admin-client", "admin-static", "design-tokens", "durable-operations", "filesystem-root", "linux-openat2", "maple-font", "memory-sessions", "native-esm", "server-health", "server-runtime"],
-      "packages": ["sarmg-admin-auth", "sarmg-contracts", "sarmg-schema-identity", "sarmg-server-target"],
+      "profiles": [
+        "server-filesystem",
+        "web-embedded-native"
+      ],
+      "capabilities": [
+        "admin-client",
+        "admin-static",
+        "design-tokens",
+        "durable-operations",
+        "filesystem-root",
+        "linux-openat2",
+        "maple-font",
+        "memory-sessions",
+        "native-esm",
+        "server-health",
+        "server-runtime"
+      ],
+      "packages": [
+        "sarmg-admin-auth",
+        "sarmg-contracts",
+        "sarmg-schema-identity",
+        "sarmg-server-target"
+      ],
       "status": "temporary-exception",
-      "exceptions": ["local-platform-stack"]
+      "exceptions": [
+        "local-platform-stack"
+      ]
     },
     {
       "product": "host-monitoring",
       "commit": "4ac8caf81f11a78301abc4a47c8353243a5c93ee",
       "foundation_version": "0.3.0",
-      "profiles": ["desktop-agent", "server-control-plane", "web-react-admin"],
-      "capabilities": ["admin-client", "admin-persistent", "admin-ui", "bounded-spool", "design-tokens", "doctor", "https-delivery", "maple-font", "platform-sqlite", "private-state", "react-shell", "server-health", "server-runtime"],
-      "packages": ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target", "sarmg-sqlite"],
+      "profiles": [
+        "desktop-agent",
+        "server-control-plane",
+        "web-react-admin"
+      ],
+      "capabilities": [
+        "admin-client",
+        "admin-persistent",
+        "admin-ui",
+        "bounded-spool",
+        "design-tokens",
+        "doctor",
+        "https-delivery",
+        "maple-font",
+        "platform-sqlite",
+        "private-state",
+        "react-shell",
+        "server-health",
+        "server-runtime"
+      ],
+      "packages": [
+        "@sarmg/admin-web",
+        "@sarmg/contracts",
+        "@sarmg/design-tokens",
+        "@sarmg/http-client",
+        "sarmg-admin-auth",
+        "sarmg-contracts",
+        "sarmg-error",
+        "sarmg-schema-identity",
+        "sarmg-server-target",
+        "sarmg-sqlite"
+      ],
       "status": "temporary-exception",
-      "exceptions": ["local-platform-stack"]
+      "exceptions": [
+        "local-platform-stack"
+      ]
     },
     {
       "product": "media-backup",
       "commit": "66bc0512fb991797e4907e6abb188a9b707af551",
       "foundation_version": "0.3.0",
-      "profiles": ["mobile-agent", "server-control-plane", "web-react-admin"],
-      "capabilities": ["admin-client", "admin-persistent", "admin-ui", "design-tokens", "https-delivery", "maple-font", "mobile-ffi", "mobile-queue", "mobile-state", "platform-sqlite", "react-shell", "server-health", "server-runtime"],
-      "packages": ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-server-target"],
+      "profiles": [
+        "mobile-agent",
+        "server-control-plane",
+        "web-react-admin"
+      ],
+      "capabilities": [
+        "admin-client",
+        "admin-persistent",
+        "admin-ui",
+        "design-tokens",
+        "https-delivery",
+        "maple-font",
+        "mobile-ffi",
+        "mobile-queue",
+        "mobile-state",
+        "platform-sqlite",
+        "react-shell",
+        "server-health",
+        "server-runtime"
+      ],
+      "packages": [
+        "@sarmg/admin-web",
+        "@sarmg/contracts",
+        "@sarmg/design-tokens",
+        "@sarmg/http-client",
+        "sarmg-admin-auth",
+        "sarmg-contracts",
+        "sarmg-error",
+        "sarmg-server-target"
+      ],
       "status": "temporary-exception",
-      "exceptions": ["local-platform-stack"]
+      "exceptions": [
+        "local-platform-stack"
+      ]
     },
     {
       "product": "sarmg-upgrade",
-      "commit": "6b79807ffd368abe988698b251c0bd99931c5e3c",
-      "foundation_version": "0.3.0",
-      "profiles": ["offline-tool"],
-      "capabilities": ["explicit-paths", "linux-openat2", "private-state", "restore-journal", "secret-envelope"],
-      "packages": ["sarmg-contracts", "sarmg-schema-identity"],
-      "status": "migration-in-progress",
+      "commit": "7bec1eef311f88d5a4dd44ed56e951adb51f1734",
+      "foundation_version": "0.4.0",
+      "profiles": [
+        "offline-tool"
+      ],
+      "capabilities": [
+        "explicit-paths",
+        "linux-openat2",
+        "private-state",
+        "restore-journal",
+        "secret-envelope"
+      ],
+      "packages": [
+        "sarmg-contracts",
+        "sarmg-schema-identity"
+      ],
+      "status": "conforming",
       "exceptions": []
     },
     {
       "product": "sentinel-monitor",
       "commit": "7856774c05658971dfde679043df2889a71089a6",
       "foundation_version": "0.3.0",
-      "profiles": ["server-control-plane", "web-react-admin"],
-      "capabilities": ["admin-client", "admin-persistent", "admin-ui", "design-tokens", "durable-operations", "maple-font", "platform-sqlite", "react-shell", "secret-envelope", "secure-http", "secure-xml", "server-health", "server-runtime"],
-      "packages": ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target"],
+      "profiles": [
+        "server-control-plane",
+        "web-react-admin"
+      ],
+      "capabilities": [
+        "admin-client",
+        "admin-persistent",
+        "admin-ui",
+        "design-tokens",
+        "durable-operations",
+        "maple-font",
+        "platform-sqlite",
+        "react-shell",
+        "secret-envelope",
+        "secure-http",
+        "secure-xml",
+        "server-health",
+        "server-runtime"
+      ],
+      "packages": [
+        "@sarmg/admin-web",
+        "@sarmg/contracts",
+        "@sarmg/design-tokens",
+        "@sarmg/http-client",
+        "sarmg-admin-auth",
+        "sarmg-contracts",
+        "sarmg-error",
+        "sarmg-schema-identity",
+        "sarmg-server-target"
+      ],
       "status": "temporary-exception",
-      "exceptions": ["local-platform-stack"]
+      "exceptions": [
+        "local-platform-stack"
+      ]
     },
     {
       "product": "sunshine-manager",
-      "commit": "296f6a9dcd41eb123e5efe8aa780d1db730aabf1",
-      "foundation_version": "0.3.0",
-      "profiles": ["server-control-plane", "web-react-admin"],
-      "capabilities": ["admin-client", "admin-persistent", "admin-ui", "design-tokens", "durable-operations", "maple-font", "platform-sqlite", "react-shell", "secret-envelope", "server-health", "server-runtime"],
-      "packages": ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target", "sarmg-sqlite"],
+      "commit": "566017f9683579a5ab840fc221624aa536928d81",
+      "foundation_version": "0.4.0",
+      "profiles": [
+        "server-control-plane",
+        "web-react-admin"
+      ],
+      "capabilities": [
+        "admin-client",
+        "admin-persistent",
+        "admin-ui",
+        "design-tokens",
+        "durable-operations",
+        "maple-font",
+        "platform-sqlite",
+        "react-shell",
+        "secret-envelope",
+        "server-health",
+        "server-runtime"
+      ],
+      "packages": [
+        "@sarmg/admin-web",
+        "@sarmg/contracts",
+        "@sarmg/design-tokens",
+        "@sarmg/http-client",
+        "sarmg-admin-auth",
+        "sarmg-contracts",
+        "sarmg-error",
+        "sarmg-schema-identity",
+        "sarmg-server-target",
+        "sarmg-sqlite"
+      ],
       "status": "temporary-exception",
-      "exceptions": ["local-platform-stack"]
+      "exceptions": [
+        "local-platform-stack"
+      ]
     }
   ]
 }

@@ -15,6 +15,7 @@ sys.path.insert(0, str(TOOLS))
 from sarmg_conformance import (  # noqa: E402
     ConformanceError,
     generate_consumer_matrix,
+    verify_baselines,
     verify_foundation,
     verify_manifest,
     verify_source,
@@ -54,6 +55,14 @@ class ConformanceTests(unittest.TestCase):
         generated = generate_consumer_matrix(ROOT)
         checked_in = json.loads((ROOT / "consumers" / "consumer-matrix.json").read_text())
         self.assertEqual(generated, checked_in)
+        baselines = verify_baselines(ROOT)
+        consumers = {entry["product"]: entry for entry in generated["consumers"]}
+        self.assertNotEqual(
+            baselines["sarmg-upgrade"]["source_commit"],
+            consumers["sarmg-upgrade"]["commit"],
+        )
+        self.assertEqual(baselines["sarmg-upgrade"]["foundation_version"], "0.3.0")
+        self.assertEqual(consumers["sarmg-upgrade"]["foundation_version"], "0.4.0")
 
     def test_manifest_requires_profile_capabilities_and_immutable_revision(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

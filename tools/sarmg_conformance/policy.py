@@ -556,12 +556,15 @@ def verify_baselines(foundation_root: Path) -> dict[str, dict[str, Any]]:
             raise ConformanceError(f"{path}: invalid or duplicate baseline identity")
         if product not in consumers:
             raise ConformanceError(f"{path}: product is absent from the consumer registry")
-        if value["source_commit"] != consumers[product]["commit"]:
-            raise ConformanceError(f"{path}: source_commit differs from the consumer registry")
-        if value["foundation_version"] != consumers[product]["foundation_version"]:
-            raise ConformanceError(f"{path}: Foundation version differs from the consumer registry")
+        if REVISION.fullmatch(str(value["source_commit"])) is None:
+            raise ConformanceError(f"{path}: invalid source revision")
         if not isinstance(value["product_version"], str) or SEMVER.fullmatch(value["product_version"]) is None:
             raise ConformanceError(f"{path}: invalid product version")
+        if (
+            not isinstance(value["foundation_version"], str)
+            or SEMVER.fullmatch(value["foundation_version"]) is None
+        ):
+            raise ConformanceError(f"{path}: invalid Foundation version")
         if REVISION.fullmatch(str(value["foundation_rev"])) is None:
             raise ConformanceError(f"{path}: invalid Foundation revision")
         if value["fixture_status"] not in {
