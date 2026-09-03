@@ -1,4 +1,8 @@
 :root {
+  --sarmg-font-ui: "Sarmg Maple", ui-monospace, monospace;
+  --sarmg-font-mono: "Sarmg Maple", ui-monospace, monospace;
+  --sarmg-font-size-body: 1rem;
+  --sarmg-line-height-body: 1.5;
   --sarmg-blue-500: #3b82f6;
   --sarmg-blue-600: #2563eb;
   --sarmg-gray-50: #fafafa;

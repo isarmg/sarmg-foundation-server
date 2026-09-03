@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  ADMIN_WEB_TOOLCHAIN,
-  assertAdministratorWebToolchain,
-  createAdministratorApiClient,
-} from "../dist/index.js";
+import { createAdministratorApiClient } from "../dist/index.js";
 
 const BASE_URL = "https://console.example/";
 const TOKEN_A = "A".repeat(43);
@@ -259,58 +255,4 @@ test("overlapping login then logout is serialized and ends anonymous", async () 
   ]);
   assert.equal(requests[1].headers.get("x-csrf-token"), SESSION.csrf_token);
   assert.equal(client.currentSession(), null);
-});
-
-test("toolchain contract is exact and range-free", () => {
-  assert.equal(Object.isFrozen(ADMIN_WEB_TOOLCHAIN), true);
-  assert.deepEqual(ADMIN_WEB_TOOLCHAIN, {
-    node: "26.7.0",
-    react: "19.2.8",
-    reactDom: "19.2.8",
-    vite: "7.3.6",
-    viteReactPlugin: "4.7.0",
-    typescript: "5.8.3",
-    typesReact: "19.2.18",
-    typesReactDom: "19.2.5",
-  });
-  for (const version of Object.values(ADMIN_WEB_TOOLCHAIN)) {
-    assert.match(version, /^\d+\.\d+\.\d+$/);
-  }
-});
-
-test("consumer toolchain assertion rejects ranges and Node drift", () => {
-  const manifest = {
-    engines: { node: ">=26.7.0 <27" },
-    dependencies: { react: "19.2.8", "react-dom": "19.2.8" },
-    devDependencies: {
-      "@types/react": "19.2.18",
-      "@types/react-dom": "19.2.5",
-      "@vitejs/plugin-react": "4.7.0",
-      typescript: "5.8.3",
-      vite: "7.3.6",
-    },
-  };
-  assert.doesNotThrow(() => assertAdministratorWebToolchain(manifest, "26.7.0\n"));
-  assert.throws(
-    () => assertAdministratorWebToolchain({
-      ...manifest,
-      dependencies: { ...manifest.dependencies, react: "^19.2.8" },
-    }, "26.7.0"),
-    /dependencies\.react must be exactly 19\.2\.8/,
-  );
-  assert.throws(
-    () => assertAdministratorWebToolchain(manifest, "26.4.0"),
-    /\.node-version must be exactly 26\.7\.0/,
-  );
-  assert.throws(
-    () => assertAdministratorWebToolchain(manifest, " 26.7.0\n"),
-    /\.node-version must be exactly 26\.7\.0/,
-  );
-  assert.throws(
-    () => assertAdministratorWebToolchain({
-      ...manifest,
-      peerDependencies: { react: ">=19" },
-    }, "26.7.0"),
-    /peerDependencies\.react must be exactly 19\.2\.8/,
-  );
 });

@@ -20,6 +20,12 @@ export const tokens = {
     md: "8px",
     lg: "12px",
   },
+  typography: {
+    fontUi: '"Sarmg Maple", ui-monospace, monospace',
+    fontMono: '"Sarmg Maple", ui-monospace, monospace',
+    fontSizeBody: "1rem",
+    lineHeightBody: "1.5",
+  },
 } as const;
 
 /**

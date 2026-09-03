@@ -2,8 +2,8 @@
 
 ## 状态
 
-本文件落实《Sarmg Foundation 上游平台化改造实施手册》的治理入口。Foundation `0.4.0` 是冻结基线，
-不是 Foundation 1.0 完成声明。
+本文件落实《Sarmg Foundation 上游平台化改造实施手册》的治理入口。Foundation `0.5.0` 是冻结基线，
+提供 P5–P12 的当前平台实现，但不是 Foundation 1.0 完成声明；1.0 仍以全部消费者采用且无例外为门槛。
 
 ## 永久依赖方向
 
@@ -27,7 +27,8 @@ Foundation 不得依赖产品 crate，不按 `product_id` 分支，不提供产�
 2. P1：上游平台定位、ADR、Profile、Capability、临时例外。
 3. P2：产品清单、合规工具、自动消费者矩阵、Testkit。
 4. P3–P4：状态文件、平台数据库、Schema Composer、管理员控制面；Sunshine 为首个参考消费者。
-5. P5–P13：Runtime/Web、其余 Server、文件安全、网络/加密、操作状态机、Agent、Mobile FFI。
+5. P5–P12：Runtime/Web、文件安全、网络/加密、操作状态机、Agent、Mobile FFI 已进入 Foundation；产品迁移按消费者矩阵推进。
+6. P13：全部产品精确锁定同一不可变 release、独立构建且无临时例外后发布 1.0。
 
 持久格式发生变化前必须先发布对应的 `sarmg-upgrade` source fixture 和升级边。在线产品只读取唯一当前
 格式，不携带 legacy reader、双读写或兼容 fallback。

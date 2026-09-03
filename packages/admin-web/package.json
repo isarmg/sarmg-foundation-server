@@ -1,7 +1,7 @@
 {
   "name": "@sarmg/admin-web",
-  "version": "0.4.0",
-  "description": "Sarmg 管理员专用 React/Vite Web 的认证、请求与构建基线",
+  "version": "0.5.0",
+  "description": "Sarmg 管理员 API Client、Session 状态机与 React Hook",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -26,12 +26,7 @@
     "./react": {
       "types": "./dist/react.d.ts",
       "import": "./dist/react.js"
-    },
-    "./vite": {
-      "types": "./dist/vite.d.ts",
-      "import": "./dist/vite.js"
-    },
-    "./tsconfig.json": "./dist/tsconfig.json"
+    }
   },
   "files": [
     "dist"
@@ -39,33 +34,27 @@
   "sideEffects": false,
   "scripts": {
     "clean": "node scripts/clean.mjs",
-    "build": "pnpm run clean && tsc -p tsconfig.build.json && node scripts/copy-config.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "test": "pnpm --filter @sarmg/contracts build && pnpm --filter @sarmg/http-client build && pnpm run build && node --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@sarmg/contracts": "0.4.0",
-    "@sarmg/http-client": "0.4.0",
-    "@vitejs/plugin-react": "4.7.0",
+    "@sarmg/contracts": "0.5.0",
+    "@sarmg/http-client": "0.5.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "vite": "7.3.6"
+    "react-dom": "19.2.8"
   },
   "peerDependenciesMeta": {
-    "@vitejs/plugin-react": { "optional": true },
     "react": { "optional": true },
-    "react-dom": { "optional": true },
-    "vite": { "optional": true }
+    "react-dom": { "optional": true }
   },
   "devDependencies": {
-    "@sarmg/contracts": "workspace:0.4.0",
-    "@sarmg/http-client": "workspace:0.4.0",
+    "@sarmg/contracts": "workspace:0.5.0",
+    "@sarmg/http-client": "workspace:0.5.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "@vitejs/plugin-react": "4.7.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "typescript": "5.8.3",
-    "vite": "7.3.6"
+    "typescript": "5.8.3"
   }
 }

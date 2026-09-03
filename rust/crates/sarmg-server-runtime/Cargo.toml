@@ -1,0 +1,26 @@
+[package]
+name = "sarmg-server-runtime"
+description = "Supervised server lifecycle, health, diagnostics, and request policy for Sarmg services"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+getrandom.workspace = true
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.5.0" }
+sarmg-admin-axum = { path = "../sarmg-admin-axum", version = "=0.5.0" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.5.0" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tower.workspace = true
+
+[lints]
+workspace = true

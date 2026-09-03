@@ -1,0 +1,1 @@
+import test from"node:test";import assert from"node:assert/strict";import{readFile}from"node:fs/promises";test("shell owns sign in and request-safe failure copy",async()=>{const source=await readFile(new URL("../src/index.tsx",import.meta.url),"utf8");assert.match(source,/Administrator sign in/);assert.doesNotMatch(source,/localStorage|sessionStorage/);});

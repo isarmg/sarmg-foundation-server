@@ -1,6 +1,6 @@
 # @sarmg/contracts
 
-`@sarmg/contracts@0.4.0` 发布 Sarmg 当前跨语言 wire contract：TypeScript 类型、针对 `unknown` 的严格
+`@sarmg/contracts@0.5.0` 发布 Sarmg 当前跨语言 wire contract：TypeScript 类型、针对 `unknown` 的严格
 runtime guard、JSON Schema，以及 Rust/TypeScript 共用的正反 fixture。
 
 当前合同组包括：

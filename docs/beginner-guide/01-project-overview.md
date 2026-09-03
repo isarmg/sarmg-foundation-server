@@ -139,7 +139,7 @@ AdministratorSession，密码/token/same-origin/CSRF仍用同一Rust primitive�
 
 ## 1.10 本章练习
 
-1. 在根manifest中列出6个crate和4个package，并为每个写一个“不负责”项。
+1. 在根manifest中列出22个crate和8个package，并为每个写一个“不负责”项。
 2. 从一个产品中找出管理员身份与数据面credential，解释为何二者不能合并。
 3. 画出产品build时与production runtime时Foundation是否在线的两张图。
 4. 解释Dufs为何是前端例外、客户端多架构为何不是Server target例外。

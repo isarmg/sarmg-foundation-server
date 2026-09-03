@@ -18,11 +18,11 @@ state = "current"
 
 [capabilities.server-runtime]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.server-health]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.private-state]
 owner = "foundation"
@@ -30,31 +30,31 @@ state = "current"
 
 [capabilities.bounded-spool]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.https-delivery]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.doctor]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.mobile-queue]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.mobile-state]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.mobile-ffi]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.explicit-paths]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.restore-journal]
 owner = "foundation"
@@ -66,11 +66,11 @@ state = "current"
 
 [capabilities.react-shell]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.admin-ui]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.design-tokens]
 owner = "foundation"
@@ -78,7 +78,7 @@ state = "current"
 
 [capabilities.maple-font]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.native-esm]
 owner = "foundation"
@@ -90,20 +90,20 @@ state = "current"
 
 [capabilities.linux-openat2]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.durable-operations]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.secure-http]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.secure-xml]
 owner = "foundation"
-state = "planned"
+state = "current"
 
 [capabilities.secret-envelope]
 owner = "foundation"
-state = "planned"
+state = "current"

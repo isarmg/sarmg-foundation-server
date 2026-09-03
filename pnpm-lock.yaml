@@ -8,23 +8,20 @@ importers:
 
   .: {}
 
-  packages/admin-web:
+  packages/admin-shell:
     devDependencies:
-      '@sarmg/contracts':
-        specifier: workspace:0.4.0
-        version: link:../contracts
-      '@sarmg/http-client':
-        specifier: workspace:0.4.0
-        version: link:../http-client
+      '@sarmg/admin-ui':
+        specifier: workspace:0.5.0
+        version: link:../admin-ui
+      '@sarmg/admin-web':
+        specifier: workspace:0.5.0
+        version: link:../admin-web
       '@types/react':
         specifier: 19.2.18
         version: 19.2.18
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
-      '@vitejs/plugin-react':
-        specifier: 4.7.0
-        version: 4.7.0(vite@7.3.6)
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -34,9 +31,48 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
-      vite:
-        specifier: 7.3.6
-        version: 7.3.6
+
+  packages/admin-ui:
+    devDependencies:
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+
+  packages/admin-web:
+    devDependencies:
+      '@sarmg/contracts':
+        specifier: workspace:0.5.0
+        version: link:../contracts
+      '@sarmg/http-client':
+        specifier: workspace:0.5.0
+        version: link:../http-client
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   packages/contracts:
     devDependencies:
@@ -53,11 +89,31 @@ importers:
   packages/http-client:
     devDependencies:
       '@sarmg/contracts':
-        specifier: workspace:0.4.0
+        specifier: workspace:0.5.0
         version: link:../contracts
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+
+  packages/web-fonts: {}
+
+  packages/web-toolchain:
+    devDependencies:
+      '@vitejs/plugin-react':
+        specifier: 4.7.0
+        version: 4.7.0(vite@7.3.6)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      vite:
+        specifier: 7.3.6
+        version: 7.3.6
 
 packages:
 

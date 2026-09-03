@@ -12,8 +12,9 @@
 [data-sarmg-scope] {
   min-width: 320px;
   min-height: 100%;
-  font-family: var(--sarmg-font-sans, system-ui, sans-serif);
-  line-height: 1.5;
+  font-family: var(--sarmg-font-ui, ui-monospace, monospace);
+  font-size: var(--sarmg-font-size-body, 1rem);
+  line-height: var(--sarmg-line-height-body, 1.5);
   overflow-wrap: anywhere;
   text-size-adjust: 100%;
 }

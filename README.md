@@ -9,9 +9,8 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
 不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
 
-当前 `0.4.0` 是平台化迁移的冻结基线，不是 Foundation 1.0 完成声明。已有 primitive 继续提供唯一当前
-合同；尚未完成的平台能力必须按[平台迁移路线](docs/platform-specifications/platform-migration-roadmap.md)
-纵向落地，并由临时例外明确记录，不能把计划能力写成已完成能力。
+当前 `0.5.0` 提供 P5–P12 的唯一当前平台实现；产品采用状态由自动消费者矩阵记录。它不是 Foundation
+1.0 完成声明，只有全部消费者删除重复实现并清除临时例外后才进入 1.0。
 
 本版本只定义一套当前合同：不提供旧名称、旧字段、旧 Schema、deprecated wrapper、双读写、隐式降级或
 兼容 fallback。历史状态的识别、备份、恢复和升级属于独立的 `sarmg-upgrade` 仓库；各在线产品只读取其
@@ -38,15 +37,28 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 | `sarmg-admin-static` | 静态 PHC 管理员与进程内 Session Store | Web 管理员增删、跨重启 Session |
 | `sarmg-admin-axum` | Foundation Auth Router、Cookie、Origin/CSRF 与 Axum 请求认证 | 产品业务路由和业务权限 |
 | `sarmg-admin-hyper` | 与 Admin Core 同语义的 Hyper 请求/响应适配边界 | 文件服务业务实现 |
+| `sarmg-server-runtime` | 进程身份、Request ID、健康、诊断、信号和后台任务监督 | 产品 AppState 与业务 Router |
+| `sarmg-fs-safety` | typed 相对路径、原子发布、目录预算和 Linux openat2 根 | 产品路径命名与文件内容语义 |
+| `sarmg-secret` | 默认脱敏并在 drop 清零的内存秘密类型 | 密钥持久化和产品密钥轮换 |
+| `sarmg-secret-envelope` | 域与对象绑定的有界 AES-GCM envelope | 产品域、对象 ID 和业务字段 |
+| `sarmg-secure-http` | 三种固定网络策略、DNS/地址、超时与响应预算 | 产品 API DTO 和重试语义 |
+| `sarmg-secure-xml` | DTD/ENTITY 拒绝及深度、节点、文本、时间预算 | ONVIF 类型与业务解析 |
+| `sarmg-operations` | Durable Operation 状态、转移、幂等冲突和平台 DDL | 远端执行器与业务 payload |
+| `sarmg-agent-runtime` | 有界 opaque spool、quarantine、ack 和退避 | 指标采集与报告 Codec |
+| `sarmg-mobile-ffi` | panic guard、状态码、字符串所有权和代际 Handle | Media 移动业务 |
 
 ### 1.2 npm package
 
 | 组件 | 当前职责 | 明确不负责 |
 |---|---|---|
-| `@sarmg/admin-web` | 管理员 API client、内存 Session、认证竞态控制、React hook、React/Vite/Node 精确工具链基线 | 登录页面、路由、品牌、Cookie 服务端实现、密码散列、持久化浏览器 token |
+| `@sarmg/admin-web` | 管理员 API client、内存 Session、认证竞态控制与 React hook | 构建工具链、登录页面、Cookie 服务端实现 |
 | `@sarmg/contracts` | TypeScript 类型、strict runtime guard、5 份 JSON Schema、跨 Rust/TS fixture | 宽松解析、历史合同、产品业务 response schema |
 | `@sarmg/http-client` | same-origin JSON、cookie credential、CSRF、timeout/abort、响应字节预算、严格错误与 Retry-After | Session store、自动 mutation retry、跨 origin、文件上传下载、业务响应 guard |
 | `@sarmg/design-tokens` | light/dark 语义 token、scoped reset、键盘/动态效果/forced-colors 可访问性基线 | UI 组件库、产品品牌、主题状态、字体、页面布局、全局 reset |
+| `@sarmg/web-toolchain` | 精确 Node/React/Vite/TS、tsconfig、Vite 输出和 source-map/体积策略 | 产品路由与 UI |
+| `@sarmg/admin-ui` | 管理面基础控件、状态组件和安全交互 | 产品业务组件 |
+| `@sarmg/admin-shell` | 登录/恢复、顶栏、导航、错误与 Toast 外壳 | 产品页面和业务路由 |
+| `@sarmg/web-fonts` | 固定 Maple Mono commit、WOFF2、OFL、SHA-256 与 CSS 映射 | 设计 token 与产品品牌 |
 
 ## 2. 统一后的硬边界
 
@@ -86,12 +98,14 @@ sarmg-foundation/
 │  ├─ sarmg-schema-identity/
 │  ├─ sarmg-server-target/
 │  ├─ sarmg-sqlite/
-│  └─ sarmg-state-file/
+│  ├─ sarmg-state-file/
+│  └─ P5–P12 runtime/security/operations/agent/mobile crates
 ├─ packages/
 │  ├─ admin-web/
 │  ├─ contracts/
 │  ├─ design-tokens/
-│  └─ http-client/
+│  ├─ http-client/
+│  └─ web-toolchain、admin-ui、admin-shell、web-fonts/
 ├─ profiles/                  # Foundation 发布的有限 Profile/Capability 组合
 ├─ schemas/                   # 产品清单及后续平台 DDL 的机器可读 Schema
 ├─ exceptions/                # 迁移期、到期且不降低安全下限的例外
@@ -113,7 +127,7 @@ sarmg-foundation/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.4.0` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.5.0` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
@@ -141,11 +155,11 @@ python3 scripts/package-artifacts.py smoke
 git diff --check
 ```
 
-`package-artifacts.py smoke` 会安全清理旧 `dist`、构建 4 个 package、检查所有 export、生成真实 `.tgz`、
+`package-artifacts.py smoke` 会安全清理旧 `dist`、构建 8 个 package、检查所有 export、生成真实 `.tgz`、
 审计 tar member，再在临时空目录离线安装并解析每个公开入口。workspace 中能 import 但 tarball 不能安装，
 不算通过。
 
-`check-rust-package-licenses.py` 会调用 Cargo 查看十三个真实 crate 的 package 清单，并要求每个包根恰好包含
+`check-rust-package-licenses.py` 会调用 Cargo 查看二十二个真实 crate 的 package 清单，并要求每个包根恰好包含
 一个 `LICENSE`。repository policy 同时要求这些文件都是普通、单链接文件，且字节与经过摘要固定的根
 Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平后仍保留可审计许可证，不依赖消费者
 仓库的通用 license fallback。
@@ -153,13 +167,13 @@ Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平�
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.4.0"`。
+   并同时声明 `version = "=0.5.0"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.4.0` tag 的专用 release job 可获得 `contents: write`。
-5. 发布资产包含 4 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.5.0` tag 的专用 release job 可获得 `contents: write`。
+5. 发布资产包含 8 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、
    资源总大小、配置与数据库身份。

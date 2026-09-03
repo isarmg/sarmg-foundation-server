@@ -1,11 +1,10 @@
 # @sarmg/admin-web
 
-`@sarmg/admin-web@0.4.0` 是非 Dufs Sarmg 管理 Web 的当前共享基线，提供四类公开入口：
+`@sarmg/admin-web@0.5.0` 是非 Dufs Sarmg 管理 Web 的当前共享基线，提供四类公开入口：
 
 - 根入口：`createAdministratorApiClient`、工具链常量与 manifest 断言；
 - `@sarmg/admin-web/react`：`useAdministratorSession` 认证状态机；
-- `@sarmg/admin-web/vite`：`createSarmgReactViteConfig`；
-- `@sarmg/admin-web/tsconfig.json`：统一 TypeScript strict 配置。
+- 构建工具链与 TypeScript/Vite 配置由 `@sarmg/web-toolchain` 单独提供。
 
 ```ts
 import { createAdministratorApiClient } from "@sarmg/admin-web";
@@ -33,7 +32,7 @@ Session。
 
 当前精确工具链为 Node `26.7.0`、React/React DOM `19.2.8`、Vite `7.3.6`、React plugin `4.7.0`、
 TypeScript `5.8.3`、`@types/react` `19.2.18`、`@types/react-dom` `19.2.5`。版本范围、caret、tilde 或同一
-major 的其他 patch 都会被 `assertAdministratorWebToolchain` 拒绝。
+工具链版本漂移由 `@sarmg/web-toolchain` 的精确断言拒绝。
 
 产品仍拥有 Cookie 名称/TTL/flags、管理员数据与密码散列、Session 持久化、登录限流、审计、业务 guard、
 路由、页面、品牌和可访问性验收。本包没有 viewer/operator、多角色、SSO、token 持久化或旧 API fallback。

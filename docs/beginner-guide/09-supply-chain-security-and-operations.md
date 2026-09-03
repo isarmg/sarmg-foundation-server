@@ -34,7 +34,7 @@ Package/Release
 
 ## 9.3 Git与Tag
 
-release要求完整40位source revision、工作树无tracked/untracked变化、唯一`v0.4.0` tag指向HEAD。annotated
+release要求完整40位source revision、工作树无tracked/untracked变化、唯一`v0.5.0` tag指向HEAD。annotated
 tag和Release一旦公开不移动或覆盖。若发现问题，保留证据并发新版本。
 
 GitHub organization名、域名和部署namespace不等于项目旧名称；身份变更必须区分项目名与组织所有者，
@@ -118,7 +118,7 @@ Error Envelope details也不是内部诊断转储；raw上游body、SQL、PHC和
 
 - 固定工具链与lock clean install；
 - workflow policy和invalid fixture；
-- 4个tgz离线install；
+- 8个tgz离线install；
 - deterministic asset/release-tree；
 - consumer matrix状态与commit；
 - 取消名称/current-only扫描；

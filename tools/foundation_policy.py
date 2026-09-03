@@ -11,14 +11,14 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "0.4.0"
+CURRENT_VERSION = "0.5.0"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.12.1"
 RUST_VERSION = "1.98.0"
 APACHE_2_LICENSE_SHA256 = (
     "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
 )
-ADMIN_WEB_DEV_DEPENDENCIES = {
+WEB_TOOLCHAIN_DEV_DEPENDENCIES = {
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "4.7.0",
@@ -30,9 +30,13 @@ ADMIN_WEB_DEV_DEPENDENCIES = {
 SOURCE_REVISION = re.compile(r"[0-9a-f]{40}")
 KNOWN_PACKAGES = {
     "@sarmg/admin-web",
+    "@sarmg/admin-shell",
+    "@sarmg/admin-ui",
     "@sarmg/contracts",
     "@sarmg/design-tokens",
     "@sarmg/http-client",
+    "@sarmg/web-fonts",
+    "@sarmg/web-toolchain",
     "sarmg-admin-auth",
     "sarmg-admin-axum",
     "sarmg-admin-core",
@@ -46,6 +50,15 @@ KNOWN_PACKAGES = {
     "sarmg-sqlite",
     "sarmg-state-file",
     "sarmg-platform-db",
+    "sarmg-server-runtime",
+    "sarmg-fs-safety",
+    "sarmg-secret",
+    "sarmg-secret-envelope",
+    "sarmg-secure-http",
+    "sarmg-secure-xml",
+    "sarmg-operations",
+    "sarmg-agent-runtime",
+    "sarmg-mobile-ffi",
 }
 RUST_PACKAGES = tuple(
     sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
@@ -147,8 +160,9 @@ def check_versions(root: Path) -> None:
         observed_web.add(name)
         if manifest.get("version") != CURRENT_VERSION:
             raise FoundationPolicyError(f"{path}: version must be {CURRENT_VERSION}")
-        if manifest.get("license") != "Apache-2.0":
-            raise FoundationPolicyError(f"{path}: license must be Apache-2.0")
+        expected_license = "OFL-1.1" if name == "@sarmg/web-fonts" else "Apache-2.0"
+        if manifest.get("license") != expected_license:
+            raise FoundationPolicyError(f"{path}: license must be {expected_license}")
         if manifest.get("engines", {}).get("node") != f">={NODE_VERSION} <27":
             raise FoundationPolicyError(f"{path}: Node engine differs from policy")
         for section in ("dependencies", "devDependencies", "optionalDependencies"):
@@ -171,19 +185,21 @@ def check_versions(root: Path) -> None:
             f"publishable Web package set differs: {sorted(observed_web)}"
         )
 
-    admin_web = _json(root / "packages" / "admin-web" / "package.json")
-    admin_development = admin_web.get("devDependencies", {})
-    for dependency, expected in ADMIN_WEB_DEV_DEPENDENCIES.items():
-        if admin_development.get(dependency) != expected:
+    toolchain = _json(root / "packages" / "web-toolchain" / "package.json")
+    toolchain_development = toolchain.get("devDependencies", {})
+    for dependency, expected in WEB_TOOLCHAIN_DEV_DEPENDENCIES.items():
+        if dependency.startswith("@types/"):
+            continue
+        if toolchain_development.get(dependency) != expected:
             raise FoundationPolicyError(
-                f"packages/admin-web/package.json: {dependency} must be exactly {expected}"
+                f"packages/web-toolchain/package.json: {dependency} must be exactly {expected}"
             )
-    admin_peers = admin_web.get("peerDependencies", {})
+    toolchain_peers = toolchain.get("peerDependencies", {})
     for dependency in ("@vitejs/plugin-react", "react", "react-dom", "vite"):
-        expected = ADMIN_WEB_DEV_DEPENDENCIES[dependency]
-        if admin_peers.get(dependency) != expected:
+        expected = WEB_TOOLCHAIN_DEV_DEPENDENCIES[dependency]
+        if toolchain_peers.get(dependency) != expected:
             raise FoundationPolicyError(
-                f"packages/admin-web/package.json peer {dependency} must be exactly {expected}"
+                f"packages/web-toolchain/package.json peer {dependency} must be exactly {expected}"
             )
 
     members = set(cargo.get("workspace", {}).get("members", []))

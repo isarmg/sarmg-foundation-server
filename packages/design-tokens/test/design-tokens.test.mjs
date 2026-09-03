@@ -35,6 +35,10 @@ function expectedPrimitiveVariables() {
   for (const [name, value] of Object.entries(tokens.radius)) {
     variables[`--sarmg-radius-${name}`] = value;
   }
+  for (const [name, value] of Object.entries(tokens.typography)) {
+    const cssName = name.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+    variables[`--sarmg-${cssName}`] = value;
+  }
   return variables;
 }
 

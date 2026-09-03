@@ -326,7 +326,7 @@ mod tests {
         .execute(&pool)
         .await?;
         let fingerprint = sarmg_sqlite::schema_fingerprint(&pool).await?;
-        let identity = SchemaIdentity::new("example-product", "0.4.0", 1, fingerprint)?;
+        let identity = SchemaIdentity::new("example-product", "0.5.0", 1, fingerprint)?;
         sqlx::query(
             "INSERT INTO product_metadata(\
                singleton, application, application_version, schema_revision, schema_sha256\

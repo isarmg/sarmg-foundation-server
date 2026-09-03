@@ -10,17 +10,6 @@ import {
   type RequestJsonOptions,
 } from "@sarmg/http-client";
 
-export const ADMIN_WEB_TOOLCHAIN = Object.freeze({
-  node: "26.7.0",
-  react: "19.2.8",
-  reactDom: "19.2.8",
-  vite: "7.3.6",
-  viteReactPlugin: "4.7.0",
-  typescript: "5.8.3",
-  typesReact: "19.2.18",
-  typesReactDom: "19.2.5",
-} as const);
-
 export type JsonGuard<T> = (value: unknown) => value is T;
 export type AdministratorSessionListener = (session: AdministratorSession | null) => void;
 
@@ -49,77 +38,6 @@ type AuthenticationRequestContext = {
  * Fail a consumer build when its React/Vite or Node baseline drifts from the
  * exact current Foundation release. Version ranges are intentionally invalid.
  */
-export function assertAdministratorWebToolchain(
-  manifest: unknown,
-  nodeVersionFile: string,
-): void {
-  if (!isRecord(manifest)) {
-    throw new TypeError("Web package manifest must be an object");
-  }
-  const expectedEngine = `>=${ADMIN_WEB_TOOLCHAIN.node} <27`;
-  const engines = requireRecord(manifest.engines, "engines");
-  if (engines.node !== expectedEngine) {
-    throw new TypeError(`engines.node must be exactly ${expectedEngine}`);
-  }
-  if (
-    nodeVersionFile !== ADMIN_WEB_TOOLCHAIN.node &&
-    nodeVersionFile !== `${ADMIN_WEB_TOOLCHAIN.node}\n`
-  ) {
-    throw new TypeError(`.node-version must be exactly ${ADMIN_WEB_TOOLCHAIN.node}`);
-  }
-
-  const dependencies = requireRecord(manifest.dependencies, "dependencies");
-  const development = requireRecord(manifest.devDependencies, "devDependencies");
-  for (const [section, values, dependency, expected] of [
-    ["dependencies", dependencies, "react", ADMIN_WEB_TOOLCHAIN.react],
-    ["dependencies", dependencies, "react-dom", ADMIN_WEB_TOOLCHAIN.reactDom],
-    ["devDependencies", development, "vite", ADMIN_WEB_TOOLCHAIN.vite],
-    [
-      "devDependencies",
-      development,
-      "@vitejs/plugin-react",
-      ADMIN_WEB_TOOLCHAIN.viteReactPlugin,
-    ],
-    ["devDependencies", development, "typescript", ADMIN_WEB_TOOLCHAIN.typescript],
-    ["devDependencies", development, "@types/react", ADMIN_WEB_TOOLCHAIN.typesReact],
-    [
-      "devDependencies",
-      development,
-      "@types/react-dom",
-      ADMIN_WEB_TOOLCHAIN.typesReactDom,
-    ],
-  ] as const) {
-    if (values[dependency] !== expected) {
-      throw new TypeError(`${section}.${dependency} must be exactly ${expected}`);
-    }
-  }
-
-  const expectedVersions: Readonly<Record<string, string>> = {
-    react: ADMIN_WEB_TOOLCHAIN.react,
-    "react-dom": ADMIN_WEB_TOOLCHAIN.reactDom,
-    vite: ADMIN_WEB_TOOLCHAIN.vite,
-    "@vitejs/plugin-react": ADMIN_WEB_TOOLCHAIN.viteReactPlugin,
-    typescript: ADMIN_WEB_TOOLCHAIN.typescript,
-    "@types/react": ADMIN_WEB_TOOLCHAIN.typesReact,
-    "@types/react-dom": ADMIN_WEB_TOOLCHAIN.typesReactDom,
-  };
-  for (const section of [
-    "dependencies",
-    "devDependencies",
-    "peerDependencies",
-    "optionalDependencies",
-  ] as const) {
-    const raw = manifest[section];
-    if (raw === undefined) continue;
-    const values = requireRecord(raw, section);
-    for (const [dependency, expected] of Object.entries(expectedVersions)) {
-      if (Object.hasOwn(values, dependency) && values[dependency] !== expected) {
-        throw new TypeError(`${section}.${dependency} must be exactly ${expected}`);
-      }
-    }
-  }
-}
-
 /**
  * Create one application-wide administrator API client. Authentication data
  * stays in closure state and is never persisted in localStorage/sessionStorage.
@@ -401,13 +319,4 @@ function freezeAdministratorSession(
   value: AdministratorSession,
 ): AdministratorSession {
   return Object.freeze({ ...value });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!isRecord(value)) throw new TypeError(`${label} must be an object`);
-  return value;
 }

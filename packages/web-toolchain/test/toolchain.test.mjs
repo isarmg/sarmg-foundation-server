@@ -1,0 +1,1 @@
+import test from"node:test";import assert from"node:assert/strict";import{assertSarmgWebToolchain}from"../dist/index.js";test("rejects drift",()=>assert.throws(()=>assertSarmgWebToolchain({engines:{node:">=26.7.0 <27"},dependencies:{react:"latest"}},"26.7.0")));

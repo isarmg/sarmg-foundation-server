@@ -230,7 +230,7 @@ class ReleaseTreeTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(version.stdout.strip(), "sarmg-release 0.4.0")
+        self.assertEqual(version.stdout.strip(), "sarmg-release 0.5.0")
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "tree"
             root.mkdir()

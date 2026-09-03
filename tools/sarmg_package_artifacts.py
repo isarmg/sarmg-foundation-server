@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 
-CLI_VERSION = "0.4.0"
+CLI_VERSION = "0.5.0"
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_TARBALL_BYTES = 64 * 1024 * 1024
 PACKAGE_NAME = re.compile(r"@sarmg/[a-z][a-z0-9-]*")
@@ -373,11 +373,19 @@ def _install_smoke(packages: tuple[Package, ...], tarballs: tuple[Path, ...], co
             "--no-audit",
             "--no-fund",
             "--package-lock=false",
+            "--legacy-peer-deps",
             *(str(path) for path in tarballs),
         ],
         consumer,
     )
-    imports = [package.name for package in packages]
+    imports = [
+        package.name
+        for package in packages
+        if not any(
+            not name.startswith("@sarmg/")
+            for name in package.manifest.get("peerDependencies", {})
+        )
+    ]
     resolutions = [
         package.name + ("" if specifier == "." else specifier[1:])
         for package in packages

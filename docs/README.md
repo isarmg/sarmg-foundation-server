@@ -1,6 +1,6 @@
 # Sarmg Foundation 文档总览
 
-本目录记录 `0.4.0` 冻结实现与平台化目标，不保存旧版兼容说明。发生版本变化时，以源码、Cargo/npm
+本目录记录 `0.5.0` 冻结实现与平台化目标，不保存旧版兼容说明。发生版本变化时，以源码、Cargo/npm
 manifest、Profile、JSON Schema、fixture、测试和发布 policy 为事实源，在同一变更中更新这里。
 
 | 分类 | 文档 | 适合回答的问题 |

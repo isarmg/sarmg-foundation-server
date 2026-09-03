@@ -1,6 +1,6 @@
 # @sarmg/design-tokens
 
-`@sarmg/design-tokens@0.4.0` 是 Sarmg 管理 Web 的最小设计 primitive，而不是通用组件库。它公开：
+`@sarmg/design-tokens@0.5.0` 是 Sarmg 管理 Web 的最小设计 primitive，而不是通用组件库。它公开：
 
 - TypeScript `tokens` 与 `semanticTokens.light/dark`；
 - `tokens.css` 与 `tokens.dark.css`；

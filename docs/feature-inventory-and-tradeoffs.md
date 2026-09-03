@@ -22,8 +22,8 @@
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
 | FND-001 | 纯 build-time 共享层，不运行中央 Foundation service | 根 README、Cargo/npm workspace、state contract 无资源 | 核心 | 高 | 引入生产网络依赖、中央故障域和所有产品锁步发布 | 消费者制品断网运行；无监听/daemon/config |
-| FND-002 | 13 个 Rust crate 与 4 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
-| FND-003 | 全组件统一版本 `0.4.0` | workspace version、package version、`foundation_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
+| FND-002 | 22 个 Rust crate 与 8 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
+| FND-003 | 全组件统一版本 `0.5.0` | workspace version、package version、`foundation_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
 | FND-004 | 只提供唯一当前 API/合同/算法 | crate/package public API、strict guard、文档 | 核心 | 高 | 兼容分支和测试矩阵持续膨胀，产品边界不可证明 | 不存在 alias、dual reader/write、deprecated export |
 | FND-005 | 历史迁移/备份/恢复归 `sarmg-upgrade` 与产品 adapter | README、合同边界、空 Foundation state | 核心 | 高 | 在线 runtime 被非当前解析器和高权限修改逻辑污染 | Foundation 不含 migration edge 或产品 DDL |
 | FND-006 | Foundation 不拥有用户、Session、业务 DB、文件树或进程 | 所有 crate/package API 范围 | 核心 | 高 | 共享库变成特权平台，产品无法独立运行和发布 | API/依赖审计；state contract resources 为空 |
@@ -33,7 +33,7 @@
 | FND-010 | Clippy 禁止 `dbg!` 与 `todo!` | `[workspace.lints.clippy]` | 开发运维 | 低 | 临时诊断或未实现路径进入发布 crate | clippy `-D warnings` |
 | FND-011 | Rust edition 2024、MSRV/toolchain 1.98 | workspace、`rust-toolchain.toml` | 开发运维 | 中 | 各 crate 编译语义和依赖解析漂移 | fixed toolchain check/test/doc |
 | FND-012 | Web workspace Node 26.7.0、pnpm 10.12.1、TS 5.8.3 | `.node-version`、root/package manifest、lock | 开发运维 | 中 | 本地/CI/package 构建结果不一致 | policy + frozen install + package smoke |
-| FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，13 个 crate 各携带普通单链接 byte-exact LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | workspace/package manifests、`LICENSE`、各 crate `LICENSE`、`foundation_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、13/13 `cargo package --list`、npm tar inventory、Dufs notices E2E |
+| FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，22 个 crate 各携带普通单链接 byte-exact LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | workspace/package manifests、`LICENSE`、各 crate `LICENSE`、`foundation_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、22/22 `cargo package --list`、npm tar inventory、Dufs notices E2E |
 | FND-014 | Foundation 无 `config/`、`deploy/`、`clients/` | 仓库布局 | 核心 | 低 | 容易误认为存在在线服务或产品 UI | 目录与 state contract 审查 |
 | FND-015 | 发布 package 放 `packages/` 而非产品 `clients/web` | monorepo 布局 | 核心 | 低 | 发布依赖与可运行客户端职责混淆 | package exports 与消费者 import 验证 |
 
@@ -337,7 +337,7 @@
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
-| FND-320 | 4个npm package统一metadata/license/engine/repository | manifests + policy | 开发运维 | 中 | 来源、许可、工具链不可审计 | manifest check |
+| FND-320 | 8个npm package统一metadata/license/engine/repository | manifests + policy | 开发运维 | 中 | 来源、许可、工具链不可审计 | manifest check |
 | FND-321 | package只发布`dist` | `files:["dist"]` | 保障 | 中 | src/test/cache/Secret意外进入tar | tar inventory |
 | FND-322 | 每个公开入口显式写入exports | package manifests | 核心 | 中 | 消费者深层导入私有布局或入口漏包 | import.meta.resolve全部export |
 | FND-323 | contracts复制5份Schema与5份fixture | copy-contract-data script | 核心 | 中 | 机器合同或跨语言测试数据缺失 | dist/tar export检查 |
@@ -345,13 +345,13 @@
 | FND-325 | design-token复制4份CSS入口 | copy-css script | 核心 | 中 | package声明与实际CSS缺失 | source=dist/tar测试 |
 | FND-326 | build前clean且拒绝linked dist | package artifact policy | 保障 | 高 | 陈旧输出或symlink逃逸进入包 | linked/stale dist负例 |
 | FND-327 | manifest与export目标必须普通单链接文件 | artifact policy | 保障 | 高 | symlink/hardlink使审计对象与安装对象不同 | link负例 |
-| FND-328 | internal runtime peer使用精确0.4.0 | manifests/policy | 保障 | 高 | 依赖所有权隐藏或运行时解析另一代 | packed manifest检查 |
+| FND-328 | internal runtime peer使用精确0.5.0 | manifests/policy | 保障 | 高 | 依赖所有权隐藏或运行时解析另一代 | packed manifest检查 |
 | FND-329 | workspace协议仅用于内部dev/build | manifest policy + packed check | 开发运维 | 中 | 发布tar无法由外部npm安装 | tgz manifest无workspace |
 | FND-330 | tar path必须canonical且留在package根 | tar inspector | 保障 | 高 | 安装路径逃逸/跨平台解释差异 | absolute/`..`/backslash负例 |
 | FND-331 | tar拒绝duplicate member | tar inspector | 保障 | 高 | 不同解包器选择不同内容 | duplicate负例 |
 | FND-332 | tar拒绝link和special file | tar inspector | 保障 | 高 | 安装对象可指向包外或设备 | symlink/hardlink/device负例 |
 | FND-333 | tar拒绝意外源码/未发布文件 | expected inventory | 保障 | 中 | 内部测试/Secret/维护脚本泄露 | member allowlist |
-| FND-334 | 临时空消费者离线同时安装4个tgz | package smoke | 开发运维 | 高 | 只在workspace link下成功的包被发布 | npm offline/ignore-scripts install |
+| FND-334 | 临时空消费者离线同时安装8个tgz | package smoke | 开发运维 | 高 | 只在workspace link下成功的包被发布 | npm offline/ignore-scripts install |
 | FND-335 | 离线消费者解析每个静态/代码export | smoke import/resolve | 开发运维 | 高 | 部分深入口在真实package缺失 | 全exports遍历 |
 | FND-336 | release tool BuildIdentity复用五字段合同 | `sarmg_release::BuildIdentity` | 核心 | 高 | Python工具与Rust/TS release identity分叉 | round-trip/fixture |
 | FND-337 | release manifest记录exact path/mode/size/hash | release.py | 保障 | 高 | 下载树无法证明完整和无额外文件 | build/parse/verify测试 |
@@ -362,7 +362,7 @@
 | FND-342 | tool tar固定mtime=0/uid/gid/name/mode/order | asset builder | 开发运维 | 中 | 相同源码无法复核字节一致性 | 双构建SHA相同 |
 | FND-343 | release output必须安全、空、非root目录 | `prepare_output` | 保障 | 高 | 覆盖源码/宽目录或混入陈旧资产 | broad/nonempty/link目录负例 |
 | FND-344 | release要求工作树无tracked/untracked变化 | `verify_source` | 保障 | 高 | tag资产包含未提交或本地文件 | porcelain必须空 |
-| FND-345 | tag必须精确`v0.4.0`且唯一指向HEAD | `verify_source` | 保障 | 高 | 资产版本/source/tag不能建立一一关系 | wrong/missing/multiple tag负例 |
+| FND-345 | tag必须精确`v0.5.0`且唯一指向HEAD | `verify_source` | 保障 | 高 | 资产版本/source/tag不能建立一一关系 | wrong/missing/multiple tag负例 |
 | FND-346 | state contract先生成再hash绑定release identity | asset builder顺序 | 保障 | 高 | identity引用错误状态合同 | hash与Schema验证 |
 | FND-347 | build inventory记录工具链与两个lock hash | `inventory` | 开发运维 | 中 | 事故时无法重构构建输入 | JSON内容与hash测试 |
 | FND-348 | inventory枚举6个Rust和4个npm组件 | cargo metadata + package discover | 开发运维 | 中 | 发布组件缺失/多余不易发现 | component集合检查 |
@@ -470,7 +470,7 @@ source/target状态才在独立 `sarmg-upgrade` 创建转换。
 
 ## 18. 当前版本整体交付定义
 
-`0.4.0` 只有在以下条件全部成立时才完成：6个crate和4个package身份一致；六个crate的Cargo package均
+`0.5.0` 只有在以下条件全部成立时才完成：22个crate和8个package身份一致；六个crate的Cargo package均
 自带审核过的Apache-2.0文本；Rust/TS/Schema/fixture同构；
 管理员唯一角色和认证策略被所有Server采用；非AMD64 Server编译失败而客户端平台不受误限；非Dufs Web
 使用精确React/Vite基线；Dufs例外有文档和测试；SQLite current identity严格；真实tgz离线安装；release

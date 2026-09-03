@@ -92,7 +92,7 @@ Foundation单测通过，也不能证明Sunshine仍强制上游TLS或Media relea
 python3 scripts/check-foundation.py
 ```
 
-它会检查版本、6个crate、4个package、精确内部依赖、工具链、consumer matrix和取消名称。常见失败：
+它会检查版本、22个crate、8个package、精确内部依赖、工具链、consumer matrix和取消名称。常见失败：
 
 | 失败 | 不要做 | 正确做法 |
 |---|---|---|
@@ -139,7 +139,7 @@ pnpm test
 python3 scripts/package-artifacts.py smoke
 ```
 
-`pnpm test`会先构建需要的dist并从dist测试。package smoke还会生成4个tgz、审查tar，再用npm在临时空目录
+`pnpm test`会先构建需要的dist并从dist测试。package smoke还会生成8个tgz、审查tar，再用npm在临时空目录
 离线安装全部包。为什么使用npm做最终安装？因为真实消费者使用npm，这能发现pnpm workspace未暴露的问题。
 
 ## 2.10 Python工具测试

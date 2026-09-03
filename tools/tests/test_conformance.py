@@ -28,7 +28,7 @@ product_id = "fixture-product"
 
 [foundation]
 platform_generation = 1
-version = "0.4.0"
+version = "0.5.0"
 git_rev = "0123456789abcdef0123456789abcdef01234567"
 
 [[components]]
