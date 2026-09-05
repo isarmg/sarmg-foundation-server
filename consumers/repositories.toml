@@ -47,7 +47,7 @@ exceptions = []
 [[repositories]]
 product = "sentinel-monitor"
 url = "https://github.com/isarmg/sentinel-monitor"
-commit = "3e1017a936e3470b78285748e5ed19976abf002a"
+commit = "cb7c3c3eadf4cc8de1ff9149af7cb3cb205fa61b"
 foundation_version = "0.6.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secure-http", "secure-xml", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]

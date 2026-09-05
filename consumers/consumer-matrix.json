@@ -159,7 +159,7 @@
     },
     {
       "product": "sentinel-monitor",
-      "commit": "3e1017a936e3470b78285748e5ed19976abf002a",
+      "commit": "cb7c3c3eadf4cc8de1ff9149af7cb3cb205fa61b",
       "foundation_version": "0.6.0",
       "profiles": [
         "server-control-plane",
