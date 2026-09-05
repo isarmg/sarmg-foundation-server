@@ -69,7 +69,8 @@ class ConformanceTests(unittest.TestCase):
             consumers["sarmg-upgrade"]["commit"],
         )
         self.assertEqual(baselines["sarmg-upgrade"]["foundation_version"], "0.3.0")
-        self.assertEqual(consumers["sarmg-upgrade"]["foundation_version"], "0.4.0")
+        self.assertEqual(consumers["sarmg-upgrade"]["foundation_version"], "0.6.0")
+        self.assertEqual(consumers["sarmg-upgrade"]["status"], "migration-in-progress")
 
     def test_manifest_requires_profile_capabilities_and_immutable_revision(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

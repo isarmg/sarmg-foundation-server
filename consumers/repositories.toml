@@ -3,65 +3,65 @@ format = 1
 [[repositories]]
 product = "dufs-ram"
 url = "https://github.com/isarmg/dufs-ram"
-commit = "86b1b6c3d8d9c3d450e0ac3fe90942ef121080ea"
-foundation_version = "0.3.1"
+commit = "4571f005470a676bb1cf0ecd14811d4acee5f8c9"
+foundation_version = "0.6.0"
 profiles = ["server-filesystem", "web-embedded-native"]
 capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2", "durable-operations", "native-esm", "admin-client", "design-tokens", "maple-font"]
-packages = ["sarmg-admin-auth", "sarmg-contracts", "sarmg-schema-identity", "sarmg-server-target"]
+packages = ["@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-core","sarmg-admin-hyper","sarmg-admin-static","sarmg-contracts","sarmg-fs-safety","sarmg-schema-identity","sarmg-server-target"]
 status = "temporary-exception"
 exceptions = ["local-platform-stack"]
 
 [[repositories]]
 product = "host-monitoring"
 url = "https://github.com/isarmg/host-monitoring"
-commit = "4ac8caf81f11a78301abc4a47c8353243a5c93ee"
-foundation_version = "0.3.0"
+commit = "e62a50f1af57a911074eb97222ab6815b5dc9481"
+foundation_version = "0.6.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
-packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target", "sarmg-sqlite"]
+packages = ["@sarmg/admin-shell","@sarmg/admin-ui","@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-axum","sarmg-admin-core","sarmg-admin-sqlite","sarmg-contracts","sarmg-error","sarmg-fs-safety","sarmg-schema-identity","sarmg-secure-http","sarmg-server-runtime","sarmg-server-target","sarmg-sqlite"]
 status = "temporary-exception"
 exceptions = ["local-platform-stack"]
 
 [[repositories]]
 product = "media-backup"
 url = "https://github.com/isarmg/media-backup"
-commit = "66bc0512fb991797e4907e6abb188a9b707af551"
-foundation_version = "0.3.0"
+commit = "194092c48a2a0cd7800279a702031e111e7d3157"
+foundation_version = "0.6.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
-packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-server-target"]
+packages = ["@sarmg/admin-shell","@sarmg/admin-ui","@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-axum","sarmg-admin-core","sarmg-admin-sqlite","sarmg-contracts","sarmg-error","sarmg-schema-identity","sarmg-server-runtime","sarmg-server-target","sarmg-sqlite"]
 status = "temporary-exception"
 exceptions = ["local-platform-stack"]
 
 [[repositories]]
 product = "sarmg-upgrade"
 url = "https://github.com/isarmg/sarmg-upgrade"
-commit = "7bec1eef311f88d5a4dd44ed56e951adb51f1734"
-foundation_version = "0.4.0"
+commit = "3051c7acac3125e9cf211cefe9a3a07bf371ba7a"
+foundation_version = "0.6.0"
 profiles = ["offline-tool"]
 capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2", "secret-envelope"]
-packages = ["sarmg-contracts", "sarmg-schema-identity"]
-status = "conforming"
+packages = ["sarmg-contracts","sarmg-schema-identity"]
+status = "migration-in-progress"
 exceptions = []
 
 [[repositories]]
 product = "sentinel-monitor"
 url = "https://github.com/isarmg/sentinel-monitor"
-commit = "7856774c05658971dfde679043df2889a71089a6"
-foundation_version = "0.3.0"
+commit = "3e1017a936e3470b78285748e5ed19976abf002a"
+foundation_version = "0.6.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secure-http", "secure-xml", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
-packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target"]
+packages = ["@sarmg/admin-shell","@sarmg/admin-ui","@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-axum","sarmg-admin-core","sarmg-admin-sqlite","sarmg-contracts","sarmg-error","sarmg-operations","sarmg-schema-identity","sarmg-secret","sarmg-secret-envelope","sarmg-secure-http","sarmg-secure-xml","sarmg-server-runtime","sarmg-server-target","sarmg-sqlite"]
 status = "temporary-exception"
 exceptions = ["local-platform-stack"]
 
 [[repositories]]
 product = "sunshine-manager"
 url = "https://github.com/isarmg/sunshine-manager"
-commit = "566017f9683579a5ab840fc221624aa536928d81"
-foundation_version = "0.4.0"
+commit = "eb51dbb4739763b06498c4a3697023f5337381ca"
+foundation_version = "0.6.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
-packages = ["@sarmg/admin-web", "@sarmg/contracts", "@sarmg/design-tokens", "@sarmg/http-client", "sarmg-admin-auth", "sarmg-contracts", "sarmg-error", "sarmg-schema-identity", "sarmg-server-target", "sarmg-sqlite"]
+packages = ["@sarmg/admin-shell","@sarmg/admin-ui","@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-axum","sarmg-admin-core","sarmg-admin-sqlite","sarmg-contracts","sarmg-error","sarmg-operations","sarmg-platform-db","sarmg-schema-identity","sarmg-secret","sarmg-secret-envelope","sarmg-server-runtime","sarmg-server-target","sarmg-sqlite"]
 status = "temporary-exception"
 exceptions = ["local-platform-stack"]

@@ -6,8 +6,8 @@
   "consumers": [
     {
       "product": "dufs-ram",
-      "commit": "86b1b6c3d8d9c3d450e0ac3fe90942ef121080ea",
-      "foundation_version": "0.3.1",
+      "commit": "4571f005470a676bb1cf0ecd14811d4acee5f8c9",
+      "foundation_version": "0.6.0",
       "profiles": [
         "server-filesystem",
         "web-embedded-native"
@@ -26,8 +26,18 @@
         "server-runtime"
       ],
       "packages": [
+        "@sarmg/admin-web",
+        "@sarmg/contracts",
+        "@sarmg/design-tokens",
+        "@sarmg/http-client",
+        "@sarmg/web-fonts",
+        "@sarmg/web-toolchain",
         "sarmg-admin-auth",
+        "sarmg-admin-core",
+        "sarmg-admin-hyper",
+        "sarmg-admin-static",
         "sarmg-contracts",
+        "sarmg-fs-safety",
         "sarmg-schema-identity",
         "sarmg-server-target"
       ],
@@ -38,8 +48,8 @@
     },
     {
       "product": "host-monitoring",
-      "commit": "4ac8caf81f11a78301abc4a47c8353243a5c93ee",
-      "foundation_version": "0.3.0",
+      "commit": "e62a50f1af57a911074eb97222ab6815b5dc9481",
+      "foundation_version": "0.6.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -56,14 +66,24 @@
         "server-runtime"
       ],
       "packages": [
+        "@sarmg/admin-shell",
+        "@sarmg/admin-ui",
         "@sarmg/admin-web",
         "@sarmg/contracts",
         "@sarmg/design-tokens",
         "@sarmg/http-client",
+        "@sarmg/web-fonts",
+        "@sarmg/web-toolchain",
         "sarmg-admin-auth",
+        "sarmg-admin-axum",
+        "sarmg-admin-core",
+        "sarmg-admin-sqlite",
         "sarmg-contracts",
         "sarmg-error",
+        "sarmg-fs-safety",
         "sarmg-schema-identity",
+        "sarmg-secure-http",
+        "sarmg-server-runtime",
         "sarmg-server-target",
         "sarmg-sqlite"
       ],
@@ -74,8 +94,8 @@
     },
     {
       "product": "media-backup",
-      "commit": "66bc0512fb991797e4907e6abb188a9b707af551",
-      "foundation_version": "0.3.0",
+      "commit": "194092c48a2a0cd7800279a702031e111e7d3157",
+      "foundation_version": "0.6.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -92,14 +112,24 @@
         "server-runtime"
       ],
       "packages": [
+        "@sarmg/admin-shell",
+        "@sarmg/admin-ui",
         "@sarmg/admin-web",
         "@sarmg/contracts",
         "@sarmg/design-tokens",
         "@sarmg/http-client",
+        "@sarmg/web-fonts",
+        "@sarmg/web-toolchain",
         "sarmg-admin-auth",
+        "sarmg-admin-axum",
+        "sarmg-admin-core",
+        "sarmg-admin-sqlite",
         "sarmg-contracts",
         "sarmg-error",
-        "sarmg-server-target"
+        "sarmg-schema-identity",
+        "sarmg-server-runtime",
+        "sarmg-server-target",
+        "sarmg-sqlite"
       ],
       "status": "temporary-exception",
       "exceptions": [
@@ -108,8 +138,8 @@
     },
     {
       "product": "sarmg-upgrade",
-      "commit": "7bec1eef311f88d5a4dd44ed56e951adb51f1734",
-      "foundation_version": "0.4.0",
+      "commit": "3051c7acac3125e9cf211cefe9a3a07bf371ba7a",
+      "foundation_version": "0.6.0",
       "profiles": [
         "offline-tool"
       ],
@@ -124,13 +154,13 @@
         "sarmg-contracts",
         "sarmg-schema-identity"
       ],
-      "status": "conforming",
+      "status": "migration-in-progress",
       "exceptions": []
     },
     {
       "product": "sentinel-monitor",
-      "commit": "7856774c05658971dfde679043df2889a71089a6",
-      "foundation_version": "0.3.0",
+      "commit": "3e1017a936e3470b78285748e5ed19976abf002a",
+      "foundation_version": "0.6.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -151,15 +181,29 @@
         "server-runtime"
       ],
       "packages": [
+        "@sarmg/admin-shell",
+        "@sarmg/admin-ui",
         "@sarmg/admin-web",
         "@sarmg/contracts",
         "@sarmg/design-tokens",
         "@sarmg/http-client",
+        "@sarmg/web-fonts",
+        "@sarmg/web-toolchain",
         "sarmg-admin-auth",
+        "sarmg-admin-axum",
+        "sarmg-admin-core",
+        "sarmg-admin-sqlite",
         "sarmg-contracts",
         "sarmg-error",
+        "sarmg-operations",
         "sarmg-schema-identity",
-        "sarmg-server-target"
+        "sarmg-secret",
+        "sarmg-secret-envelope",
+        "sarmg-secure-http",
+        "sarmg-secure-xml",
+        "sarmg-server-runtime",
+        "sarmg-server-target",
+        "sarmg-sqlite"
       ],
       "status": "temporary-exception",
       "exceptions": [
@@ -168,8 +212,8 @@
     },
     {
       "product": "sunshine-manager",
-      "commit": "566017f9683579a5ab840fc221624aa536928d81",
-      "foundation_version": "0.4.0",
+      "commit": "eb51dbb4739763b06498c4a3697023f5337381ca",
+      "foundation_version": "0.6.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -188,14 +232,26 @@
         "server-runtime"
       ],
       "packages": [
+        "@sarmg/admin-shell",
+        "@sarmg/admin-ui",
         "@sarmg/admin-web",
         "@sarmg/contracts",
         "@sarmg/design-tokens",
         "@sarmg/http-client",
+        "@sarmg/web-fonts",
+        "@sarmg/web-toolchain",
         "sarmg-admin-auth",
+        "sarmg-admin-axum",
+        "sarmg-admin-core",
+        "sarmg-admin-sqlite",
         "sarmg-contracts",
         "sarmg-error",
+        "sarmg-operations",
+        "sarmg-platform-db",
         "sarmg-schema-identity",
+        "sarmg-secret",
+        "sarmg-secret-envelope",
+        "sarmg-server-runtime",
         "sarmg-server-target",
         "sarmg-sqlite"
       ],
