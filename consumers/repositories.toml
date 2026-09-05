@@ -3,7 +3,7 @@ format = 1
 [[repositories]]
 product = "dufs-ram"
 url = "https://github.com/isarmg/dufs-ram"
-commit = "4571f005470a676bb1cf0ecd14811d4acee5f8c9"
+commit = "efd0a18e2e253a18f4b4d61cf534bd045e0e3a10"
 foundation_version = "0.6.0"
 profiles = ["server-filesystem", "web-embedded-native"]
 capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2", "durable-operations", "native-esm", "admin-client", "design-tokens", "maple-font"]

@@ -1,6 +1,6 @@
 # Filesystem handles and publication boundaries
 
-The current filesystem primitives are being hardened and adopted in P8. This document describes the implemented Unix/Linux boundary, not completion of the Windows/macOS or all-consumer acceptance gates.
+The current server filesystem primitives are being hardened and adopted in P8. This document describes the implemented Unix/Linux server boundary, not completion of every server consumer's acceptance gates. Windows/macOS Agent filesystem contracts belong exclusively to sarmg-foundation-agent.
 
 ## Unix private state
 
@@ -9,8 +9,8 @@ the same owner and permissions without creating directories, changing modes or
 syncing files. Read-only server diagnostics use this entry point.
 
 `create_child` creates or validates a typed direct child relative to the held
-parent descriptor on Unix. Host hands that capability to `Spool::from_directory`,
-so replacing the original state pathname cannot redirect spool initialization.
+parent descriptor on Unix, so replacing the original state pathname cannot
+redirect initialization of server-owned child state.
 
 `PrivateDirectory::create` requires an absolute path. It walks existing ancestors through no-follow directory descriptors and creates only the final directory with mode 0700. The final directory must be owned by the effective user with exact 0700 permissions. An existing directory is validated, never chmodded; rejection cannot change a symlink target's permissions. Parent and new-directory sync complete creation.
 
@@ -36,4 +36,4 @@ Products may retain business-specific symlink, upload metadata, tree mutation an
 
 ## Remaining acceptance
 
-Windows handle/reparse-point semantics and native macOS acceptance remain unverified. Product-side raw-path staging/Spool operations, cross-directory publication, bounded inventories at every consumer, and Upgrade adoption still require implementation and acceptance. Passing the Linux library tests is not P8 completion.
+Server-side raw-path staging operations, cross-directory publication, bounded inventories at every consumer, and Upgrade adoption still require implementation and acceptance. Passing the Linux library tests is not P8 completion. Agent Spool and native client acceptance are tracked only in sarmg-foundation-agent, not governed by this server specification.
