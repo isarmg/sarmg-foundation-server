@@ -152,7 +152,7 @@ def build_tool_bundle(artifacts: Path) -> Path:
 def state_contract(source_revision: str) -> dict[str, Any]:
     return {
         "contract_version": 1,
-        "application": "sarmg-foundation",
+        "application": "sarmg-foundation-server",
         "application_version": CURRENT_VERSION,
         "source_revision": source_revision,
         "schema": None,
@@ -215,7 +215,7 @@ def build(output: Path, source_revision: str, tag: str, target: str) -> Path:
     if SHA256.fullmatch(contract_hash) is None:  # pragma: no cover - hashlib contract
         raise AssertionError(contract_hash)
     identity = BuildIdentity(
-        product="sarmg-foundation",
+        product="sarmg-foundation-server",
         version=CURRENT_VERSION,
         source_revision=source_revision,
         target=target,

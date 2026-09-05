@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "0.5.0"
+CURRENT_VERSION = "0.6.0"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.12.1"
 RUST_VERSION = "1.98.0"
@@ -57,8 +57,7 @@ KNOWN_PACKAGES = {
     "sarmg-secure-http",
     "sarmg-secure-xml",
     "sarmg-operations",
-    "sarmg-agent-runtime",
-    "sarmg-mobile-ffi",
+    "sarmg-testkit",
 }
 RUST_PACKAGES = tuple(
     sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
@@ -223,6 +222,9 @@ def check_versions(root: Path) -> None:
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):
             dependencies = manifest.get(section, {})
             for dependency, requirement in dependencies.items():
+                package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
+                if package.startswith("sarmg-agent-") or package == "sarmg-mobile-ffi":
+                    raise FoundationPolicyError(f"{manifest_path}: Server must not depend on Agent package {package}")
                 if dependency not in KNOWN_PACKAGES or dependency.startswith("@"):
                     continue
                 if not isinstance(requirement, dict) or requirement.get("version") != f"={CURRENT_VERSION}":

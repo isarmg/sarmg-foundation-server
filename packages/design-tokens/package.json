@@ -1,11 +1,11 @@
 {
   "name": "@sarmg/design-tokens",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Sarmg Web 项目的语义设计令牌、reset 与可访问性基线",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/isarmg/sarmg-foundation.git",
+    "url": "git+https://github.com/isarmg/sarmg-foundation-server.git",
     "directory": "packages/design-tokens"
   },
   "engines": {

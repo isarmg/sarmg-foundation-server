@@ -64,7 +64,7 @@ jobs:
       - name: Build exact release tree
         run: >-
           python3 scripts/build-release-assets.py
-          --output "$RUNNER_TEMP/sarmg-foundation-release"
+          --output "$RUNNER_TEMP/sarmg-foundation-server-release"
           --source-revision "$GITHUB_SHA"
           --tag "$GITHUB_REF_NAME"
       - name: Publish immutable GitHub Release assets
@@ -72,8 +72,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: >-
           gh release create "$GITHUB_REF_NAME"
-          "$RUNNER_TEMP/sarmg-foundation-release/artifacts/"*
-          "$RUNNER_TEMP/sarmg-foundation-release/release-tree.json"
+          "$RUNNER_TEMP/sarmg-foundation-server-release/artifacts/"*
+          "$RUNNER_TEMP/sarmg-foundation-server-release/release-tree.json"
           --verify-tag
-          --title "Sarmg Foundation ${GITHUB_REF_NAME}"
-          --notes "当前版构建期契约、安全原语与发布工具；不包含旧版本兼容层。"
+          --title "Sarmg Foundation Server ${GITHUB_REF_NAME}"
+          --notes-file docs/releases/0.6.0.md

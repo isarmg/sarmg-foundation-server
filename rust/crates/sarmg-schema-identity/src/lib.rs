@@ -16,13 +16,13 @@ pub const SCHEMA_FINGERPRINT_GOLDEN_VECTORS_JSON: &str =
 
 /// The canonical metadata DDL. Comparison ignores ASCII whitespace and ASCII
 /// letter case, but does not otherwise rewrite SQL.
-pub const PRODUCT_METADATA_DDL: &str = "CREATE TABLE product_metadata (\n\
-    singleton INTEGER PRIMARY KEY NOT NULL CHECK(singleton=1),\n\
-    application TEXT NOT NULL,\n\
-    application_version TEXT NOT NULL,\n\
-    schema_revision INTEGER NOT NULL,\n\
-    schema_sha256 TEXT NOT NULL\n\
-)";
+pub const PRODUCT_METADATA_DDL: &str = r#"CREATE TABLE product_metadata (
+    singleton INTEGER PRIMARY KEY NOT NULL CHECK(singleton=1),
+    application TEXT NOT NULL,
+    application_version TEXT NOT NULL,
+    schema_revision INTEGER NOT NULL,
+    schema_sha256 TEXT NOT NULL
+)"#;
 
 /// Query that selects exactly the objects covered by fingerprint version 1.
 ///

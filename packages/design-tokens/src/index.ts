@@ -40,6 +40,7 @@ export const semanticTokens = {
     bgPanel: "#ffffff",
     textPrimary: tokens.color.gray900,
     textDanger: tokens.color.red600,
+    textLink: tokens.color.blue600,
   },
   dark: {
     actionPrimary: tokens.color.blue600,
@@ -47,5 +48,6 @@ export const semanticTokens = {
     bgPanel: "#18181b",
     textPrimary: "#fafafa",
     textDanger: "#f87171",
+    textLink: "#60a5fa",
   },
 } as const;

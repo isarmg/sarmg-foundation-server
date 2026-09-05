@@ -1,11 +1,11 @@
 {
   "name": "@sarmg/contracts",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Sarmg 跨语言 wire contract、严格运行时守卫与 JSON Schema",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/isarmg/sarmg-foundation.git",
+    "url": "git+https://github.com/isarmg/sarmg-foundation-server.git",
     "directory": "packages/contracts"
   },
   "engines": {
@@ -25,11 +25,13 @@
     },
     "./schemas/backup-manifest.schema.json": "./dist/schemas/backup-manifest.schema.json",
     "./schemas/administrator-auth.schema.json": "./dist/schemas/administrator-auth.schema.json",
+    "./schemas/administrator-management.schema.json": "./dist/schemas/administrator-management.schema.json",
     "./schemas/error-envelope.schema.json": "./dist/schemas/error-envelope.schema.json",
     "./schemas/release.schema.json": "./dist/schemas/release.schema.json",
     "./schemas/state-contract.schema.json": "./dist/schemas/state-contract.schema.json",
     "./fixtures/backup-manifest.fixtures.json": "./dist/fixtures/backup-manifest.fixtures.json",
     "./fixtures/administrator-auth.fixtures.json": "./dist/fixtures/administrator-auth.fixtures.json",
+    "./fixtures/administrator-management.fixtures.json": "./dist/fixtures/administrator-management.fixtures.json",
     "./fixtures/error-envelope.fixtures.json": "./dist/fixtures/error-envelope.fixtures.json",
     "./fixtures/release.fixtures.json": "./dist/fixtures/release.fixtures.json",
     "./fixtures/state-contract.fixtures.json": "./dist/fixtures/state-contract.fixtures.json"

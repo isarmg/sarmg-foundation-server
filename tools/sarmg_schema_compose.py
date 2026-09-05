@@ -17,14 +17,13 @@ FOUNDATION_ROOT = Path(__file__).resolve().parents[1]
 PROFILE_IDS = {
     "server-control-plane",
     "server-filesystem",
-    "desktop-agent",
-    "mobile-agent",
     "offline-tool",
     "web-react-admin",
     "web-embedded-native",
 }
 CAPABILITY_DDL = {
     "admin-persistent": FOUNDATION_ROOT / "schemas/admin/persistent-v1.sql",
+    "durable-operations": FOUNDATION_ROOT / "schemas/durable-operations/v1.sql",
 }
 PLATFORM_PROFILES = {"server-control-plane"}
 RESERVED_PREFIX = "_sarmg_"

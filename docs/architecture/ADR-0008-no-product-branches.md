@@ -10,5 +10,5 @@ Profile、Capability、Adapter/Trait、产品业务 Schema，以及 `sarmg-upgra
 
 ## 后果
 
-技术 Feature 应命名为 `axum`、`hyper`、`sqlite`、`linux-openat2`、`mobile-ffi` 等。合规工具扫描产品名
+技术 Feature 应命名为 `axum`、`hyper`、`sqlite`、`linux-openat2` 等。合规工具扫描产品名
 Feature 和 Foundation 对产品 crate 的反向依赖。

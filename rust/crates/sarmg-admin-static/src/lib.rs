@@ -8,7 +8,10 @@ use sarmg_admin_core::{
     SESSIONS_GLOBAL, SESSIONS_PER_ADMINISTRATOR, SecurityAction, SecurityAuditEvent,
     SessionAndAdministrator, SessionRecord,
 };
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Mutex,
+};
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -28,12 +31,19 @@ impl StaticAdministratorStore {
         administrators: impl IntoIterator<Item = AdministratorRecord>,
     ) -> Result<Self, Error> {
         let mut by_username = HashMap::new();
+        let mut identifiers = HashSet::new();
         for administrator in administrators {
+            if by_username.len() >= sarmg_admin_core::STATIC_ADMINISTRATORS_MAX {
+                return Err(Error::TooManyAdministrators);
+            }
             administrator.validate()?;
             if !administrator.active {
                 return Err(Error::InactiveConfiguredAdministrator);
             }
             let username = administrator.username.clone();
+            if !identifiers.insert(administrator.administrator_id.clone()) {
+                return Err(Error::DuplicateIdentifier);
+            }
             if by_username
                 .insert(username.clone(), administrator)
                 .is_some()
@@ -74,6 +84,22 @@ impl StaticAdministratorStore {
 #[async_trait::async_trait]
 impl AdministratorStore for StaticAdministratorStore {
     type StoreError = Error;
+
+    fn supports_management(&self) -> bool {
+        false
+    }
+
+    async fn list_administrators(&self, _: u32, _: u64) -> Result<Vec<AdministratorRecord>, Error> {
+        Err(Error::ConfigurationMutationUnsupported)
+    }
+
+    async fn manage_administrator(
+        &self,
+        _: &sarmg_admin_core::AdministratorManagementContext,
+        _: sarmg_admin_core::AdministratorMutation,
+    ) -> Result<(), sarmg_admin_core::ManagementError<Error>> {
+        Err(sarmg_admin_core::ManagementError::Unsupported)
+    }
 
     async fn administrator_count(&self) -> Result<u64, Error> {
         Ok(u64::try_from(self.lock()?.administrators.len())
@@ -126,15 +152,6 @@ impl AdministratorStore for StaticAdministratorStore {
         Err(Error::ConfigurationMutationUnsupported)
     }
 
-    async fn disable_administrator(
-        &self,
-        _: &Identifier,
-        _: u64,
-        _: [SecurityAuditEvent; 2],
-    ) -> Result<(), Error> {
-        Err(Error::ConfigurationMutationUnsupported)
-    }
-
     async fn commit_login_success(&self, login: LoginSuccess) -> Result<(), Error> {
         login.session.validate()?;
         require_action(&login.session_created_event, SecurityAction::SessionCreated)?;
@@ -165,27 +182,33 @@ impl AdministratorStore for StaticAdministratorStore {
     async fn rotate_session_csrf(
         &self,
         session_id: &Identifier,
+        expected_csrf_hash: [u8; DIGEST_BYTES],
         csrf_hash: [u8; DIGEST_BYTES],
         now_micros: u64,
         idle_expires_at_micros: u64,
-    ) -> Result<(), Error> {
+    ) -> Result<bool, Error> {
         let mut state = self.lock()?;
-        let session = state
+        let Some(session) = state
             .sessions
             .values_mut()
             .find(|session| &session.session_id == session_id)
-            .ok_or(Error::SessionNotActive)?;
+        else {
+            return Ok(false);
+        };
         if session.revoked_at_micros.is_some()
+            || session.csrf_hash != expected_csrf_hash
+            || now_micros < session.last_seen_at_micros
+            || idle_expires_at_micros <= now_micros
             || now_micros >= session.idle_expires_at_micros
             || now_micros >= session.absolute_expires_at_micros
             || idle_expires_at_micros > session.absolute_expires_at_micros
         {
-            return Err(Error::SessionNotActive);
+            return Ok(false);
         }
         session.csrf_hash = csrf_hash;
         session.last_seen_at_micros = now_micros;
         session.idle_expires_at_micros = idle_expires_at_micros;
-        Ok(())
+        Ok(true)
     }
 
     async fn revoke_session(
@@ -280,6 +303,10 @@ pub enum Error {
     Authentication(#[from] sarmg_admin_auth::Error),
     #[error("static administrator configuration must contain at least one administrator")]
     NoAdministrators,
+    #[error("static administrator configuration exceeds the platform capacity")]
+    TooManyAdministrators,
+    #[error("static administrator identifiers must be unique")]
+    DuplicateIdentifier,
     #[error("static administrator must be active")]
     InactiveConfiguredAdministrator,
     #[error("duplicate static administrator username: {0}")]
@@ -302,6 +329,41 @@ mod tests {
     use sarmg_admin_core::{
         AdministratorService, AdministratorStore, AuditOutcome, LoginContext, ServiceError,
     };
+
+    #[test]
+    fn static_identifiers_and_account_capacity_are_platform_invariants() {
+        let administrator = AdministratorRecord {
+            administrator_id: Identifier::new("first").unwrap(),
+            username: "admin".into(),
+            password_hash: sarmg_admin_auth::hash_password("correct horse battery").unwrap(),
+            active: true,
+            session_version: 1,
+            created_at_micros: 1,
+            updated_at_micros: 1,
+            last_login_at_micros: None,
+        };
+        let mut second = administrator.clone();
+        second.username = "secondary".into();
+        assert!(matches!(
+            StaticAdministratorStore::new([administrator.clone(), second]),
+            Err(Error::DuplicateIdentifier)
+        ));
+        let records = (0..sarmg_admin_core::STATIC_ADMINISTRATORS_MAX)
+            .map(|index| {
+                let username = format!("admin-{index}");
+                AdministratorRecord {
+                    administrator_id: Identifier::new(username.clone()).unwrap(),
+                    username,
+                    ..administrator.clone()
+                }
+            })
+            .collect::<Vec<_>>();
+        assert!(StaticAdministratorStore::new(records.clone()).is_ok());
+        assert!(matches!(
+            StaticAdministratorStore::new(records.into_iter().chain([administrator])),
+            Err(Error::TooManyAdministrators)
+        ));
+    }
 
     fn audit(
         id: &str,
@@ -367,26 +429,57 @@ mod tests {
             store.session_by_token_hash([5; 32]).await?.unwrap().session,
             session
         );
+        assert!(
+            store
+                .rotate_session_csrf(&session.session_id, [6; 32], [7; 32], 3, 100)
+                .await?
+        );
+        assert!(
+            !store
+                .rotate_session_csrf(&session.session_id, [6; 32], [6; 32], 4, 100)
+                .await?
+        );
+        assert!(
+            !store
+                .rotate_session_csrf(&session.session_id, [6; 32], [8; 32], 4, 100)
+                .await?
+        );
+        assert!(
+            !store
+                .rotate_session_csrf(&session.session_id, [7; 32], [7; 32], 2, 100)
+                .await?
+        );
+        assert_eq!(
+            store
+                .session_by_token_hash([5; 32])
+                .await?
+                .unwrap()
+                .session
+                .csrf_hash,
+            [7; 32]
+        );
+        assert!(!store.supports_management());
+        assert!(matches!(
+            store.list_administrators(10, 0).await,
+            Err(Error::ConfigurationMutationUnsupported)
+        ));
         assert!(matches!(
             store
-                .disable_administrator(
-                    &administrator_id,
-                    3,
-                    [
-                        audit(
-                            "disabled",
-                            SecurityAction::AdministratorDisabled,
-                            &administrator_id
-                        ),
-                        audit(
-                            "revoked",
-                            SecurityAction::AdministratorSessionsRevoked,
-                            &administrator_id
-                        ),
-                    ]
+                .manage_administrator(
+                    &sarmg_admin_core::AdministratorManagementContext {
+                        identity: sarmg_admin_core::AuthenticatedIdentity {
+                            administrator_id: administrator_id.clone(),
+                            username: "admin".into(),
+                            session_id: session.session_id.clone(),
+                            csrf_hash: session.csrf_hash,
+                        },
+                        request_id: None,
+                        now_micros: 3,
+                    },
+                    sarmg_admin_core::AdministratorMutation::Disable { administrator_id },
                 )
                 .await,
-            Err(Error::ConfigurationMutationUnsupported)
+            Err(sarmg_admin_core::ManagementError::Unsupported)
         ));
         Ok(())
     }

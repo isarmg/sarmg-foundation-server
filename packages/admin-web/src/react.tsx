@@ -81,7 +81,8 @@ export function useAdministratorSession(
   const login = useCallback(async (username: string, password: string) => {
     const generation = stateGeneration.current + 1;
     stateGeneration.current = generation;
-    setState({ phase: "loading", session: null, error: null });
+    // Keep the sign-in form mounted while its submission is pending so it can
+    // retain focus and render a failed login's safe error/Request ID.
     try {
       const session = await client.login(username, password);
       if (

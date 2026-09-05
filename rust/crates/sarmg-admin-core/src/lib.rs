@@ -1,5 +1,10 @@
 //! Framework- and storage-independent administrator control-plane contract.
 
+mod management;
+pub use management::{
+    AdministratorManagementContext, AdministratorMutation, AdministratorSummary, ManagementError,
+};
+
 use sarmg_admin_auth::{
     AdministratorOriginMode, require_canonical_administrator_username,
     require_current_password_hash,
@@ -27,6 +32,11 @@ pub const SESSION_LAST_SEEN_WRITE_INTERVAL_MICROS: u64 = 60 * 1_000_000;
 pub const DIGEST_BYTES: usize = 32;
 pub const IDENTIFIER_MAX_BYTES: usize = 64;
 pub const MAX_LOGIN_TRACKED_KEYS: usize = 4_096;
+pub const ADMIN_BODY_MAX_BYTES: usize = 16 * 1024;
+pub const ADMIN_BODY_TIMEOUT: Duration = Duration::from_secs(10);
+pub const ADMIN_BODY_READERS_GLOBAL: usize = 32;
+pub const ADMIN_BODY_READERS_PER_SOURCE: usize = 4;
+pub const STATIC_ADMINISTRATORS_MAX: usize = 1024;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct AdministratorPolicyV1;
@@ -96,7 +106,7 @@ impl fmt::Display for Identifier {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct AdministratorRecord {
     pub administrator_id: Identifier,
     pub username: String,
@@ -106,6 +116,18 @@ pub struct AdministratorRecord {
     pub created_at_micros: u64,
     pub updated_at_micros: u64,
     pub last_login_at_micros: Option<u64>,
+}
+
+impl fmt::Debug for AdministratorRecord {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AdministratorRecord")
+            .field("administrator_id", &self.administrator_id)
+            .field("username", &self.username)
+            .field("active", &self.active)
+            .field("password_hash", &"[REDACTED]")
+            .finish_non_exhaustive()
+    }
 }
 
 impl AdministratorRecord {
@@ -280,6 +302,17 @@ pub struct SessionAndAdministrator {
 #[async_trait::async_trait]
 pub trait AdministratorStore: Send + Sync {
     type StoreError: std::error::Error + Send + Sync + 'static;
+    fn supports_management(&self) -> bool;
+    async fn list_administrators(
+        &self,
+        limit: u32,
+        offset: u64,
+    ) -> Result<Vec<AdministratorRecord>, Self::StoreError>;
+    async fn manage_administrator(
+        &self,
+        context: &AdministratorManagementContext,
+        mutation: AdministratorMutation,
+    ) -> Result<(), ManagementError<Self::StoreError>>;
     async fn administrator_count(&self) -> Result<u64, Self::StoreError>;
     async fn administrator_by_username(
         &self,
@@ -301,20 +334,15 @@ pub trait AdministratorStore: Send + Sync {
         now_micros: u64,
         events: [SecurityAuditEvent; 2],
     ) -> Result<(), Self::StoreError>;
-    async fn disable_administrator(
-        &self,
-        administrator_id: &Identifier,
-        now_micros: u64,
-        events: [SecurityAuditEvent; 2],
-    ) -> Result<(), Self::StoreError>;
     async fn commit_login_success(&self, login: LoginSuccess) -> Result<(), Self::StoreError>;
     async fn rotate_session_csrf(
         &self,
         session_id: &Identifier,
+        expected_csrf_hash: [u8; DIGEST_BYTES],
         csrf_hash: [u8; DIGEST_BYTES],
         now_micros: u64,
         idle_expires_at_micros: u64,
-    ) -> Result<(), Self::StoreError>;
+    ) -> Result<bool, Self::StoreError>;
     async fn revoke_session(
         &self,
         session_id: &Identifier,
@@ -348,10 +376,20 @@ impl LoginContext {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct AuthenticatedSession {
     pub administrator: sarmg_contracts::AdministratorSession,
     pub session_token: String,
+}
+
+impl fmt::Debug for AuthenticatedSession {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AuthenticatedSession")
+            .field("administrator", &self.administrator)
+            .field("session_token", &"[REDACTED]")
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -635,15 +673,20 @@ where
             .checked_add(SESSION_IDLE_MICROS)
             .ok_or(Error::InvalidTimestamp)?
             .min(found.session.absolute_expires_at_micros);
-        self.store
+        let updated = self
+            .store
             .rotate_session_csrf(
                 &found.session.session_id,
+                found.session.csrf_hash,
                 sarmg_admin_auth::token_hash(&csrf_token),
                 now_micros,
                 idle_expires,
             )
             .await
             .map_err(ServiceError::Store)?;
+        if !updated {
+            return Err(ServiceError::InvalidSession);
+        }
         Ok(AuthenticatedSession {
             administrator: sarmg_contracts::AdministratorSession::new(
                 found.administrator.administrator_id.as_str(),
@@ -680,15 +723,20 @@ where
                 .checked_add(SESSION_IDLE_MICROS)
                 .ok_or(Error::InvalidTimestamp)?
                 .min(found.session.absolute_expires_at_micros);
-            self.store
+            let updated = self
+                .store
                 .rotate_session_csrf(
                     &found.session.session_id,
+                    found.session.csrf_hash,
                     found.session.csrf_hash,
                     now_micros,
                     idle_expires,
                 )
                 .await
                 .map_err(ServiceError::Store)?;
+            if !updated {
+                return Err(ServiceError::InvalidSession);
+            }
         }
         Ok(AuthenticatedIdentity {
             administrator_id: found.administrator.administrator_id,
@@ -997,6 +1045,32 @@ pub enum Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn debug_never_exposes_password_hashes_or_session_secrets() {
+        let record = AdministratorRecord {
+            administrator_id: Identifier::new("admin-1").unwrap(),
+            username: "admin".into(),
+            password_hash: "DO_NOT_LOG_PASSWORD_HASH".into(),
+            active: true,
+            session_version: 1,
+            created_at_micros: 1,
+            updated_at_micros: 1,
+            last_login_at_micros: None,
+        };
+        assert!(!format!("{record:?}").contains("DO_NOT_LOG_PASSWORD_HASH"));
+        let csrf = "A".repeat(43);
+        let token = format!("{}E", "B".repeat(42));
+        let authenticated = AuthenticatedSession {
+            administrator: sarmg_contracts::AdministratorSession::new("admin-1", "admin", &csrf)
+                .unwrap(),
+            session_token: token.clone(),
+        };
+        let debug = format!("{authenticated:?}");
+        assert!(!debug.contains(&csrf));
+        assert!(!debug.contains(&token));
+        assert!(debug.contains("[REDACTED]"));
+    }
 
     #[test]
     fn policy_and_cookie_contract_are_fixed() {

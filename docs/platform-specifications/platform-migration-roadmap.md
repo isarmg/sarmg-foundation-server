@@ -8,7 +8,7 @@
 ## 永久依赖方向
 
 ```text
-第三方依赖 -> sarmg-foundation -> 产品 Adapter -> 产品业务
+第三方依赖 -> sarmg-foundation-server -> 产品 Adapter -> 产品业务
 历史状态 ---------------------------------------> sarmg-upgrade
 ```
 
@@ -27,7 +27,7 @@ Foundation 不得依赖产品 crate，不按 `product_id` 分支，不提供产�
 2. P1：上游平台定位、ADR、Profile、Capability、临时例外。
 3. P2：产品清单、合规工具、自动消费者矩阵、Testkit。
 4. P3–P4：状态文件、平台数据库、Schema Composer、管理员控制面；Sunshine 为首个参考消费者。
-5. P5–P12：Runtime/Web、文件安全、网络/加密、操作状态机、Agent、Mobile FFI 已进入 Foundation；产品迁移按消费者矩阵推进。
+5. P5–P12：服务端 Runtime/Web、文件安全、网络/加密、操作状态机已进入 Server Foundation；Agent、Mobile FFI 归独立 Agent Foundation；产品迁移按消费者矩阵推进。
 6. P13：全部产品精确锁定同一不可变 release、独立构建且无临时例外后发布 1.0。
 
 持久格式发生变化前必须先发布对应的 `sarmg-upgrade` source fixture 和升级边。在线产品只读取唯一当前

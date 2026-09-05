@@ -1,6 +1,9 @@
-# Sarmg Foundation
+# Sarmg Foundation Server
 
-Sarmg Foundation 是所有 Sarmg 产品的上游平台规范、基础实现、工具链和一致性验证系统。产品实现可以
+本仓只规定 Server、管理 Server 的 Web 和服务端离线维护工具的行为。Agent、Android/iOS、管理客户端自身的 Web 及移动 FFI
+由独立的 `sarmg-foundation-agent` 仓库规定；两个基础仓库互不依赖，不保留旧仓库名入口。
+
+Sarmg Foundation Server 是 Sarmg 服务端及管理 Web 的上游平台规范、基础实现、工具链和一致性验证系统。产品实现可以
 作为 Foundation 的设计输入；一项能力进入 Foundation 后，Foundation 就成为唯一事实源，产品必须通过
 Profile、Capability 和业务 Adapter 使用它，不得要求 Foundation 永久兼容产品本地实现，也不得继续维护
 第二套平台能力。
@@ -9,14 +12,14 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
 不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
 
-当前 `0.5.0` 提供 P5–P12 的唯一当前平台实现；产品采用状态由自动消费者矩阵记录。它不是 Foundation
-1.0 完成声明，只有全部消费者删除重复实现并清除临时例外后才进入 1.0。
+当前工作区以 `0.6.0` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Agent 仓库。
+本次拆分版本为 `v0.6.0`，原不可变 `v0.5.0` tag 保持不变。产品采用状态由消费者矩阵记录，
+这不是 Foundation 1.0 完成声明。
 
 本版本只定义一套当前合同：不提供旧名称、旧字段、旧 Schema、deprecated wrapper、双读写、隐式降级或
-兼容 fallback。历史状态的识别、备份、恢复和升级属于独立的 `sarmg-upgrade` 仓库；各在线产品只读取其
-当前状态。Foundation 本身无 daemon、无产品业务数据库、无产品业务表和文件树，也不拥有产品的发布周期；
-但平台数据库 DDL、管理员与 Session 机制、Server/Agent/Web Runtime 等平台能力由 Foundation 定义和发布。
-历史状态的读取与转换始终只属于 `sarmg-upgrade`。
+兼容 fallback。`sarmg-upgrade` 仅承担服务端当前状态的离线维护；不实现历史版本升级。各在线产品只读取当前状态。Foundation 本身无 daemon、无产品业务数据库、无产品业务表和文件树，也不拥有产品的发布周期；
+但平台数据库 DDL、管理员与 Session 机制、Server/Web Runtime 等平台能力由 Foundation 定义和发布。
+不要求任何仓库实现历史状态读取或旧版本转换。
 
 ## 1. 当前迁移基线组件
 
@@ -44,8 +47,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 | `sarmg-secure-http` | 三种固定网络策略、DNS/地址、超时与响应预算 | 产品 API DTO 和重试语义 |
 | `sarmg-secure-xml` | DTD/ENTITY 拒绝及深度、节点、文本、时间预算 | ONVIF 类型与业务解析 |
 | `sarmg-operations` | Durable Operation 状态、转移、幂等冲突和平台 DDL | 远端执行器与业务 payload |
-| `sarmg-agent-runtime` | 有界 opaque spool、quarantine、ack 和退避 | 指标采集与报告 Codec |
-| `sarmg-mobile-ffi` | panic guard、状态码、字符串所有权和代际 Handle | Media 移动业务 |
+| `sarmg-testkit` | Adapter 与消费者共用的认证协议验收断言（仅 dev-dependency） | 生产运行逻辑和产品业务夹具 |
 
 ### 1.2 npm package
 
@@ -84,7 +86,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 ## 3. 仓库目录
 
 ```text
-sarmg-foundation/
+sarmg-foundation-server/
 ├─ rust/crates/
 │  ├─ sarmg-admin-auth/
 │  ├─ sarmg-admin-axum/
@@ -99,7 +101,7 @@ sarmg-foundation/
 │  ├─ sarmg-server-target/
 │  ├─ sarmg-sqlite/
 │  ├─ sarmg-state-file/
-│  └─ P5–P12 runtime/security/operations/agent/mobile crates
+│  └─ server runtime/security/operations crates
 ├─ packages/
 │  ├─ admin-web/
 │  ├─ contracts/
@@ -127,7 +129,7 @@ sarmg-foundation/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.5.0` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.6.0` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
@@ -167,12 +169,12 @@ Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平�
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.5.0"`。
+   并同时声明 `version = "=0.6.0"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.5.0` tag 的专用 release job 可获得 `contents: write`。
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.6.0` tag 的专用 release job 可获得 `contents: write`。
 5. 发布资产包含 8 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、

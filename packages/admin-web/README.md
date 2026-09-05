@@ -1,6 +1,6 @@
 # @sarmg/admin-web
 
-`@sarmg/admin-web@0.5.0` 是非 Dufs Sarmg 管理 Web 的当前共享基线，提供四类公开入口：
+`@sarmg/admin-web@0.6.0` 是非 Dufs Sarmg 管理 Web 的当前共享基线，提供四类公开入口：
 
 - 根入口：`createAdministratorApiClient`、工具链常量与 manifest 断言；
 - `@sarmg/admin-web/react`：`useAdministratorSession` 认证状态机；

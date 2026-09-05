@@ -1,11 +1,11 @@
 //! Network policy is a closed enum; production code cannot opt into arbitrary plaintext HTTP.
 
-use reqwest::{Client, Response, redirect::Policy};
+use reqwest::{Client, Request, Response, redirect::Policy};
 use std::{
     net::{IpAddr, SocketAddr},
     time::Duration,
 };
-use url::Url;
+use url::{Host, Url};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NetworkPolicy {
@@ -31,9 +31,10 @@ impl Default for ResponseBudget {
 }
 
 pub struct SecureHttpClient {
-    client: Client,
     policy: NetworkPolicy,
     budget: ResponseBudget,
+    total_timeout: Duration,
+    connect_timeout: Duration,
 }
 impl SecureHttpClient {
     pub fn new(
@@ -49,27 +50,16 @@ impl SecureHttpClient {
         {
             return Err(Error::InvalidBudget);
         }
-        let mut builder = Client::builder()
-            .timeout(total_timeout)
-            .connect_timeout(connect_timeout)
-            .redirect(Policy::none());
-        if matches!(
-            policy,
-            NetworkPolicy::PrivateDevice { .. } | NetworkPolicy::LoopbackDevelopment
-        ) {
-            builder = builder.no_proxy();
-        }
         Ok(Self {
-            client: builder.build()?,
             policy,
             budget,
+            total_timeout,
+            connect_timeout,
         })
     }
     pub async fn validate_url(&self, url: &Url) -> Result<Vec<SocketAddr>, Error> {
-        if !url.username().is_empty() || url.password().is_some() || url.fragment().is_some() {
-            return Err(Error::UnsafeUrl);
-        }
-        let host = url.host_str().ok_or(Error::UnsafeUrl)?;
+        validate_url_structure(self.policy, url)?;
+        let host = normalized_host(url)?;
         let port = url.port_or_known_default().ok_or(Error::UnsafeUrl)?;
         match self.policy {
             NetworkPolicy::PublicHttps if url.scheme() != "https" => {
@@ -83,7 +73,7 @@ impl SecureHttpClient {
             }
             _ => {}
         }
-        let addresses = tokio::net::lookup_host((host, port))
+        let addresses = tokio::net::lookup_host((host.as_str(), port))
             .await
             .map_err(Error::Resolve)?
             .collect::<Vec<_>>();
@@ -96,9 +86,105 @@ impl SecureHttpClient {
         Ok(addresses)
     }
     pub async fn get_bytes(&self, url: Url) -> Result<Vec<u8>, Error> {
-        self.validate_url(&url).await?;
-        let response = self.client.get(url).send().await?;
+        let addresses = self.validate_url(&url).await?;
+        let request = Request::new(reqwest::Method::GET, url);
+        let response = self.execute_bound(request, &addresses).await?;
         bounded_response(response, self.budget).await
+    }
+
+    /// Executes a fully constructed request while pinning the connection to the
+    /// caller-supplied, already selected addresses. The request URL is validated
+    /// again here so mutation between validation and execution cannot bypass the
+    /// closed network policy.
+    pub async fn execute_bound(
+        &self,
+        request: Request,
+        addresses: &[SocketAddr],
+    ) -> Result<Response, Error> {
+        validate_url_structure(self.policy, request.url())?;
+        if addresses.is_empty() {
+            return Err(Error::ResolveEmpty);
+        }
+        for address in addresses {
+            validate_address(self.policy, address.ip())?;
+        }
+        let host = normalized_host(request.url())?;
+        let expected_port = request
+            .url()
+            .port_or_known_default()
+            .ok_or(Error::UnsafeUrl)?;
+        if addresses
+            .iter()
+            .any(|address| address.port() != expected_port)
+        {
+            return Err(Error::AddressPortMismatch);
+        }
+        let client = self.bound_client(&host, addresses)?;
+        Ok(client.execute(request).await?)
+    }
+
+    pub async fn execute_bounded(
+        &self,
+        request: Request,
+        addresses: &[SocketAddr],
+    ) -> Result<BoundedResponse, Error> {
+        let response = self.execute_bound(request, addresses).await?;
+        let status = response.status();
+        let body = bounded_response(response, self.budget).await?;
+        Ok(BoundedResponse { status, body })
+    }
+
+    fn bound_client(&self, host: &str, addresses: &[SocketAddr]) -> Result<Client, Error> {
+        let mut builder = Client::builder()
+            .timeout(self.total_timeout)
+            .connect_timeout(self.connect_timeout)
+            .redirect(Policy::none())
+            .resolve_to_addrs(host, addresses);
+        if matches!(
+            self.policy,
+            NetworkPolicy::PrivateDevice { .. } | NetworkPolicy::LoopbackDevelopment
+        ) {
+            builder = builder.no_proxy();
+        }
+        Ok(builder.build()?)
+    }
+}
+
+#[derive(Debug)]
+pub struct BoundedResponse {
+    pub status: reqwest::StatusCode,
+    pub body: Vec<u8>,
+}
+
+pub fn validate_url_structure(policy: NetworkPolicy, url: &Url) -> Result<(), Error> {
+    if !url.username().is_empty() || url.password().is_some() || url.fragment().is_some() {
+        return Err(Error::UnsafeUrl);
+    }
+    let host = url.host().ok_or(Error::UnsafeUrl)?;
+    if url.port_or_known_default().is_none() {
+        return Err(Error::UnsafeUrl);
+    }
+    match policy {
+        NetworkPolicy::PublicHttps if url.scheme() != "https" => Err(Error::HttpsRequired),
+        NetworkPolicy::PrivateDevice { .. } if !matches!(url.scheme(), "http" | "https") => {
+            Err(Error::UnsafeScheme)
+        }
+        NetworkPolicy::LoopbackDevelopment if url.scheme() != "http" => Err(Error::UnsafeScheme),
+        NetworkPolicy::LoopbackDevelopment => match host {
+            Host::Ipv4(address) if address.is_loopback() => Ok(()),
+            Host::Ipv6(address) if address.is_loopback() => Ok(()),
+            Host::Domain(domain) if domain.eq_ignore_ascii_case("localhost") => Ok(()),
+            _ => Err(Error::UnsafeUrl),
+        },
+        _ => Ok(()),
+    }
+}
+
+fn normalized_host(url: &Url) -> Result<String, Error> {
+    match url.host().ok_or(Error::UnsafeUrl)? {
+        Host::Domain(domain) => Ok(domain.to_owned()),
+        Host::Ipv4(address) => Ok(address.to_string()),
+        Host::Ipv6(address) => Ok(address.to_string()),
     }
 }
 
@@ -189,6 +275,8 @@ pub enum Error {
     ResponseTooLarge,
     #[error("DNS resolution returned no addresses")]
     ResolveEmpty,
+    #[error("validated address port does not match the request URL")]
+    AddressPortMismatch,
     #[error("DNS resolution failed: {0}")]
     Resolve(std::io::Error),
     #[error(transparent)]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -48,9 +49,15 @@ capabilities = [
 
 
 class ConformanceTests(unittest.TestCase):
+    def test_manifest_schema_accepts_the_current_version(self) -> None:
+        schema = json.loads((ROOT / "schemas/sarmg-product.schema.json").read_text())
+        pattern = schema["properties"]["foundation"]["properties"]["version"]["pattern"]
+        self.assertIsNotNone(re.fullmatch(pattern, "0.5.0"))
+        self.assertIsNone(re.fullmatch(pattern, "0x5x0"))
+
     def test_repository_platform_definition_is_self_consistent(self) -> None:
         result = verify_foundation(ROOT)
-        self.assertEqual(len(result["profiles"]), 7)
+        self.assertEqual(len(result["profiles"]), 5)
         self.assertIn("admin-persistent", result["capabilities"])
         generated = generate_consumer_matrix(ROOT)
         checked_in = json.loads((ROOT / "consumers" / "consumer-matrix.json").read_text())
@@ -90,6 +97,27 @@ class ConformanceTests(unittest.TestCase):
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ConformanceError, "no-product-features"):
+                verify_source(product, ROOT)
+
+    def test_agent_profile_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "sarmg-product.toml").write_text(VALID_MANIFEST.replace("server-filesystem", "desktop-agent"))
+            with self.assertRaisesRegex(ConformanceError, "unknown Profile"):
+                verify_manifest(product, ROOT)
+
+    def test_server_checks_do_not_govern_client_web_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "sarmg-product.toml").write_text(VALID_MANIFEST)
+            (product / "sarmg-agent.toml").write_text('source_roots = ["client"]\n')
+            client = product / "client"
+            client.mkdir()
+            source = '.route("/api/v2/auth/login", handler)\nconst SESSION_COOKIE_NAME = "local";'
+            (client / "control.rs").write_text(source)
+            verify_source(product, ROOT)
+            (product / "server.rs").write_text(source)
+            with self.assertRaisesRegex(ConformanceError, "foundation-route-ownership"):
                 verify_source(product, ROOT)
 
     def test_cli_reports_machine_readable_result(self) -> None:

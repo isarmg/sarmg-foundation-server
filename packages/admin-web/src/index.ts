@@ -9,6 +9,12 @@ import {
   requestJson,
   type RequestJsonOptions,
 } from "@sarmg/http-client";
+import { isAdministratorPassword } from "./password.js";
+export { isAdministratorPassword, ADMINISTRATOR_PASSWORD_MIN_BYTES, ADMINISTRATOR_PASSWORD_MAX_BYTES } from "./password.js";
+
+export { PLATFORM_DIAGNOSTICS_PATH, isPlatformDiagnostics, type PlatformDiagnostics } from "./diagnostics.js";
+export { createAdministratorManagementClient, type AdministratorManagementClient } from "./management.js";
+export { type AdministratorSummary } from "@sarmg/contracts";
 
 export type JsonGuard<T> = (value: unknown) => value is T;
 export type AdministratorSessionListener = (session: AdministratorSession | null) => void;
@@ -34,10 +40,6 @@ type AuthenticationRequestContext = {
   sessionAtDispatch: AdministratorSession | null;
 };
 
-/**
- * Fail a consumer build when its React/Vite or Node baseline drifts from the
- * exact current Foundation release. Version ranges are intentionally invalid.
- */
 /**
  * Create one application-wide administrator API client. Authentication data
  * stays in closure state and is never persisted in localStorage/sessionStorage.
@@ -145,7 +147,7 @@ export function createAdministratorApiClient(
   const client: AdministratorApiClient = {
     async login(username, password) {
       const credentials: unknown = { username, password };
-      if (!isAdministratorLoginRequest(credentials)) {
+      if (!isAdministratorLoginRequest(credentials) || !isAdministratorPassword(password)) {
         throw new TypeError("administrator credentials violate the current contract");
       }
       const generation = authenticationGeneration + 1;

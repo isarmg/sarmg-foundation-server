@@ -1,5 +1,7 @@
 //! Transactional persistent implementation of the Foundation administrator store.
 
+mod management;
+
 use sarmg_admin_core::{
     AdministratorRecord, AdministratorStore, DIGEST_BYTES, Identifier, LoginSuccess,
     SESSIONS_GLOBAL, SESSIONS_PER_ADMINISTRATOR, SecurityAction, SecurityAuditEvent,
@@ -22,11 +24,53 @@ impl SqliteAdministratorStore {
     pub fn pool(&self) -> &SqlitePool {
         &self.pool
     }
+
+    /// Validates every stored administrator against the current Foundation
+    /// identity and password-hash contract before a server starts accepting
+    /// requests.
+    pub async fn validate_all_administrators(&self) -> Result<(), Error> {
+        let rows = sqlx::query(
+            "SELECT administrator_id, username, password_hash, active, session_version, \
+                    created_at_micros, updated_at_micros, last_login_at_micros \
+             FROM _sarmg_administrators ORDER BY administrator_id",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        for row in rows {
+            administrator_from_row(&row)?;
+        }
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 impl AdministratorStore for SqliteAdministratorStore {
     type StoreError = Error;
+
+    fn supports_management(&self) -> bool {
+        true
+    }
+
+    async fn list_administrators(
+        &self,
+        limit: u32,
+        offset: u64,
+    ) -> Result<Vec<AdministratorRecord>, Error> {
+        if !(1..=100).contains(&limit) {
+            return Err(Error::IntegerRange);
+        }
+        sqlx::query("SELECT administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros, last_login_at_micros FROM _sarmg_administrators ORDER BY username, administrator_id LIMIT ? OFFSET ?")
+            .bind(i64::from(limit)).bind(to_i64(offset)?).fetch_all(&self.pool).await?
+            .iter().map(administrator_from_row).collect()
+    }
+
+    async fn manage_administrator(
+        &self,
+        context: &sarmg_admin_core::AdministratorManagementContext,
+        mutation: sarmg_admin_core::AdministratorMutation,
+    ) -> Result<(), sarmg_admin_core::ManagementError<Error>> {
+        management::execute(self, context, mutation).await
+    }
 
     async fn administrator_count(&self) -> Result<u64, Error> {
         let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_administrators")
@@ -133,30 +177,6 @@ impl AdministratorStore for SqliteAdministratorStore {
         Ok(())
     }
 
-    async fn disable_administrator(
-        &self,
-        administrator_id: &Identifier,
-        now_micros: u64,
-        events: [SecurityAuditEvent; 2],
-    ) -> Result<(), Error> {
-        require_action(&events[0], SecurityAction::AdministratorDisabled)?;
-        require_action(&events[1], SecurityAction::AdministratorSessionsRevoked)?;
-        let mut transaction = self.pool.begin().await?;
-        let changed = sqlx::query(
-            "UPDATE _sarmg_administrators SET active=0, session_version=session_version+1, updated_at_micros=? WHERE administrator_id=? AND active=1",
-        )
-        .bind(to_i64(now_micros)?)
-        .bind(administrator_id.as_str())
-        .execute(&mut *transaction)
-        .await?;
-        require_changed(changed.rows_affected(), administrator_id)?;
-        revoke_administrator_sessions(&mut transaction, administrator_id, now_micros).await?;
-        insert_audit(&mut transaction, &events[0]).await?;
-        insert_audit(&mut transaction, &events[1]).await?;
-        transaction.commit().await?;
-        Ok(())
-    }
-
     async fn commit_login_success(&self, login: LoginSuccess) -> Result<(), Error> {
         login.session.validate()?;
         require_action(&login.session_created_event, SecurityAction::SessionCreated)?;
@@ -199,13 +219,17 @@ impl AdministratorStore for SqliteAdministratorStore {
     async fn rotate_session_csrf(
         &self,
         session_id: &Identifier,
+        expected_csrf_hash: [u8; DIGEST_BYTES],
         csrf_hash: [u8; DIGEST_BYTES],
         now_micros: u64,
         idle_expires_at_micros: u64,
-    ) -> Result<(), Error> {
+    ) -> Result<bool, Error> {
+        if idle_expires_at_micros <= now_micros {
+            return Ok(false);
+        }
         let changed = sqlx::query(
             "UPDATE _sarmg_admin_sessions SET csrf_hash=?, last_seen_at_micros=?, idle_expires_at_micros=? \
-             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>?",
+             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND last_seen_at_micros<=? AND absolute_expires_at_micros>=?",
         )
         .bind(csrf_hash.as_slice())
         .bind(to_i64(now_micros)?)
@@ -213,11 +237,11 @@ impl AdministratorStore for SqliteAdministratorStore {
         .bind(session_id.as_str())
         .bind(to_i64(now_micros)?)
         .bind(to_i64(now_micros)?)
+        .bind(expected_csrf_hash.as_slice())
+        .bind(to_i64(now_micros)?)
+        .bind(to_i64(idle_expires_at_micros)?)
         .execute(&self.pool).await?;
-        if changed.rows_affected() != 1 {
-            return Err(Error::SessionNotActive);
-        }
-        Ok(())
+        Ok(changed.rows_affected() == 1)
     }
 
     async fn revoke_session(

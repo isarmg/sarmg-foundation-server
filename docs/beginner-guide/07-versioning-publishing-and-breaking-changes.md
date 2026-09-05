@@ -2,7 +2,7 @@
 
 ## 7.1 当前版本模型
 
-22个crate和8个package统一为`0.5.0`。0.x允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
+21个crate和8个package统一为`0.6.0`。0.x允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
 不可变合同，一旦tag/asset公开就不移动、不覆盖、不用同版本重新打包。
 
 以下都可能是breaking change：
@@ -37,7 +37,7 @@ source→target edge。开发期未发布数据可重建，不为它写升级代
 `@sarmg/http-client`把contracts作为精确peer；`admin-web`把contracts/http-client与React/Vite需要项作为精确
 peer。这样消费者明确拥有依赖，不会因某个包内部悄悄嵌入另一版本而出现两份合同。
 
-Foundation workspace中的`workspace:0.5.0`只用于dev/build。发布tar manifest不能含workspace协议；真实
+Foundation workspace中的`workspace:0.6.0`只用于dev/build。发布tar manifest不能含workspace协议；真实
 consumer必须同时安装所需tgz。
 
 ## 7.5 Rust消费版本
@@ -46,9 +46,9 @@ consumer必须同时安装所需tgz。
 
 ```toml
 sarmg-contracts = {
-  git = "https://github.com/isarmg/sarmg-foundation.git",
-  rev = "<v0.5.0对应完整40位commit>",
-  version = "=0.5.0"
+  git = "https://github.com/isarmg/sarmg-foundation-server.git",
+  rev = "<v0.6.0对应完整40位commit>",
+  version = "=0.6.0"
 }
 ```
 
@@ -58,7 +58,7 @@ Cargo.lock；不要只改lock让源码看不出依赖变化。
 ## 7.6 Web消费版本
 
 发布前可用本地`file:`验证跨仓库实现；发布后改成GitHub Release tgz URL，重建`package-lock.json`。最终
-测试应在没有`../sarmg-foundation`的独立checkout运行，证明package不是靠sibling路径工作。
+测试应在没有`../sarmg-foundation-server`的独立checkout运行，证明package不是靠sibling路径工作。
 
 消费者使用npm；无需把产品迁成pnpm。lockfile与`npm ci`是产品自己的可复现合同。
 

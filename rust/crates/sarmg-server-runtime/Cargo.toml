@@ -13,9 +13,12 @@ homepage.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 getrandom.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.5.0" }
-sarmg-admin-axum = { path = "../sarmg-admin-axum", version = "=0.5.0" }
-sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.5.0" }
+futures-util.workspace = true
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.6.0" }
+sarmg-admin-axum = { path = "../sarmg-admin-axum", version = "=0.6.0" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.6.0" }
+sarmg-contracts = { path = "../sarmg-contracts", version = "=0.6.0" }
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.6.0" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
@@ -24,3 +27,7 @@ tower.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+sarmg-admin-static = { path = "../sarmg-admin-static", version = "=0.6.0" }

@@ -1,23 +1,30 @@
 {
-  "name": "sarmg-foundation",
-  "version": "0.5.0",
+  "name": "sarmg-foundation-server",
+  "version": "0.6.0",
   "private": true,
-  "description": "Sarmg 产品的构建期上游平台规范、基础实现与一致性工具工作区",
+  "description": "Sarmg 服务端及其管理 Web 的构建期上游规范、基础实现与一致性工具工作区",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/isarmg/sarmg-foundation.git"
+    "url": "git+https://github.com/isarmg/sarmg-foundation-server.git"
   },
   "engines": {
     "node": ">=26.7.0 <27"
   },
   "packageManager": "pnpm@10.12.1",
   "scripts": {
+    "test:web": "pnpm -r build && playwright test",
     "build": "pnpm -r build",
     "package:check": "python3 scripts/package-artifacts.py check",
     "package:release": "python3 scripts/package-artifacts.py release --output release/npm",
     "package:smoke": "python3 scripts/package-artifacts.py smoke",
     "typecheck": "pnpm -r build && pnpm -r typecheck",
     "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.61.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   }
 }

@@ -32,7 +32,7 @@
     },
     {
       "contract_version": 1,
-      "application": "sarmg-foundation",
+      "application": "sarmg-foundation-server",
       "application_version": "0.3.0",
       "source_revision": "dddddddddddddddddddddddddddddddddddddddd",
       "schema": null,

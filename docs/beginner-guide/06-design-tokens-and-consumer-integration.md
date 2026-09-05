@@ -92,7 +92,7 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 - `@sarmg/design-tokens`；
 - 精确React/React DOM和Vite/TypeScript peers。
 
-本地联调可暂用`file:../../../sarmg-foundation/packages/...`。Foundation release后必须替换为GitHub Release
+本地联调可暂用`file:../../../sarmg-foundation-server/packages/...`。Foundation release后必须替换为GitHub Release
 中不可变tgz URL，重建`package-lock.json`，再把整个产品复制到没有sibling Foundation的checkout验证。
 
 ## 6.8 Rust消费者采用组件

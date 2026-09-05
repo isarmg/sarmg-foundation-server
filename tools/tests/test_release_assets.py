@@ -35,7 +35,7 @@ class ReleaseAssetTests(unittest.TestCase):
                 "companion_contracts",
             },
         )
-        self.assertEqual(contract["application"], "sarmg-foundation")
+        self.assertEqual(contract["application"], "sarmg-foundation-server")
         self.assertEqual(contract["source_revision"], revision)
         self.assertIsNone(contract["schema"])
 

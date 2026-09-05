@@ -185,7 +185,7 @@ Foundation 当前不要求 crates.io 在线依赖。正式消费者使用 releas
 
 ```toml
 sarmg-admin-auth = {
-  git = "https://github.com/isarmg/sarmg-foundation.git",
+  git = "https://github.com/isarmg/sarmg-foundation-server.git",
   rev = "<v0.5.0 对应的 40 位 commit>",
   version = "=0.5.0"
 }
@@ -265,13 +265,13 @@ release workflow 调用：
 
 ```bash
 python3 scripts/build-release-assets.py \
-  --output "$RUNNER_TEMP/sarmg-foundation-release" \
+  --output "$RUNNER_TEMP/sarmg-foundation-server-release" \
   --source-revision "$GITHUB_SHA" \
   --tag "$GITHUB_REF_NAME"
 ```
 
 ```text
-sarmg-foundation-release/
+sarmg-foundation-server-release/
 ├─ release-tree.json
 └─ artifacts/
    ├─ sarmg-admin-web-0.5.0.tgz

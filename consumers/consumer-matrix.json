@@ -2,7 +2,7 @@
   "$schema": "./consumer-matrix.schema.json",
   "format": "sarmg.consumer-matrix.v2",
   "platform_generation": 1,
-  "foundation_version": "0.5.0",
+  "foundation_version": "0.6.0",
   "consumers": [
     {
       "product": "dufs-ram",
@@ -41,7 +41,6 @@
       "commit": "4ac8caf81f11a78301abc4a47c8353243a5c93ee",
       "foundation_version": "0.3.0",
       "profiles": [
-        "desktop-agent",
         "server-control-plane",
         "web-react-admin"
       ],
@@ -49,13 +48,9 @@
         "admin-client",
         "admin-persistent",
         "admin-ui",
-        "bounded-spool",
         "design-tokens",
-        "doctor",
-        "https-delivery",
         "maple-font",
         "platform-sqlite",
-        "private-state",
         "react-shell",
         "server-health",
         "server-runtime"
@@ -82,7 +77,6 @@
       "commit": "66bc0512fb991797e4907e6abb188a9b707af551",
       "foundation_version": "0.3.0",
       "profiles": [
-        "mobile-agent",
         "server-control-plane",
         "web-react-admin"
       ],
@@ -91,11 +85,7 @@
         "admin-persistent",
         "admin-ui",
         "design-tokens",
-        "https-delivery",
         "maple-font",
-        "mobile-ffi",
-        "mobile-queue",
-        "mobile-state",
         "platform-sqlite",
         "react-shell",
         "server-health",

@@ -2,12 +2,15 @@
 
 use std::time::{Duration, Instant};
 
+pub use roxmltree::Document;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct XmlBudget {
     pub max_bytes: usize,
     pub max_depth: usize,
     pub max_nodes: usize,
     pub max_text_bytes: usize,
+    pub max_text_node_bytes: usize,
     pub max_parse_time: Duration,
 }
 
@@ -23,7 +26,7 @@ pub fn parse_bounded<'a>(
         return Err(Error::ForbiddenDeclaration);
     }
     let started = Instant::now();
-    let document = roxmltree::Document::parse(input)?;
+    let document = Document::parse(input)?;
     let mut nodes = 0_usize;
     let mut text = 0_usize;
     for node in document.descendants() {
@@ -35,6 +38,9 @@ pub fn parse_bounded<'a>(
             return Err(Error::Budget("depth"));
         }
         if let Some(value) = node.text().filter(|_| node.is_text()) {
+            if value.len() > budget.max_text_node_bytes {
+                return Err(Error::Budget("text node"));
+            }
             text = text.checked_add(value.len()).ok_or(Error::Budget("text"))?;
             if text > budget.max_text_bytes {
                 return Err(Error::Budget("text"));
@@ -66,6 +72,7 @@ mod tests {
             max_depth: 4,
             max_nodes: 8,
             max_text_bytes: 10,
+            max_text_node_bytes: 10,
             max_parse_time: Duration::from_secs(1),
         }
     }

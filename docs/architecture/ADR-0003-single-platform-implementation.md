@@ -6,7 +6,7 @@
 ## 决策
 
 能力进入 Foundation 后，产品只能使用 Foundation 实现并提供业务 Adapter。认证、Session、平台 DDL、
-Runtime、Web 基线、文件安全、操作状态机和 Agent 基础设施不得在产品中重新实现。
+Runtime、Web 基线、文件安全、操作状态机等服务端基础设施不得在产品中重新实现。
 
 ## 后果
 

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sarmg.org/schemas/administrator-management-v1.json",
+  "title": "Sarmg persistent administrator management",
+  "oneOf": [
+    { "$ref": "administrator-auth.schema.json#/$defs/loginRequest" },
+    { "$ref": "#/$defs/passwordRequest" },
+    { "$ref": "#/$defs/summary" }
+  ],
+  "$defs": {
+    "timestamp": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "passwordRequest": {
+      "type": "object", "additionalProperties": false, "required": ["password"],
+      "properties": { "password": { "$ref": "administrator-auth.schema.json#/$defs/secretText" } }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["administrator_id", "username", "active", "created_at_micros", "updated_at_micros", "last_login_at_micros"],
+      "properties": {
+        "administrator_id": { "$ref": "state-contract.schema.json#/$defs/identifier" },
+        "username": { "$ref": "administrator-auth.schema.json#/$defs/canonicalAdministratorUsername" },
+        "active": { "type": "boolean" },
+        "created_at_micros": { "$ref": "#/$defs/timestamp" },
+        "updated_at_micros": { "$ref": "#/$defs/timestamp" },
+        "last_login_at_micros": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/timestamp" }] }
+      }
+    }
+  }
+}

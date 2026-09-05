@@ -3,4 +3,16 @@
   --sarmg-bg-panel: #18181b;
   --sarmg-text-primary: #fafafa;
   --sarmg-text-danger: #f87171;
+  --sarmg-text-link: #60a5fa;
+}
+
+/* Native documents follow the system preference unless the application has selected a theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --sarmg-bg-page: #09090b;
+    --sarmg-bg-panel: #18181b;
+    --sarmg-text-primary: #fafafa;
+    --sarmg-text-danger: #f87171;
+    --sarmg-text-link: #60a5fa;
+  }
 }

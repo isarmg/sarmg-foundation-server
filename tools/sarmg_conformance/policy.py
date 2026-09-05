@@ -127,7 +127,7 @@ def load_profiles(foundation_root: Path) -> tuple[dict[str, dict[str, Any]], set
             raise ConformanceError(f"{path}: profile filename/id mismatch or duplicate")
         if identifier in PRODUCT_IDS:
             raise ConformanceError(f"{path}: product-specific profile names are forbidden")
-        if value["kind"] not in {"server", "agent", "tool", "web"}:
+        if value["kind"] not in {"server", "tool", "web"}:
             raise ConformanceError(f"{path}: invalid profile kind")
         for key in ("formal_targets", "http_adapters", "web_profiles"):
             items = value[key]
@@ -143,8 +143,6 @@ def load_profiles(foundation_root: Path) -> tuple[dict[str, dict[str, Any]], set
     if set(profiles) != {
         "server-control-plane",
         "server-filesystem",
-        "desktop-agent",
-        "mobile-agent",
         "offline-tool",
         "web-react-admin",
         "web-embedded-native",
@@ -278,12 +276,27 @@ def _walk_dependency_tables(value: Any, key: str = "") -> Iterable[tuple[str, An
 
 
 def _source_files(product_root: Path, suffixes: set[str]) -> Iterable[Path]:
+    import os
+
+    # Routing metadata only: client behavior is checked by the Agent repository.
+    # Never import its policy or require that repository for Server verification.
+    client_roots: set[Path] = set()
+    client_manifest = product_root / "sarmg-agent.toml"
+    if client_manifest.is_file():
+        for relative in _toml(client_manifest).get("source_roots", []):
+            if not isinstance(relative, str) or Path(relative).is_absolute() or ".." in Path(relative).parts:
+                raise ConformanceError("client source routing must use relative directories")
+            root = (product_root / relative).resolve(strict=True)
+            if root == product_root.resolve() or not root.is_relative_to(product_root.resolve()):
+                raise ConformanceError("client source routing must not hide the product root")
+            client_roots.add(root)
     ignored = {".git", "node_modules", "target", "dist", "release"}
-    for path in sorted(product_root.rglob("*")):
-        if any(part in ignored for part in path.relative_to(product_root).parts):
-            continue
-        if path.is_file() and path.suffix in suffixes:
-            yield path
+    for directory, directories, files in os.walk(product_root, followlinks=False):
+        directories[:] = sorted(name for name in directories if name not in ignored and (Path(directory) / name).resolve() not in client_roots)
+        for name in sorted(files):
+            path = Path(directory) / name
+            if path.is_file() and path.suffix in suffixes:
+                yield path
 
 
 def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
@@ -301,7 +314,7 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
                 if feature in PRODUCT_IDS or any(product in feature for product in PRODUCT_IDS):
                     findings.append(("no-product-features", f"{path}: product-named Cargo feature {feature!r}"))
         for dependency, requirement in _walk_dependency_tables(cargo):
-            if not dependency.startswith("sarmg-"):
+            if not dependency.startswith("sarmg-") or dependency.startswith("sarmg-agent-") or dependency == "sarmg-mobile-ffi":
                 continue
             if isinstance(requirement, dict) and "path" in requirement:
                 findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} uses a path dependency"))
@@ -343,15 +356,14 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     route_pattern = re.compile(r"\.route\s*\(\s*[\"'](/(?:api/v2/(?:auth|platform)/|healthz|readyz))")
     ddl_pattern = re.compile(r"CREATE\s+(?:TABLE|INDEX|TRIGGER)\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:auth_users|auth_sessions|browser_sessions|_sarmg_[a-z0-9_]+)", re.IGNORECASE)
     policy_pattern = re.compile(r"\b(?:SESSION_COOKIE_NAME|SESSION_IDLE_TIMEOUT|ARGON2_(?:MEMORY|TIME|PARALLELISM))\b")
-    for path in _source_files(product_root, {".rs", ".ts", ".tsx", ".js", ".mjs", ".sql"}):
+    for path in _source_files(product_root, {".rs", ".ts", ".tsx", ".js", ".mjs", ".sql", ".swift", ".kt"}):
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeError as error:
             raise ConformanceError(f"{path}: source is not UTF-8") from error
         if route_pattern.search(text):
             findings.append(("foundation-route-ownership", f"{path}: product registers a Foundation-owned route"))
-        # Historical DDL is owned by the offline upgrade repository. It must not
-        # be mistaken for a second online platform implementation.
+        # Offline server maintenance owns its current-state restore SQL.
         if product_id != "sarmg-upgrade" and ddl_pattern.search(text):
             findings.append(("platform-schema-ownership", f"{path}: product defines platform/admin DDL"))
         if policy_pattern.search(text):

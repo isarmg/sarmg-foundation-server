@@ -8,6 +8,10 @@ import {
   isBackupManifest,
   isAdministratorLoginRequest,
   isAdministratorSession,
+  isAdministratorCreateRequest,
+  isAdministratorPasswordRequest,
+  isAdministratorSummary,
+  isAdministratorList,
   isAuthenticationToken,
   isCanonicalAdministratorUsername,
   isErrorCode,
@@ -24,6 +28,15 @@ test("administrator paths are one immutable current-only contract", () => {
     session: "/api/v2/auth/session",
     logout: "/api/v2/auth/logout",
   });
+});
+
+test("administrator lists are bounded and reject duplicate identities and secret fields", () => {
+  const row = { administrator_id: "A".repeat(43), username: "admin", active: true, created_at_micros: 1, updated_at_micros: 2, last_login_at_micros: null };
+  assert.equal(isAdministratorList([]), true);
+  assert.equal(isAdministratorList([row]), true);
+  assert.equal(isAdministratorList([row, row]), false);
+  assert.equal(isAdministratorList([{ ...row, password_hash: "secret" }]), false);
+  assert.equal(isAdministratorList(Array.from({ length: 101 }, (_, index) => ({ ...row, administrator_id: `admin-${index}` }))), false);
 });
 
 test("generated administrator identity and token shapes are current-only", () => {
@@ -84,6 +97,12 @@ test("administrator login username remains a bounded printable-ASCII candidate",
 
 const CONTRACT_CASES = [
   {
+    name: "administrator-management",
+    fixture: "administrator-management.fixtures.json",
+    schema: "administrator-management.schema.json",
+    guard: value => isAdministratorCreateRequest(value) || isAdministratorPasswordRequest(value) || isAdministratorSummary(value),
+  },
+  {
     name: "administrator-auth",
     fixture: "administrator-auth.fixtures.json",
     schema: "administrator-auth.schema.json",
@@ -124,6 +143,9 @@ test("declarations expose each authoritative current contract and no extra alias
     "ErrorEnvelope",
     "AdministratorLoginRequest",
     "AdministratorSession",
+    "AdministratorSummary",
+    "AdministratorCreateRequest",
+    "AdministratorPasswordRequest",
     "StateContract",
     "ReleaseIdentity",
     "BackupManifest",

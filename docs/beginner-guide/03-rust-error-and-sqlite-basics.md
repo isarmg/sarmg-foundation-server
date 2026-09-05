@@ -160,7 +160,7 @@ Server binary的Cargo依赖：
 
 ```toml
 sarmg-server-target = {
-  git = "https://github.com/isarmg/sarmg-foundation.git",
+  git = "https://github.com/isarmg/sarmg-foundation-server.git",
   rev = "<完整commit>",
   version = "=0.5.0"
 }

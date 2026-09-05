@@ -48,6 +48,7 @@ const semanticCssNames = {
   bgPanel: "--sarmg-bg-panel",
   textPrimary: "--sarmg-text-primary",
   textDanger: "--sarmg-text-danger",
+  textLink: "--sarmg-text-link",
 };
 
 function resolveCustomProperties(declarations) {
@@ -86,7 +87,10 @@ test("TypeScript exports and light/dark CSS remain exactly aligned", async () =>
   assert.equal(darkBuilt, darkSource, "published dark CSS differs from its source");
 
   const light = cssDeclarations(lightBuilt, ":root");
-  const darkOverrides = cssDeclarations(darkBuilt, ':root[data-theme="dark"]');
+  const darkBlocks = darkBuilt.replace(/\/\*[\s\S]*?\*\//g, "").match(/^\s*(:root\[data-theme="dark"\]\s*\{[^{}]*\})\s*@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*(:root:not\(\[data-theme\]\)\s*\{[^{}]*\})\s*\}\s*$/s);
+  assert.ok(darkBlocks, "explicit and system dark themes must be the only override blocks");
+  const darkOverrides = cssDeclarations(darkBlocks[1], ':root[data-theme="dark"]');
+  assert.deepEqual(cssDeclarations(darkBlocks[2], ':root:not([data-theme])'), darkOverrides);
   assert.deepEqual(
     Object.fromEntries(
       Object.entries(light).filter(([name]) => name.startsWith("--sarmg-") &&

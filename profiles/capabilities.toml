@@ -28,30 +28,6 @@ state = "current"
 owner = "foundation"
 state = "current"
 
-[capabilities.bounded-spool]
-owner = "foundation"
-state = "current"
-
-[capabilities.https-delivery]
-owner = "foundation"
-state = "current"
-
-[capabilities.doctor]
-owner = "foundation"
-state = "current"
-
-[capabilities.mobile-queue]
-owner = "foundation"
-state = "current"
-
-[capabilities.mobile-state]
-owner = "foundation"
-state = "current"
-
-[capabilities.mobile-ffi]
-owner = "foundation"
-state = "current"
-
 [capabilities.explicit-paths]
 owner = "foundation"
 state = "current"

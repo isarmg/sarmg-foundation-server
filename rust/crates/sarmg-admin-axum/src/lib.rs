@@ -1,8 +1,10 @@
 //! Axum wire adapter for the Foundation-owned administrator endpoints.
 
+mod body;
+mod management;
+
 use axum::{
     Router,
-    body::to_bytes,
     extract::{ConnectInfo, Request, State},
     http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode, Uri, header},
     response::{IntoResponse, Response},
@@ -20,13 +22,34 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub const MAX_LOGIN_BODY_BYTES: usize = 16 * 1024;
+/// Identifies an already-normalized platform response to outer product layers.
+#[derive(Clone, Copy, Debug)]
+pub struct FoundationErrorResponse;
+
+/// In-process access-log metadata produced only after successful authentication.
+/// Never contains a credential and is not serialized into response headers.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VerifiedAdministrator {
+    username: String,
+}
+
+impl VerifiedAdministrator {
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+
+    fn attach(username: String, mut response: Response) -> Response {
+        response.extensions_mut().insert(Self { username });
+        response
+    }
+}
 const REQUEST_ID_HEADER: HeaderName = HeaderName::from_static("x-request-id");
 
 struct AdapterState<Store> {
     product_id: String,
     mode: AdministratorOriginMode,
     service: Arc<AdministratorService<Store>>,
+    body_admission: body::BodyAdmission,
 }
 
 impl<Store> Clone for AdapterState<Store> {
@@ -35,6 +58,7 @@ impl<Store> Clone for AdapterState<Store> {
             product_id: self.product_id.clone(),
             mode: self.mode,
             service: Arc::clone(&self.service),
+            body_admission: self.body_admission.clone(),
         }
     }
 }
@@ -53,12 +77,18 @@ where
         product_id,
         mode,
         service,
+        body_admission: body::BodyAdmission::default(),
     };
-    Ok(Router::new()
+    let router = Router::new()
         .route(ADMIN_LOGIN_PATH, post(login::<Store>))
         .route(ADMIN_SESSION_PATH, get(session::<Store>))
-        .route(ADMIN_LOGOUT_PATH, post(logout::<Store>))
-        .with_state(state))
+        .route(ADMIN_LOGOUT_PATH, post(logout::<Store>));
+    let router = if state.service.store().supports_management() {
+        management::routes(router)
+    } else {
+        router
+    };
+    Ok(router.with_state(state))
 }
 
 pub async fn authenticate_request<Store>(
@@ -72,17 +102,18 @@ pub async fn authenticate_request<Store>(
 where
     Store: AdministratorStore + 'static,
 {
-    let token = session_cookie(headers, product_id, mode)?;
+    let id = request_id(headers)?;
+    let token = session_cookie(headers, product_id, mode, id.as_ref())?;
     let now = now_micros()?;
     let identity = service
         .authenticate_session(&token, now)
         .await
-        .map_err(|failure| Box::new(service_error(failure, None)))?;
+        .map_err(|failure| Box::new(service_error(failure, id.as_ref())))?;
     if !matches!(
         *method,
         Method::GET | Method::HEAD | Method::OPTIONS | Method::TRACE
     ) {
-        require_same_origin_with_uri(mode, headers, uri, None)?;
+        require_same_origin_with_uri(mode, headers, uri, id.as_ref())?;
         let values = header_values(headers, sarmg_admin_auth::CSRF_HEADER);
         sarmg_admin_auth::require_csrf_token_matches_hash(&values, &identity.csrf_hash).map_err(
             |_| {
@@ -90,7 +121,7 @@ where
                     StatusCode::FORBIDDEN,
                     "auth.csrf_rejected",
                     false,
-                    None,
+                    id.as_ref(),
                 ))
             },
         )?;
@@ -107,11 +138,13 @@ where
         Ok(value) => value,
         Err(response) => return *response,
     };
-    if let Err(response) = require_same_origin(state.mode, &parts.headers, request_id.as_ref()) {
+    if let Err(response) =
+        require_same_origin_with_uri(state.mode, &parts.headers, &parts.uri, request_id.as_ref())
+    {
         return *response;
     }
     let source = match parts.extensions.get::<ConnectInfo<SocketAddr>>() {
-        Some(value) => value.0.ip().to_string(),
+        Some(value) => value.0.ip().to_canonical().to_string(),
         None => {
             return error(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -121,16 +154,26 @@ where
             );
         }
     };
-    let bytes = match to_bytes(body, MAX_LOGIN_BODY_BYTES).await {
+    if let Err(response) = validate_login_cookie(
+        &parts.headers,
+        &state.product_id,
+        state.mode,
+        request_id.as_ref(),
+    ) {
+        return *response;
+    }
+    let bytes = match state
+        .body_admission
+        .read(
+            Request::from_parts(parts, body),
+            body::Scope::Login,
+            true,
+            request_id.as_ref(),
+        )
+        .await
+    {
         Ok(value) => value,
-        Err(_) => {
-            return error(
-                StatusCode::PAYLOAD_TOO_LARGE,
-                "auth.body_too_large",
-                false,
-                request_id.as_ref(),
-            );
-        }
+        Err(response) => return *response,
     };
     let input: AdministratorLoginRequest = match serde_json::from_slice(&bytes) {
         Ok(value) => value,
@@ -173,7 +216,10 @@ where
                     );
                 }
             };
-            json_with_cookie(StatusCode::OK, &authenticated.administrator, &cookie)
+            VerifiedAdministrator::attach(
+                authenticated.administrator.username.clone(),
+                json_with_cookie(StatusCode::OK, &authenticated.administrator, &cookie),
+            )
         }
         Err(failure) => service_error(failure, request_id.as_ref()),
     }
@@ -187,7 +233,12 @@ where
         Ok(value) => value,
         Err(response) => return *response,
     };
-    let token = match session_cookie(request.headers(), &state.product_id, state.mode) {
+    let token = match session_cookie(
+        request.headers(),
+        &state.product_id,
+        state.mode,
+        request_id.as_ref(),
+    ) {
         Ok(value) => value,
         Err(response) => return *response,
     };
@@ -196,7 +247,10 @@ where
         Err(response) => return *response,
     };
     match state.service.restore_session(&token, now).await {
-        Ok(authenticated) => no_store(axum::Json(authenticated.administrator).into_response()),
+        Ok(authenticated) => VerifiedAdministrator::attach(
+            authenticated.administrator.username.clone(),
+            no_store(axum::Json(authenticated.administrator).into_response()),
+        ),
         Err(failure) => service_error(failure, request_id.as_ref()),
     }
 }
@@ -209,21 +263,32 @@ where
         Ok(value) => value,
         Err(response) => return *response,
     };
-    if let Err(response) = require_same_origin(state.mode, request.headers(), request_id.as_ref()) {
-        return *response;
-    }
-    let token = match session_cookie(request.headers(), &state.product_id, state.mode) {
+    let identity = match authenticate_request(
+        &state.service,
+        request.headers(),
+        request.uri(),
+        request.method(),
+        &state.product_id,
+        state.mode,
+    )
+    .await
+    {
+        Ok(identity) => identity,
+        Err(response) => return *response,
+    };
+    let token = match session_cookie(
+        request.headers(),
+        &state.product_id,
+        state.mode,
+        request_id.as_ref(),
+    ) {
         Ok(value) => value,
         Err(response) => return *response,
     };
-    let csrf_values = header_values(request.headers(), sarmg_admin_auth::CSRF_HEADER);
     let now = match now_micros() {
         Ok(value) => value,
         Err(response) => return *response,
     };
-    if let Err(failure) = state.service.require_csrf(&token, &csrf_values, now).await {
-        return service_error(failure, request_id.as_ref());
-    }
     match state
         .service
         .logout(&token, now, request_id.as_ref().map(ToString::to_string))
@@ -246,7 +311,7 @@ where
             match HeaderValue::from_str(&cookie) {
                 Ok(value) => {
                     response.headers_mut().insert(header::SET_COOKIE, value);
-                    no_store(response)
+                    VerifiedAdministrator::attach(identity.username, no_store(response))
                 }
                 Err(_) => error(
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -289,28 +354,6 @@ fn request_id(headers: &HeaderMap) -> Result<Option<RequestId>, Box<Response>> {
             None,
         ))),
     }
-}
-
-fn require_same_origin(
-    mode: AdministratorOriginMode,
-    headers: &HeaderMap,
-    request_id: Option<&RequestId>,
-) -> Result<(), Box<Response>> {
-    sarmg_admin_auth::require_administrator_same_origin(
-        mode,
-        &header_values(headers, sarmg_admin_auth::ORIGIN_HEADER),
-        &header_values(headers, sarmg_admin_auth::HOST_HEADER),
-        &header_values(headers, sarmg_admin_auth::SEC_FETCH_SITE_HEADER),
-    )
-    .map(|_| ())
-    .map_err(|_| {
-        Box::new(error(
-            StatusCode::FORBIDDEN,
-            "auth.origin_rejected",
-            false,
-            request_id,
-        ))
-    })
 }
 
 fn require_same_origin_with_uri(
@@ -357,10 +400,54 @@ fn header_values(headers: &HeaderMap, name: &'static str) -> Vec<Vec<u8>> {
         .collect()
 }
 
+fn validate_login_cookie(
+    headers: &HeaderMap,
+    product_id: &str,
+    mode: AdministratorOriginMode,
+    request_id: Option<&RequestId>,
+) -> Result<(), Box<Response>> {
+    let invalid = || {
+        Box::new(error(
+            StatusCode::BAD_REQUEST,
+            "auth.invalid_cookie",
+            false,
+            request_id,
+        ))
+    };
+    let values: Vec<_> = headers.get_all(header::COOKIE).iter().collect();
+    if values.is_empty() {
+        return Ok(());
+    }
+    let [value] = values.as_slice() else {
+        return Err(invalid());
+    };
+    let header = value.to_str().map_err(|_| invalid())?;
+    let name = sarmg_admin_core::session_cookie_name(product_id, mode).map_err(|_| {
+        Box::new(error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "platform.cookie_failed",
+            false,
+            request_id,
+        ))
+    })?;
+    let mut found = false;
+    for part in header.split(';') {
+        let (key, token) = part.trim().split_once('=').ok_or_else(invalid)?;
+        if key == name {
+            if found || !sarmg_admin_auth::is_token_shape(token) {
+                return Err(invalid());
+            }
+            found = true;
+        }
+    }
+    Ok(())
+}
+
 fn session_cookie(
     headers: &HeaderMap,
     product_id: &str,
     mode: AdministratorOriginMode,
+    request_id: Option<&RequestId>,
 ) -> Result<String, Box<Response>> {
     let values: Vec<_> = headers.get_all(header::COOKIE).iter().collect();
     let [value] = values.as_slice() else {
@@ -368,7 +455,7 @@ fn session_cookie(
             StatusCode::UNAUTHORIZED,
             "auth.session_required",
             false,
-            None,
+            request_id,
         )));
     };
     let header = value.to_str().map_err(|_| {
@@ -376,7 +463,7 @@ fn session_cookie(
             StatusCode::UNAUTHORIZED,
             "auth.session_required",
             false,
-            None,
+            request_id,
         ))
     })?;
     let name = sarmg_admin_core::session_cookie_name(product_id, mode).map_err(|_| {
@@ -384,7 +471,7 @@ fn session_cookie(
             StatusCode::INTERNAL_SERVER_ERROR,
             "platform.cookie_failed",
             false,
-            None,
+            request_id,
         ))
     })?;
     let token = sarmg_admin_auth::parse_cookie_value(header, &name)
@@ -394,7 +481,7 @@ fn session_cookie(
                 StatusCode::UNAUTHORIZED,
                 "auth.session_required",
                 false,
-                None,
+                request_id,
             ))
         })?;
     Ok(token.to_owned())
@@ -439,12 +526,22 @@ where
             false,
             request_id,
         ),
-        ServiceError::LoginRateLimited => error(
-            StatusCode::TOO_MANY_REQUESTS,
-            "auth.rate_limited",
-            true,
-            request_id,
-        ),
+        ServiceError::LoginRateLimited => {
+            let mut response = error(
+                StatusCode::TOO_MANY_REQUESTS,
+                "auth.rate_limited",
+                true,
+                request_id,
+            );
+            // Conservatively wait one complete platform window; never advise immediate retries.
+            let seconds = sarmg_admin_core::LOGIN_WINDOW_MICROS.div_ceil(1_000_000);
+            response.headers_mut().insert(
+                header::RETRY_AFTER,
+                HeaderValue::from_str(&seconds.to_string())
+                    .expect("policy duration is a valid header"),
+            );
+            response
+        }
         ServiceError::AuthenticationBusy | ServiceError::AuthenticationWorkerFailed => error(
             StatusCode::SERVICE_UNAVAILABLE,
             "auth.capacity_unavailable",
@@ -499,7 +596,9 @@ fn error(
         retryable,
         details: Default::default(),
     };
-    no_store((status, axum::Json(envelope)).into_response())
+    let mut response = no_store((status, axum::Json(envelope)).into_response());
+    response.extensions_mut().insert(FoundationErrorResponse);
+    response
 }
 
 fn no_store(mut response: Response) -> Response {
@@ -513,6 +612,7 @@ fn no_store(mut response: Response) -> Response {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::body::to_bytes;
     use axum::http::{Method, Request as HttpRequest};
     use sarmg_admin_core::{AdministratorRecord, Identifier};
     use sarmg_admin_static::StaticAdministratorStore;
@@ -552,6 +652,162 @@ mod tests {
             Arc::new(AdministratorService::new(store)),
         )
         .unwrap()
+    }
+
+    #[tokio::test]
+    async fn verified_access_log_metadata_survives_logout_without_credentials() {
+        let router = router();
+        let bad = router
+            .clone()
+            .oneshot(request(
+                Method::POST,
+                ADMIN_LOGIN_PATH,
+                r#"{"username":"admin","password":"incorrect password"}"#,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(bad.status(), StatusCode::UNAUTHORIZED);
+        assert!(bad.extensions().get::<VerifiedAdministrator>().is_none());
+        let login = router
+            .clone()
+            .oneshot(request(
+                Method::POST,
+                ADMIN_LOGIN_PATH,
+                r#"{"username":"admin","password":"correct horse battery"}"#,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(login.status(), StatusCode::OK);
+        let metadata = login.extensions().get::<VerifiedAdministrator>().unwrap();
+        assert_eq!(metadata.username(), "admin");
+        assert_eq!(
+            format!("{metadata:?}"),
+            "VerifiedAdministrator { username: \"admin\" }"
+        );
+        let cookie = login.headers()[header::SET_COOKIE]
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .to_owned();
+        let data: sarmg_contracts::AdministratorSession =
+            serde_json::from_slice(&to_bytes(login.into_body(), 4096).await.unwrap()).unwrap();
+        let mut logout = request(Method::POST, ADMIN_LOGOUT_PATH, "");
+        logout
+            .headers_mut()
+            .insert(header::COOKIE, cookie.parse().unwrap());
+        logout.headers_mut().insert(
+            sarmg_admin_auth::CSRF_HEADER,
+            data.csrf_token.parse().unwrap(),
+        );
+        let response = router.clone().oneshot(logout).await.unwrap();
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+        assert_eq!(
+            response
+                .extensions()
+                .get::<VerifiedAdministrator>()
+                .unwrap()
+                .username(),
+            "admin"
+        );
+        let mut restore = request(Method::GET, ADMIN_SESSION_PATH, "");
+        restore
+            .headers_mut()
+            .insert(header::COOKIE, cookie.parse().unwrap());
+        let response = router.oneshot(restore).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert!(
+            response
+                .extensions()
+                .get::<VerifiedAdministrator>()
+                .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn shared_persistent_management_contract() {
+        let directory = tempfile::tempdir().unwrap();
+        let pool = sarmg_sqlite::create_if_missing(
+            directory.path().join("admin.sqlite3"),
+            sarmg_sqlite::PoolOptions::new(2),
+        )
+        .await
+        .unwrap();
+        sqlx::raw_sql(sarmg_admin_sqlite::ADMIN_PERSISTENT_DDL)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let service = Arc::new(AdministratorService::new(
+            sarmg_admin_sqlite::SqliteAdministratorStore::new(pool),
+        ));
+        service
+            .bootstrap_administrator("admin", sarmg_testkit::ADMINISTRATOR_PASSWORD, 1)
+            .await
+            .unwrap();
+        let router = administrator_router(
+            "example-product",
+            AdministratorOriginMode::LoopbackDevelopmentHttp,
+            service,
+        )
+        .unwrap();
+        sarmg_testkit::assert_administrator_management_http_contract(|mut request| {
+            let router = router.clone();
+            request
+                .extensions_mut()
+                .insert(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 1234))));
+            async move { router.oneshot(request).await.unwrap() }
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn static_profile_has_no_management_routes() {
+        let router = router();
+        for (method, path) in [
+            (
+                Method::GET,
+                sarmg_contracts::ADMINISTRATORS_PATH.to_string(),
+            ),
+            (
+                Method::POST,
+                sarmg_contracts::ADMINISTRATORS_PATH.to_string(),
+            ),
+            (
+                Method::POST,
+                format!("{}/admin/password", sarmg_contracts::ADMINISTRATORS_PATH),
+            ),
+            (
+                Method::POST,
+                format!("{}/admin/disable", sarmg_contracts::ADMINISTRATORS_PATH),
+            ),
+        ] {
+            assert_eq!(
+                router
+                    .clone()
+                    .oneshot(request(method, &path, ""))
+                    .await
+                    .unwrap()
+                    .status(),
+                StatusCode::NOT_FOUND
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn shared_administrator_wire_contract() {
+        let application = router();
+        sarmg_testkit::assert_administrator_http_contract(
+            |mut request| {
+                let application = application.clone();
+                request
+                    .extensions_mut()
+                    .insert(ConnectInfo(SocketAddr::from(([127, 0, 0, 1], 1234))));
+                async move { application.oneshot(request).await.unwrap() }
+            },
+            "example-product",
+        )
+        .await;
     }
 
     #[tokio::test]

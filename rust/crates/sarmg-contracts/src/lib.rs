@@ -33,13 +33,19 @@ pub const ADMIN_LOGIN_PATH: &str = "/api/v2/auth/login";
 pub const ADMIN_SESSION_PATH: &str = "/api/v2/auth/session";
 pub const ADMIN_LOGOUT_PATH: &str = "/api/v2/auth/logout";
 
+mod administrators;
+pub use administrators::{
+    ADMINISTRATORS_PATH, AdministratorCreateRequest, AdministratorPasswordRequest,
+    AdministratorSummary,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AdministratorRole {
     #[serde(rename = "admin")]
     Admin,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AdministratorLoginRequest {
     // These are deliberately bounded untrusted candidates, not persisted
@@ -49,6 +55,16 @@ pub struct AdministratorLoginRequest {
     pub username: String,
     #[serde(deserialize_with = "deserialize_secret_text")]
     pub password: String,
+}
+
+impl std::fmt::Debug for AdministratorLoginRequest {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("AdministratorLoginRequest")
+            .field("username", &self.username)
+            .field("password", &"[REDACTED]")
+            .finish()
+    }
 }
 
 impl Serialize for AdministratorLoginRequest {
@@ -71,7 +87,7 @@ impl AdministratorLoginRequest {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AdministratorSession {
     #[serde(deserialize_with = "deserialize_authenticated_true")]
@@ -83,6 +99,19 @@ pub struct AdministratorSession {
     pub role: AdministratorRole,
     #[serde(deserialize_with = "deserialize_authentication_token")]
     pub csrf_token: String,
+}
+
+impl std::fmt::Debug for AdministratorSession {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("AdministratorSession")
+            .field("authenticated", &self.authenticated)
+            .field("user_id", &self.user_id)
+            .field("username", &self.username)
+            .field("role", &self.role)
+            .field("csrf_token", &"[REDACTED]")
+            .finish()
+    }
 }
 
 impl Serialize for AdministratorSession {
@@ -873,6 +902,19 @@ mod tests {
     use serde_json::{Value, json};
 
     use super::*;
+
+    #[test]
+    fn administrator_debug_does_not_log_password_or_csrf_credentials() {
+        let login = AdministratorLoginRequest {
+            username: "admin".into(),
+            password: "DO_NOT_LOG_PASSWORD".into(),
+        };
+        assert!(!format!("{login:?}").contains("DO_NOT_LOG_PASSWORD"));
+        let token = "A".repeat(43);
+        let session = AdministratorSession::new("admin-1", "admin", &token).unwrap();
+        assert!(!format!("{session:?}").contains(&token));
+        assert!(format!("{session:?}").contains("[REDACTED]"));
+    }
 
     const ERROR_FIXTURES: &str =
         include_str!("../../../../packages/contracts/fixtures/error-envelope.fixtures.json");

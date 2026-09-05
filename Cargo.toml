@@ -21,18 +21,17 @@ members = [
   "rust/crates/sarmg-secure-http",
   "rust/crates/sarmg-secure-xml",
   "rust/crates/sarmg-operations",
-  "rust/crates/sarmg-agent-runtime",
-  "rust/crates/sarmg-mobile-ffi",
+  "rust/crates/sarmg-testkit",
 ]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.98"
 authors = ["sarmg <isarmg@163.com>"]
 license = "Apache-2.0"
-repository = "https://github.com/isarmg/sarmg-foundation"
-homepage = "https://github.com/isarmg/sarmg-foundation"
+repository = "https://github.com/isarmg/sarmg-foundation-server"
+homepage = "https://github.com/isarmg/sarmg-foundation-server"
 
 [workspace.dependencies]
 anyhow = "1"
@@ -44,7 +43,10 @@ bytes = "1"
 aes-gcm = "0.10"
 hkdf = "0.12"
 getrandom = "0.4"
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
 http = "1"
+http-body-util = "0.1"
+mime = "0.3"
 ipnet = "2"
 rand = "0.9"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

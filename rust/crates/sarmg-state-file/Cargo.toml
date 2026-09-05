@@ -14,7 +14,7 @@ workspace = true
 
 [dependencies]
 rustix.workspace = true
-sarmg-server-target = { path = "../sarmg-server-target", version = "=0.5.0" }
+sarmg-server-target = { path = "../sarmg-server-target", version = "=0.6.0" }
 thiserror.workspace = true
 
 [dev-dependencies]
