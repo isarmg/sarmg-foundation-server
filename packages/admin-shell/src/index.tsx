@@ -1,7 +1,7 @@
 import { t } from "@sarmg/admin-ui/i18n";
-import { languageLabel, switchLanguage } from "@sarmg/admin-ui/i18n";
+import { languageLabel, switchLanguage, validationMessage } from "@sarmg/admin-ui/i18n";
 import {
-  Component, createContext, useCallback, useContext, useEffect, useRef, useState,
+  Component, createContext, useCallback, useContext, useEffect, useId, useRef, useState,
   type FormEvent, type ReactNode,
 } from "react";
 import {
@@ -158,27 +158,39 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
 }
 
 export function LoginPage({ login }: { login: (username: string, password: string) => Promise<void> }) {
-  const [failure, setFailure] = useState<{ requestId?: string } | null>(null);
+  const [failure, setFailure] = useState<{ message: string; requestId?: string; field?: string } | null>(null);
+  const errorId = useId();
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting.current) return;
     const form = event.currentTarget;
+    for (const name of ["username", "password"]) {
+      const input = form.elements.namedItem(name);
+      if (input instanceof HTMLInputElement && !input.validity.valid) {
+        const message = input.validity.valueMissing
+          ? name === "username" ? t("请输入用户名。", "Enter your username.") : t("请输入密码。", "Enter your password.")
+          : validationMessage(input);
+        setFailure({ message, field: name });
+        input.focus();
+        return;
+      }
+    }
     const data = new FormData(form);
     submitting.current = true; setPending(true); setFailure(null);
     try { await login(String(data.get("username") ?? ""), String(data.get("password") ?? "")); }
     catch (error) {
-      setFailure({ requestId: errorRequestId(error) });
+      setFailure({ message: t("登录失败，请检查用户名和密码后重试。", "Sign in failed. Check your credentials and try again."), requestId: errorRequestId(error) });
       const password = form.elements.namedItem("password");
       if (password instanceof HTMLInputElement) { password.value = ""; password.focus(); }
     } finally { submitting.current = false; setPending(false); }
   }
-  return <form onSubmit={event => void submit(event)} aria-busy={pending}>
+  return <form noValidate onInvalid={event => event.preventDefault()} onInput={() => setFailure(null)} onSubmit={event => void submit(event)} aria-busy={pending}>
     <h1>{t("管理员登录", "Administrator sign in")}</h1>
-    {failure && <ErrorState requestId={failure.requestId}>{t("登录失败，请检查用户名和密码后重试。", "Sign in failed. Check your credentials and try again.")}</ErrorState>}
-    <FormField label={t("用户名", "Username")}><TextField name="username" autoComplete="username" required maxLength={64} readOnly={pending} /></FormField>
-    <FormField label={t("密码", "Password")}><TextField name="password" type="password" autoComplete="current-password" required maxLength={1024} readOnly={pending} /></FormField>
+    <FormField label={t("用户名", "Username")}><TextField name="username" autoComplete="username" required maxLength={64} readOnly={pending} aria-invalid={failure?.field === "username" || undefined} aria-describedby={failure ? errorId : undefined} /></FormField>
+    <FormField label={t("密码", "Password")}><TextField name="password" type="password" autoComplete="current-password" required maxLength={1024} readOnly={pending} aria-invalid={failure?.field === "password" || undefined} aria-describedby={failure ? errorId : undefined} /></FormField>
+    {failure && <ErrorState requestId={failure.requestId}><span id={errorId}>{failure.message}</span></ErrorState>}
     <Button type="submit" disabled={pending}>{pending ? t("正在登录…", "Signing in…") : t("登录", "Sign in")}</Button>
   </form>;
 }

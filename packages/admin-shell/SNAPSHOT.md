@@ -13,4 +13,4 @@ node scripts/sync-admin-shell.mjs /absolute/product
 
 生成的 `clients/web/shell/` 包含 JS、类型和 SHA-256 清单，产品构建验证摘要。
 所有产品组件从该快照引用 Shell，不要求产品构建时存在同级 Foundation 仓库。
-更改仍需在下一次正式版本发布中统一收敛，不覆盖既有不可变版本。
+当前展示层更改已收录于 0.6.1 发布源码；消费者迁移依赖仍需独立验收，不覆盖既有不可变版本。

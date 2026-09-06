@@ -14,8 +14,8 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.6.0" }
-sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.6.0" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.6.1" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.6.1" }
 thiserror.workspace = true
 
 [dev-dependencies]

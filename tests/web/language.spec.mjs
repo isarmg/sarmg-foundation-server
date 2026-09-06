@@ -1,6 +1,51 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+for (const [locale, usernameLabel, passwordLabel, submitLabel, usernameError, passwordError] of [
+  ["en", "Username", "Password", "Sign in", "Enter your username.", "Enter your password."],
+  ["zh-CN", "用户名", "密码", "登录", "请输入用户名。", "请输入密码。"],
+]) {
+  test(`login validation uses the inline error row without native popups (${locale})`, async ({ page }) => {
+    let loginRequests = 0;
+    await page.route("**/api/v2/**", route => {
+      if (route.request().method() === "POST") loginRequests++;
+      return route.fulfill({ status: 401, json: { code: "invalid_credentials", request_id: "inline-login" } });
+    });
+    await page.goto(`/?lang=${locale}`);
+    const username = page.getByLabel(usernameLabel, { exact: true });
+    const password = page.getByLabel(passwordLabel, { exact: true });
+    const submit = page.getByRole("button", { name: submitLabel, exact: true });
+    const error = page.getByRole("alert");
+    await expect(username).toBeVisible();
+    await page.evaluate(() => {
+      window.nativeInvalidCount = 0;
+      document.addEventListener("invalid", () => window.nativeInvalidCount++, true);
+    });
+    await submit.click();
+    await expect(error).toHaveText(usernameError);
+    await expect(username).toBeFocused();
+    await expect(username).toHaveAttribute("aria-invalid", "true");
+    await expect(username).toHaveAccessibleDescription(usernameError);
+    await username.fill("admin");
+    await expect(error).toHaveCount(0);
+    await password.press("Enter");
+    await expect(error).toHaveText(passwordError);
+    await expect(password).toBeFocused();
+    await expect(password).toHaveAccessibleDescription(passwordError);
+    expect(await page.locator("form").evaluate(form => form.noValidate)).toBe(true);
+    expect(await page.evaluate(() => window.nativeInvalidCount)).toBe(0);
+    expect(loginRequests).toBe(0);
+    // The same order is meaningful without the optional content-blocks theme.
+    expect(await error.evaluate(node => Boolean(node.compareDocumentPosition(document.querySelector('button[type="submit"]')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    await password.fill("valid-length-password");
+    await expect(error).toHaveCount(0);
+    await submit.click();
+    await expect(error).toContainText(locale === "en" ? "Sign in failed." : "登录失败");
+    expect(loginRequests).toBe(1);
+    await expect(password).toHaveValue("");
+  });
+}
+
 test("login language is consistent, switch is cancellable and persists without storing credentials", async ({ page }) => {
   await page.route("**/api/v2/**", route => route.fulfill({ status: 401, json: { code: "invalid_credentials", message: "SECRET", request_id: "lang-123" } }));
   await page.goto("/?lang=zh-CN");
