@@ -1,6 +1,6 @@
 {
   "name": "sarmg-foundation-server",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "description": "Sarmg 服务端及其管理 Web 的构建期上游规范、基础实现与一致性工具工作区",
   "license": "Apache-2.0",

@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/design-tokens",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "Sarmg Web 项目的语义设计令牌、reset 与可访问性基线",
   "license": "Apache-2.0",
   "repository": {

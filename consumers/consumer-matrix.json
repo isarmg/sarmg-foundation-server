@@ -2,7 +2,7 @@
   "$schema": "./consumer-matrix.schema.json",
   "format": "sarmg.consumer-matrix.v2",
   "platform_generation": 1,
-  "foundation_version": "0.6.1",
+  "foundation_version": "0.7.0",
   "consumers": [
     {
       "product": "dufs-ram",

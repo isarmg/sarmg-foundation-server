@@ -35,7 +35,7 @@ git_rev = "0123456789abcdef0123456789abcdef01234567"
 [[components]]
 id = "server"
 profile = "server-filesystem"
-http_adapter = "hyper"
+http_adapter = "axum"
 web_profile = "web-embedded-native"
 capabilities = [
   "admin-static",

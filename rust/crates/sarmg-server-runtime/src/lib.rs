@@ -1,11 +1,23 @@
 //! Shared server lifecycle and health primitives. Product routers remain outside this crate.
 
+mod http1;
+mod listeners;
+mod shutdown;
+mod tasks;
+mod transport;
+pub use listeners::BoundListeners;
+pub use shutdown::{
+    LifecycleParticipant, ProcessSignals, ShutdownFailure, ShutdownLimits, ShutdownPhase,
+    ShutdownReport,
+};
+pub use tasks::{TrackedTasks, WorkClosed, WorkScope};
+pub use transport::{Http1Limits, HttpServer};
+
 use async_trait::async_trait;
 use axum::{
     Json, Router,
-    extract::{DefaultBodyLimit, Request, State as AxumState},
+    extract::{Request, State as AxumState},
     http::{HeaderValue, StatusCode},
-    middleware::{self, Next},
     response::{IntoResponse, Response},
     routing::get,
 };
@@ -13,13 +25,13 @@ use futures_util::FutureExt;
 use serde::Serialize;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::{collections::BTreeMap, future::Future, pin::Pin, sync::Arc, time::Duration};
-use tokio::{
-    sync::{RwLock, watch},
-    task::JoinSet,
-};
+use tokio::sync::{RwLock, watch};
 
 pub const LIVENESS_PATH: &str = "/healthz";
 pub const READINESS_PATH: &str = "/readyz";
+/// Exact platform roots/subtrees that filesystem consumers must reserve.
+/// This does not reserve unrelated files beneath `/api` or `/api/v2`.
+pub const PLATFORM_RESERVED_PATHS: &[&str] = &[LIVENESS_PATH, READINESS_PATH, "/api/v2/auth"];
 pub const DEFAULT_REQUEST_BODY_BYTES: usize = 1024 * 1024;
 pub const HEALTH_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 pub const HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(2);
@@ -186,7 +198,9 @@ impl RuntimeHandle {
         self.shutdown.subscribe()
     }
     pub async fn health(&self) -> HealthSnapshot {
-        self.state.read().await.health()
+        let mut health = self.state.read().await.health();
+        health.ready &= !*self.shutdown.borrow();
+        health
     }
     pub async fn diagnostics(&self) -> Diagnostics {
         self.state.read().await.diagnostics()
@@ -269,59 +283,14 @@ impl ServerRuntime {
         self.handle.clone()
     }
 
-    /// Own the HTTP socket, process signals, supervised workers, and bounded
-    /// drain as one lifecycle. Peer identity always comes from the socket.
-    pub async fn serve(
-        self,
-        listener: tokio::net::TcpListener,
-        router: Router,
-    ) -> Result<(), Error> {
-        install_panic_hook();
-        let router = router
-            .layer(DefaultBodyLimit::max(DEFAULT_REQUEST_BODY_BYTES))
-            .layer(middleware::from_fn(request_id_layer));
-        let handle = self.handle();
-        let signal_handle = handle.clone();
-        let mut shutdown = handle.shutdown_signal();
-        let server = std::future::IntoFuture::into_future(
-            axum::serve(
-                listener,
-                router.into_make_service_with_connect_info::<std::net::SocketAddr>(),
-            )
-            .with_graceful_shutdown(async move {
-                tokio::select! {
-                    () = shutdown_signal() => signal_handle.shutdown(),
-                    () = wait_for_shutdown(&mut shutdown) => {},
-                }
-            }),
-        );
-        tokio::pin!(server);
-        let runtime = self.run_until_shutdown();
-        tokio::pin!(runtime);
-        tokio::select! {
-            result = &mut server => {
-                handle.shutdown();
-                runtime.await;
-                result?;
-            }
-            () = &mut runtime => {
-                tokio::time::timeout(SHUTDOWN_DRAIN_TIMEOUT, server)
-                    .await.map_err(|_| Error::HttpDrainDeadline)??;
-            }
-        }
-        if !handle.health().await.live {
-            return Err(Error::CriticalTaskStopped);
-        }
-        Ok(())
-    }
-
     pub async fn run_until_shutdown(mut self) {
         let mut runtime_shutdown = self.handle.shutdown_signal();
-        let mut joins = JoinSet::new();
+        let joins = tokio_util::task::TaskTracker::new();
         for registration in self.tasks.drain(..) {
             let state = self.handle.state.clone();
             let shutdown = self.handle.shutdown_signal();
             let shutdown_requested = shutdown.clone();
+            let task_handle = self.handle.clone();
             joins.spawn(async move {
                 let outcome =
                     std::panic::AssertUnwindSafe(
@@ -339,7 +308,9 @@ impl ServerRuntime {
                 if let Some(snapshot) = guard.tasks.get_mut(&registration.name) {
                     snapshot.state = task_state;
                 }
-                guard.health()
+                if !guard.health().live {
+                    task_handle.shutdown();
+                }
             });
         }
         self.refresh_health().await;
@@ -350,33 +321,16 @@ impl ServerRuntime {
                 break;
             }
             tokio::select! {
-                result = joins.join_next(), if !joins.is_empty() => {
-                    match result {
-                        Some(Ok(health)) if !health.live => { self.handle.shutdown(); break; }
-                        Some(Err(_)) => { self.handle.shutdown(); break; }
-                        _ => {}
-                    }
-                }
                 _ = wait_for_shutdown(&mut runtime_shutdown) => break,
                 _ = health_interval.tick() => self.refresh_health().await,
             }
         }
         self.handle.state.write().await.shutting_down = true;
         self.handle.shutdown();
-        let drain = async { while joins.join_next().await.is_some() {} };
-        if tokio::time::timeout(SHUTDOWN_DRAIN_TIMEOUT, drain)
-            .await
-            .is_err()
-        {
-            joins.abort_all();
-            while joins.join_next().await.is_some() {}
-            let mut state = self.handle.state.write().await;
-            for task in state.tasks.values_mut() {
-                if task.state == TaskState::Running {
-                    task.state = TaskState::Aborted;
-                }
-            }
-        }
+        // The process HTTP owner enforces the hard deadline. Dropping its
+        // waiter must not abort tasks that still hold persistent obligations.
+        joins.close();
+        joins.wait().await;
     }
 
     pub fn refresh_health(&self) -> impl Future<Output = ()> + Send + use<> {
@@ -587,11 +541,7 @@ where
         .route(LIVENESS_PATH, get(liveness))
         .route(READINESS_PATH, get(readiness))
         .with_state(state);
-    Ok(Router::new()
-        .merge(auth)
-        .merge(runtime)
-        .layer(DefaultBodyLimit::max(DEFAULT_REQUEST_BODY_BYTES))
-        .layer(middleware::from_fn(request_id_layer)))
+    Ok(Router::new().merge(auth).merge(runtime))
 }
 
 async fn liveness(AxumState(state): AxumState<PlatformState>) -> StatusCode {
@@ -640,7 +590,28 @@ fn request_error(status: StatusCode, code: &'static str, request_id: &str) -> Re
     response
 }
 
-async fn request_id_layer(mut request: Request, next: Next) -> Response {
+pub fn request_service<S>(
+    inner: S,
+) -> tower::util::BoxCloneSyncService<Request, Response, std::convert::Infallible>
+where
+    S: tower::Service<Request, Response = Response, Error = std::convert::Infallible>
+        + Clone
+        + Send
+        + Sync
+        + 'static,
+    S::Future: Send,
+{
+    tower::util::BoxCloneSyncService::new(tower::service_fn(move |request| {
+        let inner = inner.clone();
+        async move { Ok::<_, std::convert::Infallible>(request_id_boundary(request, inner).await) }
+    }))
+}
+
+async fn request_id_boundary<S>(mut request: Request, inner: S) -> Response
+where
+    S: tower::Service<Request, Response = Response, Error = std::convert::Infallible>,
+{
+    use tower::ServiceExt;
     static HEADER: axum::http::HeaderName = axum::http::HeaderName::from_static("x-request-id");
     let request_id = match request
         .headers()
@@ -672,11 +643,12 @@ async fn request_id_layer(mut request: Request, next: Next) -> Response {
     if let Ok(value) = HeaderValue::from_str(&request_id) {
         request.headers_mut().insert(HEADER.clone(), value);
     }
-    let mut response = match std::panic::AssertUnwindSafe(next.run(request))
+    let mut response = match std::panic::AssertUnwindSafe(inner.oneshot(request))
         .catch_unwind()
         .await
     {
-        Ok(response) => response,
+        Ok(Ok(response)) => response,
+        Ok(Err(never)) => match never {},
         Err(_) => request_error(
             StatusCode::INTERNAL_SERVER_ERROR,
             "platform.internal",
@@ -725,6 +697,10 @@ pub enum Error {
     HttpDrainDeadline,
     #[error("critical background task stopped unexpectedly")]
     CriticalTaskStopped,
+    #[error("product state could not close cleanly")]
+    StateCloseFailed,
+    #[error(transparent)]
+    ShutdownIncomplete(#[from] ShutdownFailure),
 }
 
 #[cfg(test)]
@@ -789,8 +765,8 @@ mod tests {
                     #[allow(unreachable_code)]
                     StatusCode::OK
                 }),
-            )
-            .layer(middleware::from_fn(request_id_layer));
+            );
+        let app = request_service(app);
         let response = app
             .clone()
             .oneshot(
@@ -830,9 +806,8 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_and_duplicate_ids_use_strict_error_envelopes() {
-        let app = Router::new()
-            .route("/", get(|| async { StatusCode::OK }))
-            .layer(middleware::from_fn(request_id_layer));
+        let app = Router::new().route("/", get(|| async { StatusCode::OK }));
+        let app = request_service(app);
         for duplicate in [false, true] {
             let mut request = Request::get("/").body(axum::body::Body::empty()).unwrap();
             request.headers_mut().insert(
@@ -894,7 +869,7 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn uncooperative_worker_is_aborted_at_the_drain_deadline() {
+    async fn uncooperative_worker_is_reported_without_aborting_at_the_deadline() {
         let runtime = ServerRuntime::builder(descriptor())
             .register_background_task("stalled", TaskCriticality::Critical, |_| {
                 std::future::pending()
@@ -904,12 +879,19 @@ mod tests {
             .unwrap();
         let handle = runtime.handle();
         handle.shutdown();
-        runtime.run_until_shutdown().await;
+        let listeners = BoundListeners::bind(["127.0.0.1:0".parse().unwrap()]).unwrap();
+        let transport = HttpServer::new(listeners, ProcessSignals::install().unwrap());
+        let result = runtime.serve(transport, Router::new()).await;
+        let Err(Error::ShutdownIncomplete(failure)) = result else {
+            panic!("hard deadline must fail")
+        };
+        assert!(!failure.report.clean);
+        assert_eq!(failure.report.unfinished_ordinary_work, 1);
         assert_eq!(
             handle.diagnostics().await.tasks["stalled"].state,
-            TaskState::Aborted
+            TaskState::Running
         );
-        assert!(!handle.health().await.live);
+        assert!(!handle.health().await.ready);
     }
 
     #[tokio::test]
@@ -919,7 +901,13 @@ mod tests {
         runtime.handle().shutdown();
         tokio::time::timeout(
             Duration::from_secs(2),
-            runtime.serve(listener, Router::new()),
+            runtime.serve(
+                HttpServer::new(
+                    BoundListeners::from_listener(listener).unwrap(),
+                    ProcessSignals::install().unwrap(),
+                ),
+                Router::new(),
+            ),
         )
         .await
         .unwrap()
@@ -938,7 +926,13 @@ mod tests {
             .unwrap();
         let result = tokio::time::timeout(
             Duration::from_secs(2),
-            runtime.serve(listener, Router::new()),
+            runtime.serve(
+                HttpServer::new(
+                    BoundListeners::from_listener(listener).unwrap(),
+                    ProcessSignals::install().unwrap(),
+                ),
+                Router::new(),
+            ),
         )
         .await
         .unwrap();
