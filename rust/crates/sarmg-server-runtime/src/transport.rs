@@ -143,14 +143,24 @@ impl ServerRuntime {
         let phase_worker = phase.clone();
         let participant = server.participant.clone();
         let drain = async {
-            connections.wait().await;
-            if let Some(participant) = &participant {
-                participant.drain_requests().await;
-            }
-            // Background producers must stop before closing commit registration.
-            if !runtime.is_terminated() {
-                (&mut runtime).await;
-            }
+            // A paused runtime health probe may itself hold a product request
+            // admission guard. Poll its shutdown alongside request draining;
+            // waiting for the product gate first would deadlock that probe.
+            tokio::join!(
+                async {
+                    connections.wait().await;
+                    if let Some(participant) = &participant {
+                        participant.drain_requests().await;
+                    }
+                },
+                async {
+                    if !runtime.is_terminated() {
+                        (&mut runtime).await;
+                    }
+                },
+            );
+            // All background and request producers have now ended; only then
+            // is it safe to close durable commit registration.
             // Upgraded sockets also own connection capacity until their real
             // I/O object drops, not merely until the HTTP handshake returns.
             let _all_sockets = slots
@@ -313,6 +323,85 @@ mod tests {
         .unwrap();
         let handle = runtime.handle();
         (address, handle, tokio::spawn(runtime.serve(server, router)))
+    }
+
+    struct ScopeParticipant(crate::WorkScope);
+    #[async_trait::async_trait]
+    impl LifecycleParticipant for ScopeParticipant {
+        fn quiesce(&self) {
+            self.0.quiesce();
+        }
+        fn cancel_ordinary_work(&self) {
+            self.0.cancel_ordinary_work();
+        }
+        fn active_tasks(&self) -> (usize, usize) {
+            (self.0.work_tasks.len(), self.0.commit_tasks.len())
+        }
+        async fn drain_requests(&self) {
+            self.0.drain_requests().await;
+        }
+        async fn drain_commits(&self) {
+            self.0.drain_commits().await;
+        }
+        async fn close_state(&self) -> Result<(), String> {
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn shutdown_polls_a_paused_health_probe_while_draining_product_requests() {
+        let scope = crate::WorkScope::new();
+        let checking = scope.clone();
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let (entered, mut entry) = tokio::sync::mpsc::channel(1);
+        let runtime = ServerRuntime::builder(ProductDescriptor {
+            id: "fixture".into(),
+            version: "1.0.0".into(),
+            foundation_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            profile: "server-filesystem".into(),
+            capabilities: vec![],
+        })
+        .register_health_check(
+            "scoped",
+            crate::health_check(move || {
+                let scope = checking.clone();
+                let calls = calls.clone();
+                let entered = entered.clone();
+                async move {
+                    let Some(_request) = scope.enter_request().await else {
+                        return false;
+                    };
+                    if calls.fetch_add(1, Ordering::SeqCst) > 0 {
+                        entered.send(()).await.unwrap();
+                        scope.shutdown.cancelled().await;
+                    }
+                    true
+                }
+            }),
+        )
+        .build()
+        .await
+        .unwrap();
+        let handle = runtime.handle();
+        let listeners = BoundListeners::bind(["127.0.0.1:0".parse().unwrap()]).unwrap();
+        let mut server = HttpServer::new(listeners, ProcessSignals::install().unwrap());
+        server.participant = Some(Arc::new(ScopeParticipant(scope)));
+        server.shutdown_limits = ShutdownLimits {
+            grace: Duration::from_secs(1),
+            forced: Duration::from_secs(1),
+        };
+        let serving = tokio::spawn(runtime.serve(server, Router::new()));
+        tokio::time::timeout(Duration::from_secs(1), entry.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        handle.shutdown();
+        let report = tokio::time::timeout(Duration::from_secs(1), serving)
+            .await
+            .expect("paused runtime probe deadlocked product admission drain")
+            .unwrap()
+            .unwrap();
+        assert!(report.clean);
     }
 
     async fn request(address: SocketAddr, bytes: &[u8]) -> Vec<u8> {
