@@ -124,11 +124,13 @@ impl ServerRuntime {
             });
         }
         listeners.close();
+        let mut listeners_failed = false;
         tokio::select! {
+            biased;
             result = server.signals.recv() => { result?; handle.shutdown(); },
             () = wait_for_shutdown(&mut runtime_shutdown) => {},
             () = &mut runtime => { handle.shutdown(); },
-            () = listeners.wait() => { handle.shutdown(); },
+            () = listeners.wait() => { listeners_failed = true; handle.shutdown(); },
         }
         handle.state.write().await.shutting_down = true;
         stop.cancel();
@@ -217,6 +219,9 @@ impl ServerRuntime {
                 report,
                 _retained: server.participant,
             }));
+        }
+        if listeners_failed {
+            return Err(Error::ListenersStopped);
         }
         if !handle.health().await.live {
             return Err(Error::CriticalTaskStopped);

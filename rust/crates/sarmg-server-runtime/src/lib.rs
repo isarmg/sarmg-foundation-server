@@ -519,7 +519,8 @@ struct PlatformState {
     handle: RuntimeHandle,
 }
 
-/// Compose the Foundation-owned auth, health, readiness and request-id routes.
+/// Compose the Foundation-owned auth, health and readiness routes.
+/// Request IDs are installed once by `serve`, outside product URI validation.
 /// No administrator diagnostics endpoint is provided. Product routes must be merged separately.
 pub fn platform_router<Store>(
     handle: RuntimeHandle,
@@ -544,12 +545,13 @@ where
     Ok(Router::new().merge(auth).merge(runtime))
 }
 
-async fn liveness(AxumState(state): AxumState<PlatformState>) -> StatusCode {
-    if state.handle.health().await.live {
+async fn liveness(AxumState(state): AxumState<PlatformState>) -> Response {
+    let status = if state.handle.health().await.live {
         StatusCode::NO_CONTENT
     } else {
         StatusCode::SERVICE_UNAVAILABLE
-    }
+    };
+    (status, [(axum::http::header::CACHE_CONTROL, "no-store")]).into_response()
 }
 
 async fn readiness(AxumState(state): AxumState<PlatformState>) -> Response {
@@ -560,6 +562,7 @@ async fn readiness(AxumState(state): AxumState<PlatformState>) -> Response {
         } else {
             StatusCode::SERVICE_UNAVAILABLE
         },
+        [(axum::http::header::CACHE_CONTROL, "no-store")],
         Json(serde_json::json!({"ready": ready})),
     )
         .into_response()
@@ -693,10 +696,10 @@ pub enum Error {
     DuplicateName(String),
     #[error("HTTP server failed")]
     Http(#[from] std::io::Error),
-    #[error("HTTP shutdown drain exceeded its deadline")]
-    HttpDrainDeadline,
     #[error("critical background task stopped unexpectedly")]
     CriticalTaskStopped,
+    #[error("all HTTP listeners stopped unexpectedly")]
+    ListenersStopped,
     #[error("product state could not close cleanly")]
     StateCloseFailed,
     #[error(transparent)]
@@ -1130,6 +1133,10 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(live.status(), StatusCode::NO_CONTENT);
+        assert_eq!(
+            live.headers()[axum::http::header::CACHE_CONTROL],
+            "no-store"
+        );
         assert!(
             axum::body::to_bytes(live.into_body(), 8192)
                 .await
@@ -1141,6 +1148,10 @@ mod tests {
             .oneshot(Request::get(READINESS_PATH).body(Body::empty()).unwrap())
             .await
             .unwrap();
+        assert_eq!(
+            ready.headers()[axum::http::header::CACHE_CONTROL],
+            "no-store"
+        );
         let bytes = axum::body::to_bytes(ready.into_body(), 8192).await.unwrap();
         assert_eq!(
             serde_json::from_slice::<serde_json::Value>(&bytes).unwrap(),
