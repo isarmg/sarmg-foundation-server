@@ -7,7 +7,15 @@ test("login language is consistent, switch is cancellable and persists without s
   await expect(page.getByRole("heading", { name: "管理员登录" })).toBeVisible();
   await expect(page.getByLabel("用户名", { exact: true })).toBeVisible();
   await page.getByLabel("密码", { exact: true }).fill("unsaved-secret");
+  await page.getByLabel("用户名", { exact: true }).fill("admin");
   const control = page.getByRole("button", { name: "切换为英文" });
+  await page.evaluate(() => { history.replaceState(null, "", "/"); localStorage.setItem("sarmg.admin.language", "en"); });
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("登录失败");
+  await page.getByLabel("密码", { exact: true }).fill("unsaved-secret");
+  await page.evaluate(() => document.querySelector("form").setAttribute("aria-busy", "true"));
+  await control.click(); await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.evaluate(() => document.querySelector("form").setAttribute("aria-busy", "false"));
   await control.click();
   const dialog = page.getByRole("dialog", { name: "切换语言" });
   await expect(dialog.getByRole("button", { name: "取消", exact: true })).toBeFocused();
@@ -22,4 +30,21 @@ test("login language is consistent, switch is cancellable and persists without s
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain("unsaved-secret");
   await page.goto("/"); await expect(page.locator("html")).toHaveAttribute("lang", "en");
   expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()).violations).toEqual([]);
+});
+
+test("cancelling a browser leave-page guard does not commit the new language", async ({ page }) => {
+  await page.route("**/api/v2/**", route => route.fulfill({ status: 401, json: { code: "invalid_credentials", message: "SECRET", request_id: "lang-guard" } }));
+  await page.goto("/?lang=zh-CN");
+  await expect(page.getByRole("heading", { name: "管理员登录" })).toBeVisible();
+  await page.evaluate(() => { window.preventTestLeave = event => { event.preventDefault(); event.returnValue = ""; }; window.addEventListener("beforeunload", window.preventTestLeave); });
+  await page.getByRole("button", { name: "切换为英文", exact: true }).click();
+  const blocked = page.waitForEvent("dialog");
+  page.once("dialog", dialog => dialog.dismiss());
+  await page.getByRole("dialog", { name: "切换语言" }).getByRole("button", { name: "确认", exact: true }).click({ noWaitAfter: true });
+  expect((await blocked).type()).toBe("beforeunload");
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  expect(await page.evaluate(() => localStorage.getItem("sarmg.admin.language"))).toBe("zh-CN");
+  await page.evaluate(() => window.removeEventListener("beforeunload", window.preventTestLeave));
+  await page.getByRole("dialog", { name: "切换语言" }).getByRole("button", { name: "取消", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "管理员登录" })).toBeVisible();
 });
