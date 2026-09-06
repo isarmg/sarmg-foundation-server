@@ -1,0 +1,7 @@
+id = "namespace-contract-inspection"
+product = "dufs-ram"
+reason = "仅源扫描器将 auth 未知子路径的拒绝路由和 tests/auth.rs、tests/support/fixtures.rs 中 Cookie 合同断言误判为平台实现；实际登录/Session/CSRF 全部由 Foundation Axum 提供。"
+introduced_at = "0.7.0"
+must_remove_before = "1.0.0"
+security_reduction = false
+rules = ["foundation-route-ownership","platform-policy-ownership"]

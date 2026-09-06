@@ -1,0 +1,7 @@
+id = "generated-schema-inspection"
+product = "sunshine-manager"
+reason = "仅源扫描器将 Foundation Composer 生成的 current_schema.sql 中平台 DDL 判为产品自建；认证、Runtime、信号与连接层已完成迁移。"
+introduced_at = "0.7.0"
+must_remove_before = "1.0.0"
+security_reduction = false
+rules = ["platform-schema-ownership"]

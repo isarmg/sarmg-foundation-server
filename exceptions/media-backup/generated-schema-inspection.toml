@@ -1,0 +1,7 @@
+id = "generated-schema-inspection"
+product = "media-backup"
+reason = "仅源扫描器将 Foundation Composer 生成的 current_schema.sql 中平台 DDL 判为产品自建；认证、Runtime、信号与连接层已完成迁移。Schema 位于 crates/server/schema，当前根目录扫描器不能自动定位；产品自身 CI 验证组合 Schema。"
+introduced_at = "0.7.0"
+must_remove_before = "1.0.0"
+security_reduction = false
+rules = ["platform-schema-ownership","generated-schema"]

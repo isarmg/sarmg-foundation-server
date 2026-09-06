@@ -6,8 +6,8 @@
   "consumers": [
     {
       "product": "dufs-ram",
-      "commit": "efd0a18e2e253a18f4b4d61cf534bd045e0e3a10",
-      "foundation_version": "0.6.0",
+      "commit": "5ef35ad02f69b55df351aaed978d1b80e19de4bc",
+      "foundation_version": "0.7.0",
       "profiles": [
         "server-filesystem",
         "web-embedded-native"
@@ -26,6 +26,8 @@
         "server-runtime"
       ],
       "packages": [
+        "@sarmg/admin-shell",
+        "@sarmg/admin-ui",
         "@sarmg/admin-web",
         "@sarmg/contracts",
         "@sarmg/design-tokens",
@@ -33,23 +35,24 @@
         "@sarmg/web-fonts",
         "@sarmg/web-toolchain",
         "sarmg-admin-auth",
+        "sarmg-admin-axum",
         "sarmg-admin-core",
-        "sarmg-admin-hyper",
         "sarmg-admin-static",
         "sarmg-contracts",
         "sarmg-fs-safety",
         "sarmg-schema-identity",
+        "sarmg-server-runtime",
         "sarmg-server-target"
       ],
-      "status": "temporary-exception",
+      "status": "migration-in-progress",
       "exceptions": [
-        "local-platform-stack"
+        "namespace-contract-inspection"
       ]
     },
     {
       "product": "host-monitoring",
-      "commit": "e62a50f1af57a911074eb97222ab6815b5dc9481",
-      "foundation_version": "0.6.0",
+      "commit": "3a71926ad862e1edd5cc26240a40862732b80b8b",
+      "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -89,13 +92,13 @@
       ],
       "status": "temporary-exception",
       "exceptions": [
-        "local-platform-stack"
+        "generated-schema-inspection"
       ]
     },
     {
       "product": "media-backup",
-      "commit": "194092c48a2a0cd7800279a702031e111e7d3157",
-      "foundation_version": "0.6.0",
+      "commit": "f2b4fcef60edd38daf864f4cc5751d4585524563",
+      "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -133,12 +136,12 @@
       ],
       "status": "temporary-exception",
       "exceptions": [
-        "local-platform-stack"
+        "generated-schema-inspection"
       ]
     },
     {
       "product": "sarmg-upgrade",
-      "commit": "3051c7acac3125e9cf211cefe9a3a07bf371ba7a",
+      "commit": "1e0efe0d25c67d83df85c72e0f633e34d6e0521c",
       "foundation_version": "0.6.0",
       "profiles": [
         "offline-tool"
@@ -159,8 +162,8 @@
     },
     {
       "product": "sentinel-monitor",
-      "commit": "cb7c3c3eadf4cc8de1ff9149af7cb3cb205fa61b",
-      "foundation_version": "0.6.0",
+      "commit": "6b7338f3ea69ad3b99d9b959b6ed1909ec888d5c",
+      "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -207,13 +210,13 @@
       ],
       "status": "temporary-exception",
       "exceptions": [
-        "local-platform-stack"
+        "generated-schema-inspection"
       ]
     },
     {
       "product": "sunshine-manager",
-      "commit": "eb51dbb4739763b06498c4a3697023f5337381ca",
-      "foundation_version": "0.6.0",
+      "commit": "5b04c4c28cacdf4ff1c180ccd5872424e2324d8d",
+      "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -257,7 +260,7 @@
       ],
       "status": "temporary-exception",
       "exceptions": [
-        "local-platform-stack"
+        "generated-schema-inspection"
       ]
     }
   ]
