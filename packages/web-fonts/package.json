@@ -1,1 +1,36 @@
-{"name":"@sarmg/web-fonts","version":"0.7.0","description":"Pinned Maple Mono WOFF2 assets and font mappings","license":"OFL-1.1","type":"module","main":"./dist/index.js","types":"./dist/index.d.ts","exports":{".":{"types":"./dist/index.d.ts","import":"./dist/index.js"},"./fonts.css":"./dist/fonts.css","./MapleMono.woff2":"./dist/MapleMono.woff2","./MapleMono-Italic.woff2":"./dist/MapleMono-Italic.woff2","./provenance.json":"./dist/provenance.json","./OFL.txt":"./dist/OFL.txt"},"files":["dist"],"sideEffects":["*.css"],"scripts":{"build":"node scripts/build.mjs","typecheck":"node scripts/verify.mjs","test":"node scripts/build.mjs"},"engines":{"node":">=26.7.0 <27"}}
+{
+  "name": "@sarmg/web-fonts",
+  "version": "0.7.0",
+  "description": "Pinned Maple Mono WOFF2 assets and font mappings",
+  "license": "OFL-1.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./fonts.css": "./dist/fonts.css",
+    "./MapleMono.woff2": "./dist/MapleMono.woff2",
+    "./MapleMono-Italic.woff2": "./dist/MapleMono-Italic.woff2",
+    "./provenance.json": "./dist/provenance.json",
+    "./OFL.txt": "./dist/OFL.txt",
+    "./MapleMonoNormalNL-Regular.woff2": "./dist/MapleMonoNormalNL-Regular.woff2",
+    "./CJK-LICENSE.txt": "./dist/CJK-LICENSE.txt"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "node scripts/verify.mjs",
+    "test": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  }
+}
