@@ -1,6 +1,6 @@
 [package]
 name = "sarmg-server-runtime"
-description = "Supervised server lifecycle, health, diagnostics, and request policy for Sarmg services"
+description = "Supervised server lifecycle, health, and request policy for Sarmg services"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

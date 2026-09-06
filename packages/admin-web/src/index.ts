@@ -12,7 +12,6 @@ import {
 import { isAdministratorPassword } from "./password.js";
 export { isAdministratorPassword, ADMINISTRATOR_PASSWORD_MIN_BYTES, ADMINISTRATOR_PASSWORD_MAX_BYTES } from "./password.js";
 
-export { PLATFORM_DIAGNOSTICS_PATH, isPlatformDiagnostics, type PlatformDiagnostics } from "./diagnostics.js";
 export { createAdministratorManagementClient, type AdministratorManagementClient } from "./management.js";
 export { type AdministratorSummary } from "@sarmg/contracts";
 

@@ -1,1 +1,4 @@
-import{copyFile}from"node:fs/promises";await copyFile(new URL("../styles.css",import.meta.url),new URL("../dist/styles.css",import.meta.url));
+import { copyFile } from "node:fs/promises";
+for (const name of ["styles.css", "content-blocks.css"]) {
+  await copyFile(new URL(`../${name}`, import.meta.url), new URL(`../dist/${name}`, import.meta.url));
+}

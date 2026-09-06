@@ -1,3 +1,5 @@
+@import "./content-blocks.css";
+
 :where(button,input,select,textarea) { font: inherit; }
 :where(button,[href],input,select,textarea,[tabindex]):focus-visible { outline: 3px solid var(--sarmg-focus,#2563eb); outline-offset: 3px; }
 .sarmg-button,.sarmg-input { min-height: 44px; border: 1px solid currentColor; border-radius: var(--sarmg-radius-sm,6px); padding: .5rem .8rem; color: inherit; background: var(--sarmg-bg-panel,#fff); }
@@ -27,6 +29,7 @@
 .sarmg-page-header { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid currentColor; background: var(--sarmg-bg-panel,#fff); }
 .sarmg-product-identity { display: grid; margin-inline-end: auto; }
 .sarmg-shell-layout { display: grid; grid-template-columns: 15rem minmax(0,1fr); }
+.sarmg-shell-layout--full { grid-template-columns: minmax(0,1fr); }
 .sarmg-navigation { padding: 1rem; border-inline-end: 1px solid currentColor; }
 .sarmg-navigation a { display: block; padding: .75rem; color: inherit; border-radius: var(--sarmg-radius-sm,6px); overflow-wrap: anywhere; }
 .sarmg-navigation a[aria-current="page"] { font-weight: bold; text-decoration-thickness: .2em; }
@@ -35,8 +38,6 @@
 .sarmg-skip-link:focus { top: .5rem; }
 .sarmg-theme-select { display: flex; align-items: center; gap: .5rem; }
 .sarmg-theme-select select { width: auto; }
-.sarmg-diagnostics dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .5rem 1rem; }
-.sarmg-diagnostics dd { margin: 0; overflow-wrap: anywhere; }
 @media(max-width: 48rem) { .sarmg-shell-layout { grid-template-columns: minmax(0,1fr); } .sarmg-navigation { display: flex; flex-wrap: wrap; border-inline-end: 0; border-bottom: 1px solid currentColor; gap: .25rem; } }
 @media(forced-colors:active) { :where(button,[href],input,select,textarea,[tabindex]):focus-visible { outline-color: Highlight; } .sarmg-button:disabled { color: GrayText; opacity: 1; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important; } }

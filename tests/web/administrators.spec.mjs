@@ -32,7 +32,7 @@ test("shared administrator panel safely creates, disables, changes password and 
   await page.goto("/#administrators");
   await expect(page.getByRole("heading", { name: "Administrators", exact: true })).toBeVisible();
   for (const theme of ["light", "dark"]) {
-    await page.getByLabel("Theme").selectOption(theme);
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: /切换到.*模式/ }).click();
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }

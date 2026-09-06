@@ -20,7 +20,6 @@ use tokio::{
 
 pub const LIVENESS_PATH: &str = "/healthz";
 pub const READINESS_PATH: &str = "/readyz";
-pub const DIAGNOSTICS_PATH: &str = "/api/v2/platform/diagnostics";
 pub const DEFAULT_REQUEST_BODY_BYTES: usize = 1024 * 1024;
 pub const HEALTH_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 pub const HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(2);
@@ -561,26 +560,13 @@ pub fn new_request_id() -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-struct PlatformState<Store> {
+#[derive(Clone)]
+struct PlatformState {
     handle: RuntimeHandle,
-    product_id: String,
-    mode: sarmg_admin_auth::AdministratorOriginMode,
-    administrator: Arc<sarmg_admin_core::AdministratorService<Store>>,
 }
 
-impl<Store> Clone for PlatformState<Store> {
-    fn clone(&self) -> Self {
-        Self {
-            handle: self.handle.clone(),
-            product_id: self.product_id.clone(),
-            mode: self.mode,
-            administrator: Arc::clone(&self.administrator),
-        }
-    }
-}
-
-/// Compose the Foundation-owned auth, health, readiness, request-id and
-/// administrator diagnostics routes. Product routes must be merged separately.
+/// Compose the Foundation-owned auth, health, readiness and request-id routes.
+/// No administrator diagnostics endpoint is provided. Product routes must be merged separately.
 pub fn platform_router<Store>(
     handle: RuntimeHandle,
     product_id: impl Into<String>,
@@ -596,16 +582,10 @@ where
         mode,
         Arc::clone(&administrator),
     )?;
-    let state = PlatformState {
-        handle,
-        product_id,
-        mode,
-        administrator,
-    };
+    let state = PlatformState { handle };
     let runtime = Router::new()
-        .route(LIVENESS_PATH, get(liveness::<Store>))
-        .route(READINESS_PATH, get(readiness::<Store>))
-        .route(DIAGNOSTICS_PATH, get(diagnostics::<Store>))
+        .route(LIVENESS_PATH, get(liveness))
+        .route(READINESS_PATH, get(readiness))
         .with_state(state);
     Ok(Router::new()
         .merge(auth)
@@ -614,10 +594,7 @@ where
         .layer(middleware::from_fn(request_id_layer)))
 }
 
-async fn liveness<Store>(AxumState(state): AxumState<PlatformState<Store>>) -> StatusCode
-where
-    Store: sarmg_admin_core::AdministratorStore + 'static,
-{
+async fn liveness(AxumState(state): AxumState<PlatformState>) -> StatusCode {
     if state.handle.health().await.live {
         StatusCode::NO_CONTENT
     } else {
@@ -625,10 +602,7 @@ where
     }
 }
 
-async fn readiness<Store>(AxumState(state): AxumState<PlatformState<Store>>) -> Response
-where
-    Store: sarmg_admin_core::AdministratorStore + 'static,
-{
+async fn readiness(AxumState(state): AxumState<PlatformState>) -> Response {
     let ready = state.handle.health().await.ready;
     (
         if ready {
@@ -639,35 +613,6 @@ where
         Json(serde_json::json!({"ready": ready})),
     )
         .into_response()
-}
-
-async fn diagnostics<Store>(
-    AxumState(state): AxumState<PlatformState<Store>>,
-    request: Request,
-) -> Response
-where
-    Store: sarmg_admin_core::AdministratorStore + 'static,
-{
-    if let Err(response) = sarmg_admin_axum::authenticate_request(
-        &state.administrator,
-        request.headers(),
-        request.uri(),
-        request.method(),
-        &state.product_id,
-        state.mode,
-    )
-    .await
-    {
-        return *response;
-    }
-    let mut diagnostic = state.handle.diagnostics().await;
-    diagnostic.request_id = request.extensions().get::<String>().cloned();
-    let mut response = Json(diagnostic).into_response();
-    response.headers_mut().insert(
-        axum::http::header::CACHE_CONTROL,
-        HeaderValue::from_static("no-store, private, max-age=0"),
-    );
-    response
 }
 
 fn request_error(status: StatusCode, code: &'static str, request_id: &str) -> Response {
@@ -1153,7 +1098,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn only_authenticated_diagnostics_reveal_schema_and_backlog() {
+    async fn diagnostics_are_absent_for_both_anonymous_and_authenticated_requests() {
         use axum::{body::Body, extract::ConnectInfo, http::header};
         use sarmg_admin_core::{AdministratorRecord, AdministratorService, Identifier};
         let store = sarmg_admin_static::StaticAdministratorStore::new([AdministratorRecord {
@@ -1209,10 +1154,14 @@ mod tests {
         );
         let anonymous = app
             .clone()
-            .oneshot(Request::get(DIAGNOSTICS_PATH).body(Body::empty()).unwrap())
+            .oneshot(
+                Request::get("/api/v2/platform/diagnostics")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
-        assert_eq!(anonymous.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(anonymous.status(), StatusCode::NOT_FOUND);
         let mut login = Request::post(sarmg_contracts::ADMIN_LOGIN_PATH)
             .header(header::HOST, "127.0.0.1")
             .header(header::ORIGIN, "http://127.0.0.1")
@@ -1238,7 +1187,7 @@ mod tests {
             .unwrap();
         let diagnostic = app
             .oneshot(
-                Request::get(DIAGNOSTICS_PATH)
+                Request::get("/api/v2/platform/diagnostics")
                     .header(header::COOKIE, cookie)
                     .header("x-request-id", "diag-123")
                     .body(Body::empty())
@@ -1246,21 +1195,6 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(diagnostic.status(), StatusCode::OK);
-        assert!(
-            diagnostic.headers()[header::CACHE_CONTROL]
-                .to_str()
-                .unwrap()
-                .contains("no-store")
-        );
-        let bytes = axum::body::to_bytes(diagnostic.into_body(), 8192)
-            .await
-            .unwrap();
-        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        assert_eq!(value["request_id"], "diag-123");
-        assert_eq!(value["schema_identity"]["schema_revision"], 3);
-        assert_eq!(value["metrics"]["audit_backlog"], 5);
-        assert!(value["metrics"]["spool_pending_bytes"].is_null());
-        assert_eq!(value["checks"]["database"], true);
+        assert_eq!(diagnostic.status(), StatusCode::NOT_FOUND);
     }
 }

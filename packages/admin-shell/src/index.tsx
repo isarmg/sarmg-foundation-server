@@ -3,24 +3,29 @@ import {
   type FormEvent, type ReactNode,
 } from "react";
 import {
-  Button, Dialog, ErrorState, FormField, IconButton, LoadingState, PageHeader,
-  RequestId, Select, StatusBadge, Table, TextField, Toast,
+  Button, ErrorState, FormField, IconButton, LoadingState, PageHeader, TextField, Toast,
 } from "@sarmg/admin-ui";
 import {
-  createAdministratorApiClient, isPlatformDiagnostics, PLATFORM_DIAGNOSTICS_PATH,
-  type AdministratorApiClient, type PlatformDiagnostics,
+  createAdministratorApiClient, type AdministratorApiClient,
 } from "@sarmg/admin-web";
 import { useAdministratorSession, type AdministratorSessionController } from "@sarmg/admin-web/react";
 
+import { WorkspaceContext, HeaderActionsContext, HeaderNavigationContext, WorkspaceIcon } from "./workspace.js";
+import { resolveWorkspaceConfig, type WorkspaceConfig } from "./workspace-config.js";
+export { HeaderActions, HeaderNavigation, InstanceHeaderActions, InstanceWorkspace, InstanceNameField, WorkspaceIcon } from "./workspace.js";
+export { DEFAULT_WORKSPACE_CONFIG, resolveWorkspaceConfig, validInstanceName } from "./workspace-config.js";
+export type { WorkspaceConfig } from "./workspace-config.js";
+
 export { AdministratorsPanel } from "./administrators.js";
 
-export type ProductIdentity = { name: string; version: string };
+export type ProductIdentity = { name: string };
 export type NavigationItem = { label: string; href: string };
 export type AdminApplicationOptions = {
   product: ProductIdentity;
   client?: AdministratorApiClient;
   navigation: readonly NavigationItem[];
   routes: ReactNode;
+  workspace?: Partial<WorkspaceConfig>;
 };
 type ApplicationContext = {
   client: AdministratorApiClient;
@@ -43,10 +48,13 @@ export function errorRequestId(error: unknown): string | undefined {
   return undefined;
 }
 
-export class ApplicationErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean; requestId?: string }> {
+export class ApplicationErrorBoundary extends Component<{ children: ReactNode; resetKey?: string }, { failed: boolean; requestId?: string }> {
   state: { failed: boolean; requestId?: string } = { failed: false };
   static getDerivedStateFromError(error: unknown) {
     return { failed: true, requestId: errorRequestId(error) };
+  }
+  componentDidUpdate(previous: { resetKey?: string }) {
+    if (this.state.failed && previous.resetKey !== this.props.resetKey) this.setState({ failed: false, requestId: undefined });
   }
   render() {
     return this.state.failed
@@ -58,7 +66,7 @@ export class ApplicationErrorBoundary extends Component<{ children: ReactNode },
 }
 
 export function createSarmgAdminApplication(options: AdminApplicationOptions) {
-  if (!options.product.name.trim() || !options.product.version.trim()) throw new TypeError("Product identity is required");
+  if (!options.product.name.trim()) throw new TypeError("Product identity is required");
   const seen = new Set<string>();
   for (const item of options.navigation) {
     if (!item.label.trim() || !/^(?:\/(?!\/)|#)/.test(item.href) || /[\\\u0000-\u0020\u007f]/.test(item.href) || seen.has(item.href)) {
@@ -66,6 +74,7 @@ export function createSarmgAdminApplication(options: AdminApplicationOptions) {
     }
     seen.add(item.href);
   }
+  options = { ...options, workspace: resolveWorkspaceConfig(options.workspace) };
   const client = options.client ?? createAdministratorApiClient();
   return function SarmgAdminApplication() {
     return <ApplicationErrorBoundary><AdminShell options={options} client={client} /></ApplicationErrorBoundary>;
@@ -74,11 +83,25 @@ export function createSarmgAdminApplication(options: AdminApplicationOptions) {
 
 function AdminShell({ options, client }: { options: AdminApplicationOptions; client: AdministratorApiClient }) {
   const session = useAdministratorSession(client);
-  const [diagnostics, setDiagnostics] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState<unknown>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const sequence = useRef(0);
+  const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
+  const [headerNavigation, setHeaderNavigation] = useState<HTMLDivElement | null>(null);
+  const workspace = resolveWorkspaceConfig(options.workspace);
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = { appearance: root.dataset.sarmgAppearance, selection: root.dataset.sarmgSelection, font: root.style.getPropertyValue("--sarmg-font-ui") };
+    root.dataset.sarmgAppearance = workspace.appearance;
+    root.dataset.sarmgSelection = workspace.selection;
+    root.style.setProperty("--sarmg-font-ui", workspace.fontFamily);
+    return () => {
+      if (previous.appearance === undefined) delete root.dataset.sarmgAppearance; else root.dataset.sarmgAppearance = previous.appearance;
+      if (previous.selection === undefined) delete root.dataset.sarmgSelection; else root.dataset.sarmgSelection = previous.selection;
+      if (previous.font) root.style.setProperty("--sarmg-font-ui", previous.font); else root.style.removeProperty("--sarmg-font-ui");
+    };
+  }, [workspace.appearance, workspace.selection, workspace.fontFamily]);
   const notify = useCallback((message: string) => {
     const id = ++sequence.current;
     setToasts(current => [...current.slice(-4), { id, message: message.slice(0, 512) }]);
@@ -91,9 +114,9 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     return () => { window.removeEventListener("popstate", changed); window.removeEventListener("hashchange", changed); };
   }, []);
   useEffect(() => {
-    if (session.phase !== "authenticated") { setToasts([]); setDiagnostics(false); setLogoutError(null); }
+    if (session.phase !== "authenticated") { setToasts([]); setLogoutError(null); }
   }, [session.phase]);
-  const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong><small>{options.product.version}</small></div>;
+  const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
   if (session.phase !== "authenticated") {
     return <div className="sarmg-auth-shell"><div className="sarmg-auth-card">{identity}
       {session.phase === "loading" ? <LoadingState>Restoring administrator session…</LoadingState>
@@ -109,28 +132,27 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     finally { setLogoutPending(false); }
   }
   return <Context.Provider value={{ client, session: session.session, notify }}>
-    <div className="sarmg-admin-shell">
+    <div className="sarmg-admin-shell" style={{ "--sarmg-header-icon-size": workspace.headerIconSize } as import("react").CSSProperties}>
       <a className="sarmg-skip-link" href="#sarmg-main-content" onClick={event => {
         event.preventDefault(); document.getElementById("sarmg-main-content")?.focus();
       }}>Skip to content</a>
-      <PageHeader>{identity}<ThemeSelect />
-        <Button onClick={() => setDiagnostics(true)}>Diagnostics</Button>
-        <Button disabled={logoutPending} onClick={() => void logout()}>{logoutPending ? "Signing out…" : "Sign out"}</Button>
-      </PageHeader>
+      <PageHeader><div className="sarmg-header-navigation-slot"><div className="sarmg-header-brand-navigation">{identity}<div ref={setHeaderNavigation} style={{ display: "contents" }}>
+        {options.navigation.length > 0 && <nav className="sarmg-header-navigation" aria-label="Product navigation">
+          {options.navigation.map(item => <a key={item.href} href={item.href}
+            aria-current={(item.href.startsWith("#") ? location.endsWith(item.href) : location === item.href) ? "page" : undefined}>{item.label}</a>)}
+        </nav>}
+      </div></div></div><div className="sarmg-header-actions" role="group" aria-label="全局操作">
+        <div ref={setHeaderActions} style={{ display: "contents" }} /><ThemeToggle />
+        <IconButton disabled={logoutPending} aria-label={logoutPending ? "正在退出…" : "退出"} title={logoutPending ? "正在退出…" : "退出"} onClick={() => void logout()}>{workspace.headerControls === "icons" ? <WorkspaceIcon name="logout" /> : "退出"}</IconButton>
+      </div></PageHeader>
       {toasts.length > 0 && <div className="sarmg-toast-stack" role="region" aria-label="Notifications">{toasts.map(toast =>
         <Toast key={toast.id}><span>{toast.message}</span>
           <IconButton aria-label="Dismiss notification" onClick={() => setToasts(current => current.filter(item => item.id !== toast.id))}>×</IconButton>
         </Toast>)}</div>}
-      <div className="sarmg-shell-layout"><nav className="sarmg-navigation" aria-label="Product navigation">
-        {options.navigation.map(item => <a key={item.href} href={item.href}
-          aria-current={(item.href.startsWith("#") ? location.endsWith(item.href) : location === item.href) ? "page" : undefined}>{item.label}</a>)}
-      </nav><main id="sarmg-main-content" className="sarmg-shell-main" tabIndex={-1}>
+      <div className="sarmg-shell-layout sarmg-shell-layout--full"><main id="sarmg-main-content" className="sarmg-shell-main" tabIndex={-1}>
         {logoutError !== null && <ErrorState requestId={errorRequestId(logoutError)}>Sign out could not be confirmed. Try again.</ErrorState>}
-        <ApplicationErrorBoundary key={location}>{options.routes}</ApplicationErrorBoundary>
+        <ApplicationErrorBoundary resetKey={location}><WorkspaceContext.Provider value={workspace}><HeaderNavigationContext.Provider value={headerNavigation}><HeaderActionsContext.Provider value={headerActions}>{options.routes}</HeaderActionsContext.Provider></HeaderNavigationContext.Provider></WorkspaceContext.Provider></ApplicationErrorBoundary>
       </main></div>
-      {diagnostics && <Dialog title="Platform diagnostics" onClose={() => setDiagnostics(false)}>
-        <DiagnosticsPanel client={client} />
-      </Dialog>}
     </div>
   </Context.Provider>;
 }
@@ -161,50 +183,18 @@ export function LoginPage({ login }: { login: (username: string, password: strin
   </form>;
 }
 
-function ThemeSelect() {
-  const [theme, setTheme] = useState("system");
+function ThemeToggle() {
+  const [theme, setTheme] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   useEffect(() => {
     const root = document.documentElement;
     const previous = root.dataset.theme;
-    const preference = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => { root.dataset.theme = theme === "system" ? (preference.matches ? "dark" : "light") : theme; };
-    apply(); preference.addEventListener("change", apply);
-    return () => { preference.removeEventListener("change", apply); if (previous === undefined) delete root.dataset.theme; else root.dataset.theme = previous; };
+    root.dataset.theme = theme;
+    return () => { if (previous === undefined) delete root.dataset.theme; else root.dataset.theme = previous; };
   }, [theme]);
-  return <label className="sarmg-theme-select"><span>Theme</span><Select value={theme} onChange={event => setTheme(event.target.value)}>
-    <option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option>
-  </Select></label>;
-}
-
-export function DiagnosticsPanel({ client }: { client: AdministratorApiClient }) {
-  const [value, setValue] = useState<PlatformDiagnostics | null>(null);
-  const [failure, setFailure] = useState<{ requestId?: string } | null>(null);
-  const [generation, setGeneration] = useState(0);
-  useEffect(() => {
-    const controller = new AbortController();
-    setValue(null); setFailure(null);
-    void client.request(PLATFORM_DIAGNOSTICS_PATH, isPlatformDiagnostics, { signal: controller.signal })
-      .then(result => { if (!controller.signal.aborted) setValue(result); })
-      .catch(error => { if (!controller.signal.aborted) setFailure({ requestId: errorRequestId(error) }); });
-    return () => controller.abort();
-  }, [client, generation]);
-  if (failure) return <ErrorState requestId={failure.requestId} onRetry={() => setGeneration(current => current + 1)}>Diagnostics are unavailable.</ErrorState>;
-  if (!value) return <LoadingState>Loading diagnostics…</LoadingState>;
-  return <section className="sarmg-diagnostics" aria-label="Platform diagnostics details">
-    <Button onClick={() => setGeneration(current => current + 1)}>Refresh</Button>
-    <RequestId value={value.request_id} />
-    <dl><dt>Product</dt><dd>{value.product.id} {value.product.version}</dd>
-      <dt>Foundation revision</dt><dd><code>{value.product.foundation_revision}</code></dd>
-      <dt>Profile</dt><dd>{value.product.profile}</dd>
-      <dt>Readiness</dt><dd><StatusBadge status={value.health.ready ? "Ready" : "Not ready"} /></dd>
-      <dt>Health</dt><dd>{!value.health.live ? "Unhealthy" : value.health.degraded ? "Degraded" : "Healthy"}</dd>
-      <dt>Schema</dt><dd>{value.schema_identity ? <>{value.schema_identity.schema_revision} · <code>{value.schema_identity.schema_sha256}</code></> : "Not applicable"}</dd>
-    </dl>
-    <Table aria-label="Health checks"><caption>Health checks</caption><thead><tr><th scope="col">Check</th><th scope="col">Result</th></tr></thead>
-      <tbody>{Object.entries(value.checks).map(([name, passed]) => <tr key={name}><th scope="row">{name}</th><td>{passed ? "Passed" : "Failed"}</td></tr>)}</tbody></Table>
-    <Table aria-label="Background tasks"><caption>Background tasks</caption><thead><tr><th scope="col">Task</th><th scope="col">Criticality</th><th scope="col">State</th></tr></thead>
-      <tbody>{Object.entries(value.tasks).map(([name, task]) => <tr key={name}><th scope="row">{name}</th><td>{task.criticality}</td><td>{task.state}</td></tr>)}</tbody></Table>
-    <Table aria-label="Backlog"><caption>Backlog (unavailable values are not zero)</caption><thead><tr><th scope="col">Metric</th><th scope="col">Value</th></tr></thead>
-      <tbody>{Object.entries(value.metrics).map(([name, count]) => <tr key={name}><th scope="row">{name}</th><td>{count === null ? "Unavailable / not applicable" : count}</td></tr>)}</tbody></Table>
-  </section>;
+  const label = theme === "light" ? "切换到深色模式" : "切换到浅色模式";
+  return <IconButton aria-label={label} title={label} onClick={() => setTheme(current => current === "light" ? "dark" : "light")}>
+    <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      {theme === "light" ? <path d="M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13Z" /> : <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5" /></>}
+    </svg>
+  </IconButton>;
 }

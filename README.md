@@ -40,7 +40,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 | `sarmg-admin-static` | 静态 PHC 管理员与进程内 Session Store | Web 管理员增删、跨重启 Session |
 | `sarmg-admin-axum` | Foundation Auth Router、Cookie、Origin/CSRF 与 Axum 请求认证 | 产品业务路由和业务权限 |
 | `sarmg-admin-hyper` | 与 Admin Core 同语义的 Hyper 请求/响应适配边界 | 文件服务业务实现 |
-| `sarmg-server-runtime` | 进程身份、Request ID、健康、诊断、信号和后台任务监督 | 产品 AppState 与业务 Router |
+| `sarmg-server-runtime` | 进程身份、Request ID、健康、信号和后台任务监督（无诊断 HTTP 接口） | 产品 AppState 与业务 Router |
 | `sarmg-fs-safety` | typed 相对路径、原子发布、目录预算和 Linux openat2 根 | 产品路径命名与文件内容语义 |
 | `sarmg-secret` | 默认脱敏并在 drop 清零的内存秘密类型 | 密钥持久化和产品密钥轮换 |
 | `sarmg-secret-envelope` | 域与对象绑定的有界 AES-GCM envelope | 产品域、对象 ID 和业务字段 |
@@ -61,6 +61,15 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 | `@sarmg/admin-ui` | 管理面基础控件、状态组件和安全交互 | 产品业务组件 |
 | `@sarmg/admin-shell` | 登录/恢复、顶栏、导航、错误与 Toast 外壳 | 产品页面和业务路由 |
 | `@sarmg/web-fonts` | 固定 Maple Mono commit、WOFF2、OFL、SHA-256 与 CSS 映射 | 设计 token 与产品品牌 |
+
+### 1.3 管理 Web 默认外观
+
+当前源码的 `@sarmg/admin-ui/styles.css` 默认提供 Union 内容块外观（3:2 六行卡片、
+旧版色板及圆角），当前默认西文字体为 Maple Mono Normal NL 正体，中文/日文资源保持不变。
+消费者可设置 `html[data-sarmg-appearance="custom"]` 或其他自定义名称并加载自己的 CSS。
+默认外观不是强制品牌规范，自定义外观不能改变认证、会话、权限及无障碍要求。
+详见 [默认外观与消费者自定义](packages/admin-ui/CONTENT-BLOCKS.md)。
+此源码变更尚未发布为新 npm 版本，不修改已发布的 0.6.0 制品。
 
 ## 2. 统一后的硬边界
 

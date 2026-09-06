@@ -19,11 +19,11 @@
 |---|---|---|
 | `/healthz` | 无 | 存活 204、不健康 503；空响应体 |
 | `/readyz` | 无 | 200 或 503；仅 `{"ready":bool}` |
-| `/api/v2/platform/diagnostics` | 管理员 Session | 禁止缓存的详细诊断 |
 | `/api/v2/auth/*` | 由统一 Auth Adapter 决定 | 唯一当前管理员 wire 合同 |
 
-详细诊断包括 product（Foundation revision、profile、capabilities）、schema_identity、health、checks、tasks、
-request_id 和 metrics。Schema identity 是经产品启动校验的编译期当前身份；数据库实时状态由数据库健康探针给出。
+诊断 HTTP 路由及处理器已移除，`/api/v2/platform/diagnostics` 对匿名和已登录请求均为 404。
+运行时内部快照仅供任务监督与测试，不作为管理 Web 功能或 HTTP 数据接口。
+Schema identity 是经产品启动校验的编译期当前身份；数据库实时状态由数据库健康探针给出。
 
 数值 metrics 的字段固定为 audit_backlog、operation_backlog、spool_pending_bytes、spool_pending_records。
 未接入的能力或失败/超时的读取返回 null，不把“无法得知”当成零，也不保留过期的成功值。
