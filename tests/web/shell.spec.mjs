@@ -35,7 +35,7 @@ test("failed login stays mounted, clears password, and displays only safe failur
   await page.getByLabel("Password", { exact: true }).fill("correct-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Product overview" })).toBeVisible();
-  await page.getByRole("button", { name: "退出", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Administrator sign in" })).toBeVisible();
 });
 
@@ -63,12 +63,12 @@ test("diagnostics is removed; bounded notifications, theme and error boundary re
   const notifications = await page.getByRole("region", { name: "Notifications", exact: true }).boundingBox();
   const product = await page.getByRole("heading", { name: "Product overview", exact: true }).boundingBox();
   expect(notifications.y + notifications.height).toBeLessThanOrEqual(product.y);
-  await page.getByRole("button", { name: "切换到深色模式" }).click();
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("button", { name: "Crash product route" }).click();
   await expect(page.getByRole("alert")).toContainText("render-123");
   await expect(page.locator("body")).not.toContainText("SECRET");
-  await expect(page.getByRole("button", { name: "退出", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
   expect(diagnosticRequests).toEqual([]);
 });
 
@@ -76,7 +76,7 @@ test("shell has no WCAG AA violations or horizontal overflow at mobile width and
   await mockApi(page, true); await page.setViewportSize({ width: 360, height: 740 }); await page.goto("/");
   await expect(page.getByRole("heading", { name: "Product overview" })).toBeVisible();
   for (const theme of ["light", "dark"]) {
-    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: /切换到.*模式/ }).click();
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: /Switch to .* mode/ }).click();
     expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }

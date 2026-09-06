@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+import { validationMessage } from "./i18n.js";
 import {
   useEffect, useId, useRef,
   type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes,
@@ -13,11 +15,16 @@ export function IconButton({ "aria-label": label, ...props }: ButtonHTMLAttribut
   if (!label?.trim()) throw new TypeError("IconButton requires aria-label");
   return <Button {...props} aria-label={label} />;
 }
-export function TextField({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={classes("sarmg-input", className)} />;
+export function TextField({ className, onInvalid, onInput, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} className={classes("sarmg-input", className)} onInvalid={event => {
+    if (!event.currentTarget.validity.customError) event.currentTarget.setCustomValidity(validationMessage(event.currentTarget));
+    onInvalid?.(event);
+  }} onInput={event => { event.currentTarget.setCustomValidity(""); onInput?.(event); }} />;
 }
-export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={classes("sarmg-input", className)} />;
+export function Select({ className, onInvalid, onChange, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <select {...props} className={classes("sarmg-input", className)} onInvalid={event => {
+    if (!event.currentTarget.validity.customError) event.currentTarget.setCustomValidity(validationMessage(event.currentTarget)); onInvalid?.(event);
+  }} onChange={event => { event.currentTarget.setCustomValidity(""); onChange?.(event); }} />;
 }
 export function Checkbox(props: Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
   return <input {...props} type="checkbox" />;
@@ -62,7 +69,7 @@ export function Dialog({ title, description, children, onClose }: DialogProps) {
     }}
     onCancel={(event) => { event.preventDefault(); onClose(); }}>
     <div className="sarmg-dialog-heading"><h2 id={titleId}>{title}</h2>
-      <IconButton aria-label="Close dialog" onClick={onClose}>×</IconButton></div>
+      <IconButton aria-label={t("关闭对话框", "Close dialog")} onClick={onClose}>×</IconButton></div>
     {description && <p id={descriptionId}>{description}</p>}{children}
   </dialog>;
 }
@@ -72,8 +79,8 @@ export function ConfirmDangerDialog({ title, description, onConfirm, onClose, pe
   return <Dialog title={title} description={description} onClose={() => { if (!pending) onClose(); }}>
     {children}
     <div className="sarmg-actions">
-      <Button data-sarmg-initial-focus disabled={pending} onClick={onClose}>Cancel</Button>
-      <Button className="sarmg-danger" disabled={pending} onClick={onConfirm}>{pending ? "Working…" : "Confirm"}</Button>
+      <Button data-sarmg-initial-focus disabled={pending} onClick={onClose}>{t("取消", "Cancel")}</Button>
+      <Button className="sarmg-danger" disabled={pending} onClick={onConfirm}>{pending ? t("正在处理…", "Working…") : t("确认", "Confirm")}</Button>
     </div>
   </Dialog>;
 }
@@ -84,7 +91,7 @@ export function StatusBadge({ status }: { status: string }) {
   return <span className="sarmg-status">{status}</span>;
 }
 export function Table({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
-  return <div className="sarmg-table-scroll" tabIndex={0} role="region" aria-label={props["aria-label"] ?? "Data table"}>
+  return <div className="sarmg-table-scroll" tabIndex={0} role="region" aria-label={props["aria-label"] ?? t("数据表格", "Data table")}>
     <table {...props} className={classes("sarmg-table", className)} />
   </div>;
 }
@@ -96,16 +103,16 @@ export function EmptyState({ children }: { children: ReactNode }) {
 }
 export function RequestId({ value }: { value?: string | null }) {
   return value && /^[A-Za-z0-9._:-]{1,128}$/.test(value)
-    ? <p className="sarmg-request-id">Request ID: <code>{value}</code></p> : null;
+    ? <p className="sarmg-request-id">{t("请求标识：", "Request ID:")}<code>{value}</code></p> : null;
 }
 export function ErrorState({ children, requestId, onRetry }: {
   children: ReactNode; requestId?: string | null; onRetry?: () => void;
 }) {
   return <div className="sarmg-error" role="alert"><div>{children}</div>
-    <RequestId value={requestId} />{onRetry && <Button onClick={onRetry}>Try again</Button>}
+    <RequestId value={requestId} />{onRetry && <Button onClick={onRetry}>{t("重试", "Try again")}</Button>}
   </div>;
 }
-export function LoadingState({ children = "Loading…" }: { children?: ReactNode }) {
+export function LoadingState({ children = t("正在加载…", "Loading…") }: { children?: ReactNode }) {
   return <div className="sarmg-loading" role="status" aria-live="polite">{children}</div>;
 }
 export function PageHeader({ children }: { children: ReactNode }) {

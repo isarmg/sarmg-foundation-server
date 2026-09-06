@@ -67,7 +67,7 @@ test("default appearance preserves failure handling, login/logout, theme and mod
   await expect(page.getByRole("heading", { name: "Product overview" })).toBeVisible();
   await page.setViewportSize({ width: 360, height: 740 });
   for (const theme of ["light", "dark"]) {
-    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: /切换到.*模式/ }).click();
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: /Switch to .* mode/ }).click();
     const trigger = page.getByRole("button", { name: "Open modal" });
     await trigger.click();
     const dialog = page.getByRole("dialog", { name: "Test modal" });
@@ -80,7 +80,7 @@ test("default appearance preserves failure handling, login/logout, theme and mod
     await expect(trigger).toBeFocused();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  await page.getByRole("button", { name: "退出", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   await page.emulateMedia({ forcedColors: "active" });
   expect(await page.locator(".sarmg-auth-card").evaluate(el => getComputedStyle(el).borderTopWidth)).toBe("1px");

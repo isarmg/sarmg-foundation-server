@@ -1,3 +1,5 @@
+import { t } from "@sarmg/admin-ui/i18n";
+import { createLanguageControl } from "@sarmg/admin-ui/i18n";
 import { resolveWorkspaceConfig, WORKSPACE_ICON_PATHS, validInstanceName, type WorkspaceConfig } from "./workspace-config.js";
 /** Native Web adapter: retains existing product listeners, including logout/CSRF. */
 export function configureNativeWorkspace({ header, content, actions, create, logout, refresh, instanceName, instanceHref, labels = {}, config: input }: {
@@ -12,7 +14,7 @@ export function configureNativeWorkspace({ header, content, actions, create, log
   document.documentElement.dataset.sarmgAppearance = config.appearance;
   document.documentElement.dataset.sarmgSelection = config.selection;
   document.documentElement.style.setProperty("--sarmg-font-ui", config.fontFamily);
-  actions.classList.add("sarmg-header-actions"); actions.setAttribute("role", "group"); actions.setAttribute("aria-label", labels.actions ?? "全局操作");
+  actions.classList.add("sarmg-header-actions"); actions.setAttribute("role", "group"); actions.setAttribute("aria-label", labels.actions ?? t("全局操作", "Global actions"));
   const icon = (button: HTMLButtonElement, name: keyof typeof WORKSPACE_ICON_PATHS, label: string) => {
     button.classList.add("sarmg-button"); button.setAttribute("aria-label", label); button.title = label;
     button.querySelector("svg")?.remove();
@@ -25,16 +27,17 @@ export function configureNativeWorkspace({ header, content, actions, create, log
     svg.style.fill = "none";
     const path = document.createElementNS(svg.namespaceURI, "path"); path.setAttribute("d", WORKSPACE_ICON_PATHS[name]); svg.append(path); button.prepend(svg);
   };
-  if (create) { icon(create, "create", create.getAttribute("aria-label") ?? "新建实例"); actions.append(create); }
-  const reload = document.createElement("button"); reload.type = "button"; icon(reload,"refresh",labels.refresh ?? "刷新"); reload.addEventListener("click",refresh); actions.append(reload);
+  if (create) { icon(create, "create", create.getAttribute("aria-label") ?? t("新建实例", "Create instance")); actions.append(create); }
+  const reload = document.createElement("button"); reload.type = "button"; icon(reload,"refresh",labels.refresh ?? t("刷新", "Refresh")); reload.addEventListener("click",refresh); actions.append(reload);
   const theme = document.createElement("button"); theme.type = "button";
+  actions.append(createLanguageControl());
   let dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  const update = () => { document.documentElement.dataset.theme = dark ? "dark" : "light"; icon(theme,dark?"sun":"moon",dark?(labels.light ?? "切换到浅色模式"):(labels.dark ?? "切换到深色模式")); };
+  const update = () => { document.documentElement.dataset.theme = dark ? "dark" : "light"; icon(theme,dark?"sun":"moon",dark?(labels.light ?? t("切换到浅色模式", "Switch to light mode")):(labels.dark ?? t("切换到深色模式", "Switch to dark mode"))); };
   update(); theme.addEventListener("click",()=>{dark=!dark;update();}); actions.append(theme);
-  icon(logout,"logout",labels.logout ?? logout.getAttribute("aria-label") ?? "退出"); logout.querySelectorAll<HTMLSpanElement>("span:not([data-workspace-label])").forEach(node=>node.hidden=true); actions.append(logout);
+  icon(logout,"logout",labels.logout ?? logout.getAttribute("aria-label") ?? t("退出", "Sign out")); logout.querySelectorAll<HTMLSpanElement>("span:not([data-workspace-label])").forEach(node=>node.hidden=true); actions.append(logout);
   if (config.layout === "instances") {
     const workspace = document.createElement("div"); workspace.className="sarmg-instance-workspace sarmg-native-workspace";
-    const sidebar = document.createElement("aside"); sidebar.className="sarmg-instance-sidebar"; sidebar.setAttribute("aria-label",labels.instances ?? "共享根实例");
+    const sidebar = document.createElement("aside"); sidebar.className="sarmg-instance-sidebar"; sidebar.setAttribute("aria-label",labels.instances ?? t("共享根实例", "Shared root instance"));
     const list = document.createElement("div"); list.className="sarmg-instance-list";
     const link = document.createElement("a"); link.href=instanceHref; link.className="sarmg-button"; link.textContent=instanceName; link.title=instanceName; link.setAttribute("aria-current","page"); list.append(link); sidebar.append(list);
     content.before(workspace); workspace.append(sidebar,content); content.classList.add("sarmg-instance-detail");

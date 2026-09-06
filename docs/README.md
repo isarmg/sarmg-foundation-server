@@ -15,6 +15,7 @@ manifest、Profile、JSON Schema、fixture、测试和发布 policy 为事实源
 | Durable Operations | [durable-operations.md](platform-specifications/durable-operations.md) | 事务、owner fencing、Unknown 和审计 outbox |
 | 文件句柄安全 | [filesystem-handles.md](filesystem-handles.md) | 私有目录、typed entry、有界 I/O、原子发布与原生验收边界 |
 | 管理员 Web Profile | [admin-web-shell.md](platform-specifications/admin-web-shell.md) | 共享外壳、顶部导航、可访问 UI 和浏览器验收 |
+| 管理 Web 中英文 | [admin-web-language.md](admin-web-language.md) | 语言偏好、成对文案、协议值边界和双语验收 |
 | 持久管理员管理 | [administrator-management.md](platform-specifications/administrator-management.md) | 唯一管理 API、事务内授权、最后管理员保护、审计与共享面板 |
 | 完整功能与取舍清单 | [feature-inventory-and-tradeoffs.md](feature-inventory-and-tradeoffs.md) | 每项能力的实现锚点、分类、复杂度、删除后果、验证和明确排除项 |
 | 运维文档 | [operations.md](operations.md) | 固定工具链、CI/package/release 运维、故障处置、消费者追踪和安全事件 |

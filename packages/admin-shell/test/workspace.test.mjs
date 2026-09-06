@@ -21,7 +21,7 @@ test('instance names count Unicode scalar values, reject controls and blank name
 });
 test('shared workspace has name-only sidebar and product-owned details',()=>{
   const html=renderToStaticMarkup(createElement(InstanceWorkspace,{instances:[{id:'1',name:'Example'}],selected:'1',select(){}},'Settings'));
-  assert.match(html,/aria-pressed="true"/);assert.match(html,/<span>Example<\/span>/);assert.match(html,/实例详情与设置/);
+  assert.match(html,/aria-pressed="true"/);assert.match(html,/<span>Example<\/span>/);assert.match(html,/Instance details and settings/);
   const field=renderToStaticMarkup(createElement(InstanceNameField));assert.doesNotMatch(field,/maxlength/i);assert.ok(field.includes('{1,32}'));
   assert.match(renderToStaticMarkup(createElement(WorkspaceIcon,{name:'create'})),/aria-hidden="true"/);
 });
