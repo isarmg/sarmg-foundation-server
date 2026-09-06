@@ -13,3 +13,17 @@ test('native consumers share icons and keep product callbacks and theme behavior
   await expect(page.getByRole('complementary')).toHaveText('Shared root');
   await actions.getByRole('button',{name:'退出',exact:true}).click();await expect(page.locator('body')).toHaveAttribute('data-logged-out','true');
 });
+
+test('native consumers can localize labels without replacing their existing logout handler',async({page})=>{
+  const config=await readFile(new URL('../../packages/admin-shell/dist/workspace-config.js',import.meta.url),'utf8');
+  const native=await readFile(new URL('../../packages/admin-shell/dist/native-workspace.js',import.meta.url),'utf8');
+  await page.goto('/');
+  await page.setContent('<header id="head"><div id="actions"><button id="logout" aria-label="Sign out"></button></div></header><main id="content">Files</main>');
+  await page.addScriptTag({type:'module',content:config+'\n'+native.replace(/^import .*?;\n/,'')+'\nconst logout=document.getElementById("logout"); logout.addEventListener("click",()=>document.body.dataset.loggedOut="true"); configureNativeWorkspace({header:document.getElementById("head"),content:document.getElementById("content"),actions:document.getElementById("actions"),logout,refresh:()=>document.body.dataset.refreshed="true",instanceName:"Shared root",instanceHref:"/",labels:{actions:"Global actions",refresh:"Reload page",light:"Switch to light mode",dark:"Switch to dark mode",instances:"Shared root instance"}});'});
+  const actions=page.getByRole('group',{name:'Global actions'});
+  await expect(actions.getByRole('button')).toHaveCount(3);
+  await actions.getByRole('button',{name:'Reload page'}).click();await expect(page.locator('body')).toHaveAttribute('data-refreshed','true');
+  const previous=await page.locator('html').getAttribute('data-theme');await actions.getByRole('button',{name:/Switch to .* mode/}).click();await expect(page.locator('html')).not.toHaveAttribute('data-theme',previous);
+  await expect(page.getByRole('complementary',{name:'Shared root instance'})).toHaveText('Shared root');
+  await actions.getByRole('button',{name:'Sign out',exact:true}).click();await expect(page.locator('body')).toHaveAttribute('data-logged-out','true');
+});

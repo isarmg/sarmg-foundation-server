@@ -36,6 +36,7 @@ createSarmgAdminApplication({
 后端仍必须校验请求，不能依赖浏览器输入限制。该规则不是文件名、用户名或路径长度规则。
 
 原生 Web 通过 `native-workspace` 的 `configureNativeWorkspace` 使用同一配置和图标，
+可用 `labels` 设置操作区、刷新、亮/暗模式、退出及实例区的可访问名称，保留消费者语言；未覆盖时退出沿用原按钮的 `aria-label`。
 保留已有创建/退出事件处理，不引入 React 或第二套认证。
 
 `HeaderNavigation` 将产品页面选项放入顶部，与四个全局图标同一行；保留原有字体大小，
