@@ -163,11 +163,14 @@ impl ServerRuntime {
             // is it safe to close durable commit registration.
             // Upgraded sockets also own connection capacity until their real
             // I/O object drops, not merely until the HTTP handshake returns.
-            let _all_sockets = slots
+            let all_sockets = slots
                 .clone()
                 .acquire_many_owned(limits.max_connections as u32)
                 .await
                 .expect("connection quota remains open");
+            // This is a barrier, not an active connection. Release it before
+            // commit draining so incomplete reports count real sockets only.
+            drop(all_sockets);
             *phase_worker.lock().expect("phase lock") = ShutdownPhase::DrainingCommits;
             if let Some(participant) = &participant {
                 participant.drain_commits().await;
@@ -402,6 +405,37 @@ mod tests {
             .unwrap()
             .unwrap();
         assert!(report.clean);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn stalled_commit_report_does_not_count_the_socket_drain_barrier() {
+        let scope = crate::WorkScope::new();
+        let (release, blocked) = tokio::sync::oneshot::channel::<()>();
+        scope.commit_tasks.spawn(async move {
+            let _ = blocked.await;
+        });
+        let runtime = ServerRuntime::builder(ProductDescriptor {
+            id: "fixture".into(),
+            version: "1.0.0".into(),
+            foundation_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            profile: "server-filesystem".into(),
+            capabilities: vec![],
+        })
+        .build()
+        .await
+        .unwrap();
+        runtime.handle().shutdown();
+        let listeners = BoundListeners::bind(["127.0.0.1:0".parse().unwrap()]).unwrap();
+        let mut server = HttpServer::new(listeners, ProcessSignals::install().unwrap());
+        server.participant = Some(Arc::new(ScopeParticipant(scope.clone())));
+        let Err(Error::ShutdownIncomplete(failure)) = runtime.serve(server, Router::new()).await
+        else {
+            panic!("stalled commit must fail shutdown");
+        };
+        assert_eq!(failure.report.unfinished_connections, 0);
+        assert_eq!(failure.report.unfinished_commits, 1);
+        release.send(()).unwrap();
+        scope.commit_tasks.wait().await;
     }
 
     async fn request(address: SocketAddr, bytes: &[u8]) -> Vec<u8> {
