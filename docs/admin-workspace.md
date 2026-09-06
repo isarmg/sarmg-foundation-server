@@ -39,6 +39,10 @@ createSarmgAdminApplication({
 可用 `labels` 设置操作区、刷新、亮/暗模式、退出及实例区的可访问名称，保留消费者语言；未覆盖时退出沿用原按钮的 `aria-label`。
 保留已有创建/退出事件处理，不引入 React 或第二套认证。
 
+例如，英文消费者可传入 `labels: { actions: "Global actions", refresh: "Reload page",
+light: "Switch to light mode", dark: "Switch to dark mode", logout: "Sign out",
+instances: "Shared root instance" }`。这些名称用于屏幕阅读器和悬停提示，不改变图标大小或业务回调。
+
 `HeaderNavigation` 将产品页面选项放入顶部，与四个全局图标同一行；保留原有字体大小，
 SVG 高度使用 `1em` 匹配文字，点击区域高 44px，窄屏仅导航区域横向滚动，不挤压右侧图标或隐藏键盘焦点。
 `headerIconSize` 固定为 `1em`，不通过改变字号匹配图标。诊断和版本显示已移除，`diagnostics` / `showVersion`
