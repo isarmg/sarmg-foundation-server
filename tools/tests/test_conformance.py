@@ -100,6 +100,20 @@ class ConformanceTests(unittest.TestCase):
             with self.assertRaisesRegex(ConformanceError, "no-product-features"):
                 verify_source(product, ROOT)
 
+    def test_filesystem_profile_accepts_native_and_react_web(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            for profile in ("web-embedded-native", "web-react-admin"):
+                (product / "sarmg-product.toml").write_text(
+                    VALID_MANIFEST.replace("web-embedded-native", profile), encoding="utf-8"
+                )
+                self.assertEqual(verify_manifest(product, ROOT)["components"][0]["web_profile"], profile)
+            (product / "sarmg-product.toml").write_text(
+                VALID_MANIFEST.replace("web-embedded-native", "offline-tool"), encoding="utf-8"
+            )
+            with self.assertRaisesRegex(ConformanceError, "web_profile is not allowed"):
+                verify_manifest(product, ROOT)
+
     def test_agent_profile_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)

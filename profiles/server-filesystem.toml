@@ -3,7 +3,7 @@ id = "server-filesystem"
 kind = "server"
 formal_targets = ["x86_64-unknown-linux-gnu"]
 http_adapters = ["axum"]
-web_profiles = ["web-embedded-native"]
+web_profiles = ["web-embedded-native", "web-react-admin"]
 required_capabilities = [
   "admin-static",
   "memory-sessions",
