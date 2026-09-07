@@ -11,13 +11,13 @@ Foundation 没有生产 daemon、监听端口、业务数据库、用户表、Se
 
 | 项目 | 唯一当前值 | 权威位置 | 漂移时的处理 |
 |---|---|---|---|
-| Foundation 版本 | `0.5.0` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
+| Foundation 版本 | `0.7.1` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
 | Rust | `1.98.0` | `rust-toolchain.toml` | 不用其他版本代替验证 |
 | Rust edition/MSRV | 2024 / `1.98` | workspace package | 作为工具链大问题单独升级 |
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI | 切换 Node，不放宽 engine |
 | pnpm | `10.12.1` | 根 `packageManager`、CI | 安装精确版本，不使用 Corepack 浮动解析 |
 | TypeScript | `5.8.3` | 4 个 package manifest、lock | 与产品 Web 基线一起升级 |
-| React / React DOM | `19.2.8` | `admin-web` toolchain/peer/dev deps | 所有非 Dufs Web 同步验证 |
+| React / React DOM | `19.2.8` | `admin-web` toolchain/peer/dev deps | 所有 React 管理 Web（包括 Dufs）同步验证 |
 | Vite / React plugin | `7.3.6` / `4.7.0` | `admin-web` toolchain/peer/dev deps | 所有非 Dufs Web 同步验证 |
 | Server target | `x86_64-unknown-linux-gnu` | `sarmg-server-target` | Server 其他 target 编译必须失败 |
 | License | Apache-2.0 | 根及六个 crate 的 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |

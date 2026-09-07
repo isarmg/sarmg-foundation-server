@@ -17,14 +17,12 @@
 长表单、详情、表格使用可伸展的 `.sarmg-content-panel`，不要强制塞进固定比例卡片。
 这些类仅规定展示，不包含客户端或服务器行为。
 
-当前五个管理 Web 显式启用。尚未发布的外观以受审阅的源码快照存放于各产品
-`clients/web/appearance/`，构建验证 SHA-256。同步命令：
+## 当前发行接入
 
-```sh
-node scripts/sync-content-blocks.mjs /absolute/product-repository
-```
+五个管理 Web 均使用正式 Foundation 包：四个控制平面消费者固定 0.7.0，Dufs 固定 0.7.1。
+直接导入 `@sarmg/admin-ui/styles.css`；包已包含默认内容块 CSS，不再复制到产品 `clients/web/appearance/`，
+也不执行旧的源码快照同步命令。消费者固定 Release tarball URL 与 lockfile integrity，独立构建不需要同级 Foundation 源码。
 
-引入产品快照的 CSS，置于基础和业务 CSS 之后；在构建检查中导入快照 `verify.mjs`。
-快照验证器检查这五个第一方产品已启用默认外观；这不是对外部消费者的强制规则。
-已发布的 Foundation 0.6.0 包、锁文件、认证依赖保持不可变；新 CSS 导出随未来新版本发布，
-不得覆盖 0.6.0 的 tarball。字体仍由 web-fonts 独立管理，不复制旧版字体规则。
+默认外观可由消费者自定义，不是对外部产品的强制品牌规则。字体由 `@sarmg/web-fonts` 提供，不复制旧版字体规则。
+后续变更必须发布新不可变包并更新消费者锁文件，不覆盖已有 tarball。
+实际版本和验收见 [0.7.0 记录](../../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../../consumers/react-filesystem-0.7.1-evidence.md)。

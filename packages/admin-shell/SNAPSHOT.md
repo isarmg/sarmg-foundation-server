@@ -1,16 +1,14 @@
-# 当前 Shell 展示层快照
+# 当前 Shell 发行与接入
 
-源码提供亮/暗图标切换，以及空 navigation 时全宽呈现产品实例工作区；诊断入口、面板和专用前端解析器已移除。
-会话、认证 client、CSRF 和管理员合同未替换，消费者仍使用锁定的已发布 0.6.0 依赖。
+共享 Shell 提供亮/暗图标切换、顶部导航和全宽内容；诊断入口、面板和专用前端解析器已移除。
+认证 client、CSRF 和管理员合同由正式 Foundation 包提供，不在产品中复制。
 
-五个产品统一使用本源码编译快照；Dufs 只分发原生 Web 模块，不引入 React。公共默认值、消费者覆盖和产品对象映射见 [工作区配置](../../docs/admin-workspace.md)。不得修改已发布的 npm tarball，
-也不得在同一产品混用两个 Shell Context。更新方法：
+四个控制平面消费者固定 0.7.0，Dufs 固定 0.7.1 的 React Profile。Dufs 的登录、导航和页面结构由 React 渲染，文件/上传控制器保留独占 DOM 区域和既有协议。
+公共默认值、消费者覆盖和产品对象映射见 [工作区配置](../../docs/admin-workspace.md)。
 
-```sh
-pnpm --filter @sarmg/admin-shell build
-node scripts/sync-admin-shell.mjs /absolute/product
-```
+消费者从不可变 Release tarball 安装 `@sarmg/admin-shell`、`@sarmg/admin-ui` 等包并固定 lockfile integrity，
+只使用一套 Shell Context；不再生成 `clients/web/shell/` 快照，也不需要同级 Foundation checkout。
+通用原生 Web 入口仍供选择 `web-embedded-native` 的其他消费者使用，不表示 Dufs 仍是原生页面。
 
-生成的 `clients/web/shell/` 包含 JS、类型和 SHA-256 清单，产品构建验证摘要。
-所有产品组件从该快照引用 Shell，不要求产品构建时存在同级 Foundation 仓库。
-当前展示层更改已收录于 0.6.1 发布源码；消费者迁移依赖仍需独立验收，不覆盖既有不可变版本。
+本文件保留原文档路径以便查阅；旧快照分发方式不是当前构建流程。
+实际验收见 [0.7.0 记录](../../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../../consumers/react-filesystem-0.7.1-evidence.md)。

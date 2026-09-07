@@ -1,6 +1,7 @@
 # Sarmg Foundation 文档总览
 
-本工作区包含 `0.5.0` 之后尚未发布的平台化改造；既有不可变 tag 不代表这些新增实现，也不会被改写。
+当前正式平台版本为 `0.7.1`，完整 revision 为 `466ef3b7e19a5eea07292d5eeda1d014b47e5c59`；
+发布与消费者验收见 [0.7.1 证据](../consumers/react-filesystem-0.7.1-evidence.md)。主分支后续文档修订不改变已发布资产，既有不可变 tag 不会被改写。
 本目录描述唯一当前接口，不保存旧版兼容说明。发生版本变化时，以源码、Cargo/npm
 manifest、Profile、JSON Schema、fixture、测试和发布 policy 为事实源，在同一变更中更新这里。
 

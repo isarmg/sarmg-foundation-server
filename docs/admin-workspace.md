@@ -56,8 +56,7 @@ Sunshine 与 Host Monitoring 的顶部“实例”进入独立列表页；选中
 
 服务端平台路由不再注册 `/api/v2/platform/diagnostics`，匿名及已登录请求均返回 404；
 登录、权限、Request ID、健康检查、内部任务监督及日志不受影响。
-使用 `node scripts/sync-platform-router.mjs /absolute/product` 分发经摘要校验的路由源码，
-产品不再调用旧依赖中带诊断接口的路由组装函数。该快照不更改已发布 Rust Git revision。
+产品直接使用精确 Git revision 固定的 Foundation Runtime 路由入口，不再同步平台路由源码或调用旧诊断入口。
 
 | 产品 | 实例列表对象 | 新建动作 |
 | --- | --- | --- |
@@ -67,15 +66,12 @@ Sunshine 与 Host Monitoring 的顶部“实例”进入独立列表页；选中
 | Media Backup | 备份用户 | 新建备份用户（不等同平台管理员） |
 | Dufs | 单个共享根目录 | 在当前目录新建文件夹；不支持远程多实例 |
 
-## 发布前的源码快照分发
+## 当前不可变包分发
 
-```sh
-pnpm --filter @sarmg/admin-shell build
-node scripts/sync-admin-shell.mjs /absolute/product
-node scripts/sync-default-fonts.mjs /absolute/product
-node scripts/sync-content-blocks.mjs /absolute/product
-```
+四个控制平面消费者固定 Foundation 0.7.0，Dufs 固定 0.7.1 并使用 React Profile。
+Rust 使用精确版本与完整 Git revision，Web 使用正式 Release tarball URL 和 lockfile integrity。
+Shell、字体、主题及语言模块直接来自这些包，不执行旧快照同步脚本，不把平台源码复制到消费者。
+独立构建及发行证据见 [0.7.0 记录](../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../consumers/react-filesystem-0.7.1-evidence.md)。
 
-这些脚本分发受审的生成代码及 SHA-256 清单。原生消费者只分发原生模块，React 消费者使用
-同一个 Shell Context。产品构建校验快照，不依赖同级 Foundation 源码，也不修改已经发布的
-0.6.0 npm tarball；下一次正式发行需按发布流程发布新版本并统一更新依赖锁。
+后续变更仍须发布新不可变版本、更新消费者锁图并复验，不覆盖旧制品；消费者只使用同一个 Shell Context。
+通用原生入口是可选 Profile 的能力，不是 Dufs 当前实现。

@@ -25,7 +25,7 @@ web-fonts/fonts.css 及 admin-ui/styles.css。不再维护产品私有登录页�
 （或任意非 `content-blocks` 的明确名称）退出默认外观，再加载自己的样式。
 视觉替换不授权复制认证实现、改变权限合同或降低无障碍验收。
 默认字体独立于外观管理，切换外观不自动替换字体。
-详见 [外观接入及源码快照说明](../../packages/admin-ui/CONTENT-BLOCKS.md)。
+详见 [外观接入及不可变包分发说明](../../packages/admin-ui/CONTENT-BLOCKS.md)。
 
 `@sarmg/web-toolchain/vite` 和 `@sarmg/web-toolchain/tsconfig.json` 是唯一工具链入口，
 admin-web 不再导出构建配置。构建关闭 source maps，对每个产物执行硬性大小预算（默认 512 KiB），超限失败。

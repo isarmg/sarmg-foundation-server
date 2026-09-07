@@ -19,15 +19,12 @@ node packages/web-fonts/scripts/build.mjs
 
 生成器逐片检查实际 cmap，分片不得丢字；Native 预算细分只替换本次生成且摘要匹配的中间字体，不处理用户文件。
 
-## 当前源码分发
+## 当前发行分发
 
-已发布 Foundation 0.6.0 保持不变。本次没有发布或冒充新的 npm 版本。新的字体源快照通过显式命令同步到各产品 `clients/web/fonts/`，作为应纳入 Git 的构建资源：
+字体通过正式 `@sarmg/web-fonts` Release 包分发：四个控制平面消费者固定 0.7.0，Dufs 固定 0.7.1。
+五个管理 Web 均使用 Normal NL 正体与 CJK 资源；不再将字体源码快照同步到产品 `clients/web/fonts/`。
+消费者导入包的 CSS，构建时校验来源、字体摘要和许可证，运行时只加载产品同源资源，不需要同级 Foundation 工作区或 CDN。
 
-```sh
-node scripts/sync-default-fonts.mjs /absolute/product-repository
-```
-
-这些是同一上游的生成资源，不是产品自行维护的字体规则，也不是旧版兼容入口。产品构建校验快照摘要后直接引用其 CSS，不再加载旧字体 CSS；已锁定的 Foundation npm/Rust 依赖不被修改。独立克隆产品仓库即可构建，不需要同级 Foundation 工作区或运行时 CDN。
-
-本次 Normal NL 已同步 Sunshine Manager 和 Host Monitoring；其他产品尚未同步此次字体变更。
-后续正式发布应将这些新资源纳入各产品新制品及静态合同，随包保留相应字体许可证；不得覆盖先前发行归档。Agent 本机 Web 不属于本次 Server 管理 Web 的范围。
+更新字体必须发布新的不可变包、更新消费者锁图并重建资源合同，不能覆盖旧归档或伪造原生平台验收。
+随包保留对应许可证；Agent 本机 Web 不属于此次 Server 管理 Web 范围。
+实际验收见 [0.7.1 记录](../../consumers/react-filesystem-0.7.1-evidence.md)。

@@ -51,4 +51,4 @@ Session 并写入 sessions-revoked 审计。审计 actor 来自重新验证的�
 
 证据：SQLite 并发停用、审计故障回滚、密码撤销、CSRF 轮换与提交时钟测试；Axum/Hyper 共享 testkit；
 Chromium/Firefox 创建失败/成功、停用失败/成功、自身改密、危险确认焦点和移动明暗主题 WCAG AA 验收。
-当前工作区实现尚未作为新的不可变 Foundation 版本发布，消费者联调来源仍需在 P13 统一替换并独立检出验证。
+当前实现已纳入正式 Foundation 0.7.1；四个控制平面消费者使用已验证的 0.7.0，Dufs 使用 0.7.1 的静态管理员合同而不挂载持久管理员面板。各消费者的精确提交、独立 CI 和发布边界见 [0.7.0 证据](../../consumers/axum-0.7.0-evidence.md)与 [0.7.1 证据](../../consumers/react-filesystem-0.7.1-evidence.md)。
