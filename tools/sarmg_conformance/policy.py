@@ -278,10 +278,10 @@ def _walk_dependency_tables(value: Any, key: str = "") -> Iterable[tuple[str, An
 def _source_files(product_root: Path, suffixes: set[str]) -> Iterable[Path]:
     import os
 
-    # Routing metadata only: client behavior is checked by the Agent repository.
+    # Routing metadata only: client behavior is checked by the Client repository.
     # Never import its policy or require that repository for Server verification.
     client_roots: set[Path] = set()
-    client_manifest = product_root / "sarmg-agent.toml"
+    client_manifest = product_root / "sarmg-client.toml"
     if client_manifest.is_file():
         for relative in _toml(client_manifest).get("source_roots", []):
             if not isinstance(relative, str) or Path(relative).is_absolute() or ".." in Path(relative).parts:
@@ -314,7 +314,7 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
                 if feature in PRODUCT_IDS or any(product in feature for product in PRODUCT_IDS):
                     findings.append(("no-product-features", f"{path}: product-named Cargo feature {feature!r}"))
         for dependency, requirement in _walk_dependency_tables(cargo):
-            if not dependency.startswith("sarmg-") or dependency.startswith("sarmg-agent-") or dependency == "sarmg-mobile-ffi":
+            if not dependency.startswith("sarmg-") or dependency.startswith("sarmg-client-") or dependency == "sarmg-mobile-ffi":
                 continue
             if isinstance(requirement, dict) and "path" in requirement:
                 findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} uses a path dependency"))

@@ -229,7 +229,7 @@
 | FND-205 | 非目标在编译期直接`compile_error!` | crate root | 保障 | 高 | 仅依赖CI约定，开发者可本地误构建 | negative target job/手动编译 |
 | FND-206 | 提供human architecture常量`amd64` | `SERVER_ARCHITECTURE` | 建议保留 | 低 | release/install脚本各自命名架构 | 常量测试 |
 | FND-207 | runtime/release metadata可精确检查target | `require_server_target` | 保障 | 中 | manifest宣称与编译target漂移 | accepted canonical、所有近似值拒绝 |
-| FND-208 | 客户端/Agent不依赖该crate | crate文档与消费者Cargo边界 | 核心 | 高 | Host/移动/桌面客户端被误限制为AMD64 Linux | dependency tree + 各客户端平台构建 |
+| FND-208 | 客户端/Client不依赖该crate | crate文档与消费者Cargo边界 | 核心 | 高 | Host/移动/桌面客户端被误限制为AMD64 Linux | dependency tree + 各客户端平台构建 |
 | FND-209 | Foundation自身不宣称是AMD64 Server | release target `source-any` | 核心 | 中 | source package和Server平台概念混淆 | release identity检查 |
 
 ## 9. JSON HTTP Client：`@sarmg/http-client`
@@ -403,7 +403,7 @@
 | FND-381 | Session表、TTL、并发上限、撤销/version | 各产品auth persistence | 核心 | 高 | 不同威胁模型被一个中央实现锁死 | 只共享token/contract；产品Session测试 |
 | FND-382 | Cookie名称、Domain/Path/Secure/HttpOnly/SameSite | 各产品HTTP adapter | 核心 | 高 | 代理/部署差异被错误统一 | 产品Set-Cookie测试 |
 | FND-383 | 登录限流、未知用户等成本和审计 | 各产品 | 保障 | 高 | 共享库无法掌握IP/account/body/容量边界 | 产品攻击/容量测试 |
-| FND-384 | 设备、Agent、API key、媒体token等数据面身份 | 各产品协议 | 核心 | 高 | “仅管理员角色”被误解成删除业务credential | admin wire与数据面合同分离测试 |
+| FND-384 | 设备、Client、API key、媒体token等数据面身份 | 各产品协议 | 核心 | 高 | “仅管理员角色”被误解成删除业务credential | admin wire与数据面合同分离测试 |
 | FND-385 | Axum/router middleware、body/rejection/request-ID注入 | 各Server | 核心 | 高 | 路由与日志策略被最低共同实现覆盖 | 真实router响应集成测试 |
 | FND-386 | 产品配置/Secret loader | 各Server `config/`/env | 核心 | 高 | 环境变量、权限、Secret backend和fail-closed规则混淆 | 产品启动配置负例 |
 | FND-387 | 路径no-follow/openat2/owner/mode | 各产品资源层 | 保障 | 高 | 通用弱封装引入TOCTOU/跨平台漏洞 | 产品fd相对/篡改测试 |

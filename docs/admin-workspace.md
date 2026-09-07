@@ -60,7 +60,7 @@ Sunshine 与 Host Monitoring 的顶部“实例”进入独立列表页；选中
 
 | 产品 | 实例列表对象 | 新建动作 |
 | --- | --- | --- |
-| Sunshine Manager | Agent 管理实例 | 新建实例并生成配对码 |
+| Sunshine Manager | Client 管理实例 | 新建实例并生成配对码 |
 | Host Monitoring | 已配对监控实例 | 新建实例并生成配对码 |
 | Sentinel Monitor | 摄像头 | 新建摄像头 |
 | Media Backup | 备份用户 | 新建备份用户（不等同平台管理员） |

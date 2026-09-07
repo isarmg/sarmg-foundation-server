@@ -199,7 +199,7 @@ sarmg-admin-auth = {
 | wire contract | `sarmg-contracts` | 产品 DTO框架 |
 | 仅 Error Envelope | `sarmg-error` | 完整 contracts |
 | rusqlite/离线 Schema 算法 | `sarmg-schema-identity` | `sarmg-sqlite` |
-| Server target gate | `sarmg-server-target`（只给 Server crate） | 客户端/Agent crate |
+| Server target gate | `sarmg-server-target`（只给 Server crate） | 客户端/Client crate |
 | SQLx SQLite 服务 | `sarmg-sqlite` | 产品 migration/backup 假设 |
 
 | 故障 | 解释与处理 |

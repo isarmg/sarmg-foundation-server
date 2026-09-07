@@ -114,10 +114,10 @@ class ConformanceTests(unittest.TestCase):
             with self.assertRaisesRegex(ConformanceError, "web_profile is not allowed"):
                 verify_manifest(product, ROOT)
 
-    def test_agent_profile_is_rejected(self) -> None:
+    def test_client_profile_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "sarmg-product.toml").write_text(VALID_MANIFEST.replace("server-filesystem", "desktop-agent"))
+            (product / "sarmg-product.toml").write_text(VALID_MANIFEST.replace("server-filesystem", "desktop-client"))
             with self.assertRaisesRegex(ConformanceError, "unknown Profile"):
                 verify_manifest(product, ROOT)
 
@@ -125,7 +125,7 @@ class ConformanceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
             (product / "sarmg-product.toml").write_text(VALID_MANIFEST)
-            (product / "sarmg-agent.toml").write_text('source_roots = ["client"]\n')
+            (product / "sarmg-client.toml").write_text('source_roots = ["client"]\n')
             client = product / "client"
             client.mkdir()
             source = '.route("/api/v2/auth/login", handler)\nconst SESSION_COOKIE_NAME = "local";'

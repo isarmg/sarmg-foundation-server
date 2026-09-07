@@ -88,7 +88,7 @@ docs/                仅五类中文文档
 仍由产品决定：
 
 - 管理员表、Session表、Cookie、TTL、登录限流、审计；
-- 设备/Agent/API key/摄像头/媒体token等数据面身份；
+- 设备/Client/API key/摄像头/媒体token等数据面身份；
 - 业务route、DTO、数据库表、transaction、锁和外部副作用；
 - 页面、组件、品牌、主题状态、文件/媒体stream；
 - systemd、reverse proxy、配置、Secret、backup/restore和release强化规则。
@@ -111,7 +111,7 @@ docs/                仅五类中文文档
 x86_64 + linux + gnu + 64-bit
 ```
 
-Host Monitor Agent仍需在Windows/macOS/Linux运行，Media有Android/iOS客户端，Foundation本身发布源码包，
+Host Monitor Client仍需在Windows/macOS/Linux运行，Media有Android/iOS客户端，Foundation本身发布源码包，
 Upgrade是离线CLI；它们不是“Server”，不能为了字面统一全部依赖该crate。
 
 ## 1.8 Dufs前端例外

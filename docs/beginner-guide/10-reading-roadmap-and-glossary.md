@@ -130,7 +130,7 @@ admin-web源码和tests。
 | release identity | product/version/source/target/state contract hash五字段 |
 | release tree | 路径/mode/size/hash精确且无额外文件的发布目录合同 |
 | TOCTOU | 检查与使用之间对象被替换的竞态 |
-| data plane | 设备、Agent、媒体流等业务通路，不等于管理员RBAC |
+| data plane | 设备、Client、媒体流等业务通路，不等于管理员RBAC |
 | control plane | 浏览器管理员配置/操作通路，当前只有admin角色 |
 | compatibility alias | 为另一代名称/字段保留的额外入口，本仓明确不提供 |
 

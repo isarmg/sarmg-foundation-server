@@ -26,5 +26,5 @@ node packages/web-fonts/scripts/build.mjs
 消费者导入包的 CSS，构建时校验来源、字体摘要和许可证，运行时只加载产品同源资源，不需要同级 Foundation 工作区或 CDN。
 
 更新字体必须发布新的不可变包、更新消费者锁图并重建资源合同，不能覆盖旧归档或伪造原生平台验收。
-随包保留对应许可证；Agent 本机 Web 不属于此次 Server 管理 Web 范围。
+随包保留对应许可证；Client 本机 Web 不属于此次 Server 管理 Web 范围。
 实际验收见 [0.7.1 记录](../../consumers/react-filesystem-0.7.1-evidence.md)。

@@ -2,8 +2,8 @@ format = 1
 
 [[repositories]]
 product = "dufs-ram"
-url = "https://github.com/isarmg/dufs-ram"
-commit = "39aa39680eca6ce5632bdeac26cbf5153cbb0d90"
+url = "https://github.com/isarmg/dufs-ram-server"
+commit = "b6dfc987b34cec9918070c749a3ef10e667b2650"
 foundation_version = "0.7.1"
 profiles = ["server-filesystem", "web-react-admin"]
 capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2", "durable-operations", "react-shell", "admin-ui", "admin-client", "design-tokens", "maple-font"]
@@ -13,8 +13,8 @@ exceptions = ["namespace-contract-inspection"]
 
 [[repositories]]
 product = "host-monitoring"
-url = "https://github.com/isarmg/host-monitoring"
-commit = "3a71926ad862e1edd5cc26240a40862732b80b8b"
+url = "https://github.com/isarmg/host-monitoring-server"
+commit = "ca41b7cdbdd662d2a4a5b28ace7be74cd7fded6c"
 foundation_version = "0.7.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
@@ -24,8 +24,8 @@ exceptions = ["generated-schema-inspection"]
 
 [[repositories]]
 product = "media-backup"
-url = "https://github.com/isarmg/media-backup"
-commit = "f2b4fcef60edd38daf864f4cc5751d4585524563"
+url = "https://github.com/isarmg/media-backup-server"
+commit = "92ad37c4c771c38dcd0d3bbe722d4f94f18bfbe7"
 foundation_version = "0.7.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
@@ -46,8 +46,8 @@ exceptions = []
 
 [[repositories]]
 product = "sentinel-monitor"
-url = "https://github.com/isarmg/sentinel-monitor"
-commit = "6b7338f3ea69ad3b99d9b959b6ed1909ec888d5c"
+url = "https://github.com/isarmg/sentinel-monitor-server"
+commit = "e13e167bd8696d8742a68e1de0a06f0758c02c3d"
 foundation_version = "0.7.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secure-http", "secure-xml", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
@@ -57,8 +57,8 @@ exceptions = ["generated-schema-inspection"]
 
 [[repositories]]
 product = "sunshine-manager"
-url = "https://github.com/isarmg/sunshine-manager"
-commit = "5b04c4c28cacdf4ff1c180ccd5872424e2324d8d"
+url = "https://github.com/isarmg/sunshine-manager-server"
+commit = "d9103beec4d11d97f63fcfc866b709fad9057007"
 foundation_version = "0.7.0"
 profiles = ["server-control-plane", "web-react-admin"]
 capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]

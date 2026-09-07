@@ -223,8 +223,8 @@ def check_versions(root: Path) -> None:
             dependencies = manifest.get(section, {})
             for dependency, requirement in dependencies.items():
                 package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
-                if package.startswith("sarmg-agent-") or package == "sarmg-mobile-ffi":
-                    raise FoundationPolicyError(f"{manifest_path}: Server must not depend on Agent package {package}")
+                if package.startswith("sarmg-client-") or package == "sarmg-mobile-ffi":
+                    raise FoundationPolicyError(f"{manifest_path}: Server must not depend on Client package {package}")
                 if dependency not in KNOWN_PACKAGES or dependency.startswith("@"):
                     continue
                 if not isinstance(requirement, dict) or requirement.get("version") != f"={CURRENT_VERSION}":

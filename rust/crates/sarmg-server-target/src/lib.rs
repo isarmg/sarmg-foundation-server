@@ -1,7 +1,7 @@
 //! Compile-time target gate shared by Sarmg server binaries.
 //!
 //! A server that depends on this crate cannot be compiled for a different
-//! architecture, operating system, or libc environment. Client/agent binaries
+//! architecture, operating system, or libc environment. Client/client binaries
 //! intentionally do not depend on it and keep their own platform contracts.
 
 #[cfg(not(all(

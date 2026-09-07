@@ -250,7 +250,7 @@ cargo build --target x86_64-unknown-linux-gnu
 └─ 启动脚本检查 Linux x86_64/glibc（若产品提供脚本）
 ```
 
-Server target 统一不等于所有代码只能 AMD64。Host Monitor Agent、Android/iOS 客户端、移动 FFI 和其他非
+Server target 统一不等于所有代码只能 AMD64。Host Monitor Client、Android/iOS 客户端、移动 FFI 和其他非
 Server binary 不依赖该 crate，继续按自己的平台矩阵构建。Foundation 和 Upgrade 没有在线业务 Server；
 Foundation 发布 identity 使用 `source-any`，Upgrade 的 CLI 发行目标由其自身合同约束。
 

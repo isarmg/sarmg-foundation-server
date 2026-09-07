@@ -169,7 +169,7 @@ sarmg-server-target = {
 crate root在非`x86_64-unknown-linux-gnu`直接`compile_error!`。产品release identity可通过
 `SERVER_TARGET_TRIPLE`避免复制字符串，再用`require_server_target`检查外部metadata。
 
-不要把依赖放到包含Server和客户端的workspace根公共crate里，否则Windows/macOS Agent也会compile-fail。
+不要把依赖放到包含Server和客户端的workspace根公共crate里，否则Windows/macOS Client也会compile-fail。
 它应只存在于Server binary或Server专属library的依赖图。
 
 ## 3.11 Schema Identity基础
@@ -235,4 +235,4 @@ require_current_schema
 3. 构造Host与`:authority`冲突的请求，说明adapter应传几个host value。
 4. 比较`open_existing`、`create_if_missing`和产品初始化DDL的责任。
 5. 改变一个index SQL空格，预测fingerprint为何变化。
-6. 在一个混合Server/Agent workspace中画出`sarmg-server-target`应放在哪个依赖节点。
+6. 在一个混合Server/Client workspace中画出`sarmg-server-target`应放在哪个依赖节点。

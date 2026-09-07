@@ -1,6 +1,6 @@
 # Filesystem handles and publication boundaries
 
-The current server filesystem primitives are being hardened and adopted in P8. This document describes the implemented Unix/Linux server boundary, not completion of every server consumer's acceptance gates. Windows/macOS Agent filesystem contracts belong exclusively to sarmg-foundation-agent.
+The current server filesystem primitives are being hardened and adopted in P8. This document describes the implemented Unix/Linux server boundary, not completion of every server consumer's acceptance gates. Windows/macOS Client filesystem contracts belong exclusively to sarmg-foundation-client.
 
 ## Unix private state
 
@@ -18,7 +18,7 @@ redirect initialization of server-owned child state.
 
 Atomic replacement writes and syncs the temporary file, renames within the held directory, checks the published inode, and syncs the directory. Failure after publication is not proof of rollback; parent-sync failure is explicitly `PublishedDurabilityUnknown`.
 
-`EntryName` represents exactly one canonical filename. `PrivateDirectory::files`, `read_bounded` and `remove_file` use these typed names and the held descriptor on Unix, not reconstructed absolute paths. `AtomicFile::create` provides no-clobber creation; failed collision preserves the occupant. Platform temporaries have one exact random namespace, exposed through `AtomicFile::is_temporary_name` for cleanup under exclusive process ownership. Client filesystem implementations are separately owned by sarmg-foundation-agent.
+`EntryName` represents exactly one canonical filename. `PrivateDirectory::files`, `read_bounded` and `remove_file` use these typed names and the held descriptor on Unix, not reconstructed absolute paths. `AtomicFile::create` provides no-clobber creation; failed collision preserves the occupant. Platform temporaries have one exact random namespace, exposed through `AtomicFile::is_temporary_name` for cleanup under exclusive process ownership. Client filesystem implementations are separately owned by sarmg-foundation-client.
 
 `NoClobberPublish::publish` accepts a private directory and two typed single-component names, not arbitrary source/destination strings. It only publishes a single-linked regular file within that directory. Linux uses `RENAME_NOREPLACE`, with no fallback on unsupported filesystems. The Unix implementation for other operating systems uses link, parent sync, unlink, parent sync. Publication or sync failures must not be interpreted as permission to blindly replay a mutation.
 
@@ -36,4 +36,4 @@ Products may retain business-specific symlink, upload metadata, tree mutation an
 
 ## Remaining acceptance
 
-Server-side raw-path staging operations, cross-directory publication, bounded inventories at every consumer, and Upgrade adoption still require implementation and acceptance. Passing the Linux library tests is not P8 completion. Agent Spool and native client acceptance are tracked only in sarmg-foundation-agent, not governed by this server specification.
+Server-side raw-path staging operations, cross-directory publication, bounded inventories at every consumer, and Upgrade adoption still require implementation and acceptance. Passing the Linux library tests is not P8 completion. Client Spool and native client acceptance are tracked only in sarmg-foundation-client, not governed by this server specification.

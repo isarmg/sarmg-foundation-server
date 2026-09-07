@@ -9,7 +9,7 @@ Foundation 同时包含 Rust、TypeScript、React、Vite、CSS、JSON Schema、S
 本教程从边界开始，再逐层进入源码、测试、发布和真实消费者。读完后应能：
 
 - 解释为什么 Foundation 是 build-time dependency 而不是在线服务；
-- 正确区分管理面唯一 `admin` 角色与设备/Agent/媒体资源等数据面概念；
+- 正确区分管理面唯一 `admin` 角色与设备/Client/媒体资源等数据面概念；
 - 把管理员 username、密码、Argon2id、token、same-origin、CSRF 组合进产品而不削弱规则；
 - 区分 TypeScript type、runtime guard、JSON Schema、fixture 与 Rust serde validation；
 - 解释 Schema fingerprint 为什么对 SQL bytes、排序和 metadata shape 都严格；
@@ -77,7 +77,7 @@ React/Vite管理Web（Dufs除外）
 ### 4.2 Server 只有 AMD64 GNU/Linux
 
 业务 Server 唯一 target 是 `x86_64-unknown-linux-gnu`。`sarmg-server-target` 在编译期拒绝 ARM、musl、
-Windows、macOS 和32位目标。这个限制不能误加到 Host Monitor Agent、Android/iOS、移动FFI或其他客户端。
+Windows、macOS 和32位目标。这个限制不能误加到 Host Monitor Client、Android/iOS、移动FFI或其他客户端。
 
 ### 4.3 Web 统一但 Dufs 例外
 

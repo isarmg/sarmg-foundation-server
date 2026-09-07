@@ -6,7 +6,7 @@
   "consumers": [
     {
       "product": "dufs-ram",
-      "commit": "39aa39680eca6ce5632bdeac26cbf5153cbb0d90",
+      "commit": "b6dfc987b34cec9918070c749a3ef10e667b2650",
       "foundation_version": "0.7.1",
       "profiles": [
         "server-filesystem",
@@ -52,7 +52,7 @@
     },
     {
       "product": "host-monitoring",
-      "commit": "3a71926ad862e1edd5cc26240a40862732b80b8b",
+      "commit": "ca41b7cdbdd662d2a4a5b28ace7be74cd7fded6c",
       "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
@@ -98,7 +98,7 @@
     },
     {
       "product": "media-backup",
-      "commit": "f2b4fcef60edd38daf864f4cc5751d4585524563",
+      "commit": "92ad37c4c771c38dcd0d3bbe722d4f94f18bfbe7",
       "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
@@ -163,7 +163,7 @@
     },
     {
       "product": "sentinel-monitor",
-      "commit": "6b7338f3ea69ad3b99d9b959b6ed1909ec888d5c",
+      "commit": "e13e167bd8696d8742a68e1de0a06f0758c02c3d",
       "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",
@@ -216,7 +216,7 @@
     },
     {
       "product": "sunshine-manager",
-      "commit": "5b04c4c28cacdf4ff1c180ccd5872424e2324d8d",
+      "commit": "d9103beec4d11d97f63fcfc866b709fad9057007",
       "foundation_version": "0.7.0",
       "profiles": [
         "server-control-plane",

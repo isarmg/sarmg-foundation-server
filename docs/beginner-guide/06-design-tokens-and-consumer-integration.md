@@ -112,7 +112,7 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 - SQLite打开前仍做no-follow、owner/mode和实例锁；
 - Sentinel仍验证MediaMTX companion；
 - Media仍管理文件树两阶段提交；
-- Host Agent仍维护跨平台spool与配对协议。
+- Host Client仍维护跨平台spool与配对协议。
 
 若共享helper比产品旧实现弱，应缩小采用范围或加强Foundation，而不是降低产品测试。
 

@@ -1,7 +1,7 @@
 # Sarmg Foundation Server
 
-本仓只规定 Server、管理 Server 的 Web 和服务端离线维护工具的行为。Agent、Android/iOS、管理客户端自身的 Web 及移动 FFI
-由独立的 `sarmg-foundation-agent` 仓库规定；两个基础仓库互不依赖，不保留旧仓库名入口。
+本仓只规定 Server、管理 Server 的 Web 和服务端离线维护工具的行为。Client、Android/iOS、管理客户端自身的 Web 及移动 FFI
+由独立的 `sarmg-foundation-client` 仓库规定；两个基础仓库互不依赖，不保留旧仓库名入口。
 
 Sarmg Foundation Server 是 Sarmg 服务端及管理 Web 的上游平台规范、基础实现、工具链和一致性验证系统。产品实现可以
 作为 Foundation 的设计输入；一项能力进入 Foundation 后，Foundation 就成为唯一事实源，产品必须通过
@@ -12,8 +12,8 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
 不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
 
-当前工作区以 `0.6.1` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Agent 仓库。
-本次管理 Web 修订版本为 `v0.6.1`，原不可变标签保持不变。产品采用状态由消费者矩阵记录，
+当前工作区以 `0.7.1` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
+产品 Server 与 Client 使用独立后缀仓库，原不可变标签保持不变。产品采用状态由消费者矩阵记录，
 这不是 Foundation 1.0 完成声明。
 
 本版本只定义一套当前合同：不提供旧名称、旧字段、旧 Schema、deprecated wrapper、双读写、隐式降级或
@@ -31,7 +31,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 | `sarmg-contracts` | 管理员登录/Session、State、Release、Backup、Error 的严格 Rust wire 类型与共享 fixture | 产品业务 DTO、HTTP router、历史 manifest reader、物理路径检查 |
 | `sarmg-error` | 有界 `ErrorCode`、`RequestId`、严格 `ErrorEnvelope`、常用 HTTP status/retry 默认值 | 产品错误码全集、日志脱敏、Axum rejection 和响应 middleware |
 | `sarmg-schema-identity` | 驱动无关的五列 `product_metadata`、Schema fingerprint v1、精确 current identity 校验 | 打开数据库、执行 DDL/migration、路径安全、业务 Schema |
-| `sarmg-server-target` | 在编译期把所有 Sarmg Server 限定为 `x86_64-unknown-linux-gnu`，并导出唯一 target 常量 | 限制 Android/iOS/Windows/macOS/Linux Agent 等客户端；构建或安装 Server |
+| `sarmg-server-target` | 在编译期把所有 Sarmg Server 限定为 `x86_64-unknown-linux-gnu`，并导出唯一 target 常量 | 限制 Android/iOS/Windows/macOS/Linux Client 等客户端；构建或安装 Server |
 | `sarmg-sqlite` | SQLx existing/create 显式打开、固定 PRAGMA、integrity/FK/checkpoint、Schema identity adapter | 产品实例锁、业务 transaction、初始化 DDL、backup/restore、文件 no-follow |
 | `sarmg-state-file` | 带摘要、权限和原子替换约束的小型平台状态文件 | 产品业务文件树、历史格式转换 |
 | `sarmg-platform-db` | 平台 metadata DDL、保留表前缀和当前 generation 验证 | 产品业务 DDL、在线 migration |
@@ -85,7 +85,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
   为 SHA-256，比较使用 constant time。
 - 浏览器 mutation 必须提供唯一、规范且相互一致的 `Origin`、有效 `Host`/HTTP2 authority、
   `Sec-Fetch-Site: same-origin` 与当前 CSRF；生产只允许 HTTPS，本地 HTTP 只允许真实 loopback。
-- 所有业务 Server 只允许 `x86_64-unknown-linux-gnu`。此限制不应用于客户端、Agent、移动端库，也不意味着
+- 所有业务 Server 只允许 `x86_64-unknown-linux-gnu`。此限制不应用于客户端、Client、移动端库，也不意味着
   Foundation 自己是一个 Server。
 - Dufs 以外的产品 Web 统一 React `19.2.8`、React DOM `19.2.8`、Vite `7.3.6`、React plugin `4.7.0`、
   TypeScript `5.8.3`、Node `26.7.0`；Dufs 因单 binary 嵌入和文件管理前端边界保留原生 ES modules。

@@ -103,7 +103,7 @@ consumer matrix帮助定位直接采用范围。
 target参数、release identity、ELF machine、启动平台检查和CI matrix。不要把该制品“标best effort”；
 当前合同明确不支持，应撤下并重建正确target。
 
-客户端跨平台制品不属于该事件。先根据binary职责分类，避免误撤Host Agent或移动客户端。
+客户端跨平台制品不属于该事件。先根据binary职责分类，避免误撤Host Client或移动客户端。
 
 ## 9.11 Secret边界
 
