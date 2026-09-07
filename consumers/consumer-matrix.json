@@ -6,22 +6,23 @@
   "consumers": [
     {
       "product": "dufs-ram",
-      "commit": "5ef35ad02f69b55df351aaed978d1b80e19de4bc",
-      "foundation_version": "0.7.0",
+      "commit": "39aa39680eca6ce5632bdeac26cbf5153cbb0d90",
+      "foundation_version": "0.7.1",
       "profiles": [
         "server-filesystem",
-        "web-embedded-native"
+        "web-react-admin"
       ],
       "capabilities": [
         "admin-client",
         "admin-static",
+        "admin-ui",
         "design-tokens",
         "durable-operations",
         "filesystem-root",
         "linux-openat2",
         "maple-font",
         "memory-sessions",
-        "native-esm",
+        "react-shell",
         "server-health",
         "server-runtime"
       ],
@@ -44,7 +45,7 @@
         "sarmg-server-runtime",
         "sarmg-server-target"
       ],
-      "status": "migration-in-progress",
+      "status": "temporary-exception",
       "exceptions": [
         "namespace-contract-inspection"
       ]

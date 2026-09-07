@@ -3,12 +3,12 @@ format = 1
 [[repositories]]
 product = "dufs-ram"
 url = "https://github.com/isarmg/dufs-ram"
-commit = "5ef35ad02f69b55df351aaed978d1b80e19de4bc"
-foundation_version = "0.7.0"
-profiles = ["server-filesystem", "web-embedded-native"]
-capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2", "durable-operations", "native-esm", "admin-client", "design-tokens", "maple-font"]
+commit = "39aa39680eca6ce5632bdeac26cbf5153cbb0d90"
+foundation_version = "0.7.1"
+profiles = ["server-filesystem", "web-react-admin"]
+capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2", "durable-operations", "react-shell", "admin-ui", "admin-client", "design-tokens", "maple-font"]
 packages = ["@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-core","sarmg-admin-axum","sarmg-server-runtime","@sarmg/admin-shell","@sarmg/admin-ui","sarmg-admin-static","sarmg-contracts","sarmg-fs-safety","sarmg-schema-identity","sarmg-server-target"]
-status = "migration-in-progress"
+status = "temporary-exception"
 exceptions = ["namespace-contract-inspection"]
 
 [[repositories]]

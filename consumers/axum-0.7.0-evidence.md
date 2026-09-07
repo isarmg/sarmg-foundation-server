@@ -1,5 +1,7 @@
 # Axum 0.7.0 消费者验证证据
 
+这是 0.7.0 阶段记录。Dufs 后续引入 React 和正式 0.7.1 的结果见 [React 文件服务记录](react-filesystem-0.7.1-evidence.md)。
+
 目标平台：`x86_64-unknown-linux-gnu`。Foundation 正式 revision：
 `77e7ad7af8e1bf62432bd6bdd8fa9aff54cb39d1`，不可变版本 `v0.7.0`。
 
@@ -11,7 +13,7 @@ Rust 源码/清单/锁文件与完成消费者本地测试的候选
 
 ## 消费者
 
-精确产品 commit 见 `repositories.toml` 和生成的 `consumer-matrix.json`；不把历史 `baselines/` 改写成当前证据。
+四个控制平面的精确产品 commit 见 `repositories.toml` 和生成的 `consumer-matrix.json`；Dufs 本阶段提交为 `5ef35ad02f69b55df351aaed978d1b80e19de4bc`。不把历史 `baselines/` 改写成当前证据。
 
 | 产品 | 已实际执行 | 远程验收 |
 | --- | --- | --- |
@@ -19,7 +21,7 @@ Rust 源码/清单/锁文件与完成消费者本地测试的候选
 | Host Monitoring | workspace/all-targets 编译；`cargo test -p host-monitoring-server --lib`，44 通过；正式 npm 包构建 | [CI 通过](https://github.com/isarmg/host-monitoring/actions/runs/34038344244) |
 | Sentinel Monitor | all-targets 编译；`cargo test --bin sentinel-monitor`，48 通过、1 个显式忽略；正式 npm 包构建 | [CI 通过](https://github.com/isarmg/sentinel-monitor/actions/runs/34038352976) |
 | Media Backup | workspace/all-targets 编译；`cargo test -p media-backup-server --bin media-backup-server`，52 通过；正式 npm 包构建；更新当前 89 项 Web 资源合同 | [完整 CI 通过](https://github.com/isarmg/media-backup/actions/runs/34039177910)，含实际 server archive、Android 编译和未签名 iOS；不发布新的移动端版本 |
-| Dufs RAM | 全量 all-targets/all-features Rust 635 通过、1 个显式忽略基准另行执行通过；原始 socket 合同；真实 release 硬期限非零退出和 SIGABRT 上传恢复通过；完整 Chromium/Firefox 浏览器矩阵及覆盖率通过 | [完整 CI 通过](https://github.com/isarmg/dufs-ram/actions/runs/34039807581)；本地 `./scripts/check.sh` 和正式签名包 E2E 复验中 |
+| Dufs RAM | 全量 all-targets/all-features Rust 635 通过、1 个显式忽略基准另行执行通过；原始 socket 合同；真实 release 硬期限非零退出和 SIGABRT 上传恢复通过；完整 Chromium/Firefox 浏览器矩阵及覆盖率通过 | [完整 CI 通过](https://github.com/isarmg/dufs-ram/actions/runs/34039807581)；本地 `./scripts/check.sh` 通过；本阶段正式包 E2E 因宿主夹具缺少 Web 构建失败，修复和 React 后续复验见新记录 |
 | sarmg-upgrade | 单独提交支持边界，明确不支持 Dufs 0.51.0 状态备份/验证/恢复/升级 | 不冒充已实现新版本适配 |
 
 本地构建使用 `CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0` 降低缓存占用，未修改断言、业务限额、release panic 策略或覆盖率门槛。临时测试根及状态与真实实例完全隔离。
@@ -35,7 +37,7 @@ Rust 源码/清单/锁文件与完成消费者本地测试的候选
 | sarmg-admin-ui-0.7.0.tgz | `4f8db2cd6b8a4e77efa558e6b32f6117b021e569a71c326b5c9b18794e085c29` |
 | sarmg-web-fonts-0.7.0.tgz | `4b6822b6f8a542598e9c6a598b87aa79cbcb9e41bec06529f4319668649b8511` |
 
-Dufs 正式制品摘要必须待实际发行验证后补录，当前不宣称完成 A14。
+Dufs 本阶段未发布，不宣称在本阶段完成 A14；最终制品摘要见后续 React 文件服务记录。
 
 ## 例外收窄
 
