@@ -174,24 +174,8 @@ impl<Store: AdministratorStore + 'static> AdministratorService<Store> {
         password: &str,
     ) -> Result<(), ManagementError<Store::StoreError>> {
         self.require_management(context)?;
-        let username = sarmg_admin_auth::normalize_administrator_username(username)
-            .map_err(|_| ManagementError::InvalidInput)?;
-        let password_hash = self.management_password_hash(password).await?;
-        let identifier = sarmg_admin_auth::random_token().map_err(|_| ManagementError::Busy)?;
-        let record = AdministratorRecord {
-            administrator_id: Identifier::new(identifier)
-                .map_err(|_| ManagementError::InvalidInput)?,
-            username,
-            password_hash,
-            active: true,
-            session_version: 1,
-            created_at_micros: context.now_micros,
-            updated_at_micros: context.now_micros,
-            last_login_at_micros: None,
-        };
-        self.store
-            .manage_administrator(context, AdministratorMutation::Create(record))
-            .await
+        let _ = (username, password);
+        Err(ManagementError::Conflict)
     }
 
     pub async fn set_administrator_password(

@@ -446,9 +446,7 @@ impl ServerRuntimeBuilder {
     pub async fn build(self) -> Result<ServerRuntime, Error> {
         self.product.validate()?;
         if let Some(schema) = &self.schema_identity
-            && (schema.validate().is_err()
-                || schema.application != self.product.id
-                || schema.application_version != self.product.version)
+            && (schema.validate().is_err() || schema.application != self.product.id)
         {
             return Err(Error::InvalidDescriptor("schema_identity"));
         }
@@ -1071,6 +1069,23 @@ mod tests {
             runtime.handle().diagnostics().await.metrics[&DiagnosticMetric::AuditBacklog],
             None
         );
+    }
+
+    #[tokio::test]
+    async fn patch_release_reports_its_version_while_retaining_the_data_format_identity() {
+        let mut product = descriptor();
+        product.version = "1.0.1".into();
+        let schema =
+            sarmg_schema_identity::SchemaIdentity::new("example", "1.0.0", 1, "a".repeat(64))
+                .unwrap();
+        let runtime = ServerRuntime::builder(product)
+            .with_schema_identity(schema.clone())
+            .build()
+            .await
+            .unwrap();
+        let diagnostics = runtime.handle().diagnostics().await;
+        assert_eq!(diagnostics.product.version, "1.0.1");
+        assert_eq!(diagnostics.schema_identity, Some(schema));
     }
 
     #[tokio::test]

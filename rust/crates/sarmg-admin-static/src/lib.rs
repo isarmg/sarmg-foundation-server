@@ -338,7 +338,7 @@ impl AdministratorStore for StaticAdministratorStore {
         };
         if session.revoked_at_micros.is_some()
             || session.csrf_hash != expected_csrf_hash
-            || now_micros < session.last_seen_at_micros
+            || now_micros < session.created_at_micros
             || idle_expires_at_micros <= now_micros
             || now_micros >= session.idle_expires_at_micros
             || now_micros >= session.absolute_expires_at_micros
@@ -347,8 +347,8 @@ impl AdministratorStore for StaticAdministratorStore {
             return Ok(false);
         }
         session.csrf_hash = csrf_hash;
-        session.last_seen_at_micros = now_micros;
-        session.idle_expires_at_micros = idle_expires_at_micros;
+        session.last_seen_at_micros = session.last_seen_at_micros.max(now_micros);
+        session.idle_expires_at_micros = session.idle_expires_at_micros.max(idle_expires_at_micros);
         Ok(true)
     }
 
@@ -493,7 +493,7 @@ mod tests {
         second.username = "secondary".into();
         assert!(matches!(
             StaticAdministratorStore::new([administrator.clone(), second]),
-            Err(Error::DuplicateIdentifier)
+            Err(Error::TooManyAdministrators)
         ));
         let records = (0..sarmg_admin_core::STATIC_ADMINISTRATORS_MAX)
             .map(|index| {
@@ -592,7 +592,7 @@ mod tests {
                 .await?
         );
         assert!(
-            !store
+            store
                 .rotate_session_csrf(&session.session_id, [7; 32], [7; 32], 2, 100)
                 .await?
         );

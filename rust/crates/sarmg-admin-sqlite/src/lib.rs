@@ -39,6 +39,14 @@ impl SqliteAdministratorStore {
         for row in rows {
             administrator_from_row(&row)?;
         }
+        // Retain the first active administrator from legacy installations.
+        // Keep historical rows for audit references, but revoke their access.
+        let mut transaction = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        sqlx::query("UPDATE _sarmg_administrators SET active=0, session_version=session_version+1 WHERE active=1 AND administrator_id<>(SELECT administrator_id FROM _sarmg_administrators WHERE active=1 ORDER BY created_at_micros, administrator_id LIMIT 1)")
+            .execute(&mut *transaction).await?;
+        sqlx::query("UPDATE _sarmg_admin_sessions SET revoked_at_micros=last_seen_at_micros WHERE revoked_at_micros IS NULL AND administrator_id IN (SELECT administrator_id FROM _sarmg_administrators WHERE active=0)")
+            .execute(&mut *transaction).await?;
+        transaction.commit().await?;
         Ok(())
     }
 }
@@ -59,7 +67,7 @@ impl AdministratorStore for SqliteAdministratorStore {
         if !(1..=100).contains(&limit) {
             return Err(Error::IntegerRange);
         }
-        sqlx::query("SELECT administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros, last_login_at_micros FROM _sarmg_administrators ORDER BY username, administrator_id LIMIT ? OFFSET ?")
+        sqlx::query("SELECT administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros, last_login_at_micros FROM _sarmg_administrators WHERE active=1 ORDER BY username, administrator_id LIMIT ? OFFSET ?")
             .bind(i64::from(limit)).bind(to_i64(offset)?).fetch_all(&self.pool).await?
             .iter().map(administrator_from_row).collect()
     }
@@ -128,7 +136,13 @@ impl AdministratorStore for SqliteAdministratorStore {
     ) -> Result<(), Error> {
         administrator.validate()?;
         require_action(&event, SecurityAction::AdministratorCreated)?;
-        let mut transaction = self.pool.begin().await?;
+        let mut transaction = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_administrators")
+            .fetch_one(&mut *transaction)
+            .await?;
+        if count != 0 {
+            return Err(Error::AdministratorAlreadyExists);
+        }
         sqlx::query(
             "INSERT INTO _sarmg_administrators(\
                 administrator_id, username, password_hash, active, session_version, \
@@ -228,8 +242,8 @@ impl AdministratorStore for SqliteAdministratorStore {
             return Ok(false);
         }
         let changed = sqlx::query(
-            "UPDATE _sarmg_admin_sessions SET csrf_hash=?, last_seen_at_micros=?, idle_expires_at_micros=? \
-             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND last_seen_at_micros<=? AND absolute_expires_at_micros>=?",
+            "UPDATE _sarmg_admin_sessions SET csrf_hash=?, last_seen_at_micros=MAX(last_seen_at_micros,?), idle_expires_at_micros=MAX(idle_expires_at_micros,?) \
+             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND created_at_micros<=? AND absolute_expires_at_micros>=?",
         )
         .bind(csrf_hash.as_slice())
         .bind(to_i64(now_micros)?)
@@ -390,6 +404,8 @@ fn optional_u64(value: Option<i64>) -> Result<Option<u64>, Error> {
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("only one administrator is allowed")]
+    AdministratorAlreadyExists,
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]

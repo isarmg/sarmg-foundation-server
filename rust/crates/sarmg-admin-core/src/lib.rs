@@ -36,7 +36,7 @@ pub const ADMIN_BODY_MAX_BYTES: usize = 16 * 1024;
 pub const ADMIN_BODY_TIMEOUT: Duration = Duration::from_secs(10);
 pub const ADMIN_BODY_READERS_GLOBAL: usize = 32;
 pub const ADMIN_BODY_READERS_PER_SOURCE: usize = 4;
-pub const STATIC_ADMINISTRATORS_MAX: usize = 1024;
+pub const STATIC_ADMINISTRATORS_MAX: usize = 1;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct AdministratorPolicyV1;
@@ -712,7 +712,7 @@ where
             return Err(ServiceError::InvalidSession);
         }
         require_persistable_time(now_micros)?;
-        let Some(found) = self
+        let Some(mut found) = self
             .store
             .session_by_token_hash(sarmg_admin_auth::token_hash(session_token))
             .await
@@ -740,7 +740,18 @@ where
                 .await
                 .map_err(ServiceError::Store)?;
             if !updated {
-                return Err(ServiceError::InvalidSession);
+                // A concurrent session restore may have rotated CSRF after
+                // this request read it. Recheck authorization instead of
+                // treating a failed activity write as proof of logout.
+                found = self
+                    .store
+                    .session_by_token_hash(sarmg_admin_auth::token_hash(session_token))
+                    .await
+                    .map_err(ServiceError::Store)?
+                    .ok_or(ServiceError::InvalidSession)?;
+                if found.session.status(&found.administrator, now_micros) != SessionStatus::Active {
+                    return Err(ServiceError::InvalidSession);
+                }
             }
         }
         Ok(AuthenticatedIdentity {

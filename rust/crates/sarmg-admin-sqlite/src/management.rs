@@ -73,23 +73,7 @@ pub(super) async fn execute(
                 .map_err(ManagementError::Store)?;
             (username, SecurityAction::AdministratorAccountUpdated, true)
         }
-        AdministratorMutation::Create(mut record) => {
-            record.created_at_micros = now;
-            record.updated_at_micros = now;
-            record
-                .validate()
-                .map_err(|_| ManagementError::InvalidInput)?;
-            if !record.active
-                || record.session_version != 1
-                || record.last_login_at_micros.is_some()
-            {
-                return Err(ManagementError::InvalidInput);
-            }
-            sqlx::query("INSERT INTO _sarmg_administrators(administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros, last_login_at_micros) VALUES(?, ?, ?, 1, 1, ?, ?, NULL)")
-                .bind(record.administrator_id.as_str()).bind(&record.username).bind(&record.password_hash)
-                .bind(timestamp).bind(timestamp).execute(&mut *transaction).await.map_err(storage_error)?;
-            (record.username, SecurityAction::AdministratorCreated, false)
-        }
+        AdministratorMutation::Create(_) => return Err(ManagementError::Conflict),
         AdministratorMutation::ChangePassword {
             administrator_id,
             password_hash,
@@ -183,7 +167,7 @@ fn event(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sarmg_admin_core::{AdministratorService, AuthenticatedIdentity, LoginContext};
+    use sarmg_admin_core::{AdministratorService, LoginContext};
 
     struct Fixture {
         _directory: tempfile::TempDir,
@@ -245,11 +229,8 @@ mod tests {
     }
 
     async fn create(fixture: &Fixture, name: &str) -> AdministratorRecord {
-        fixture
-            .service
-            .create_administrator(&fixture.context, name, "another correct password")
-            .await
-            .unwrap();
+        sqlx::query("INSERT INTO _sarmg_administrators(administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros) SELECT ?, ?, password_hash, 1, 1, created_at_micros+1, updated_at_micros FROM _sarmg_administrators WHERE username='admin'")
+            .bind(format!("legacy-{name}")).bind(name).execute(fixture.service.store().pool()).await.unwrap();
         fixture
             .service
             .store()
@@ -382,7 +363,7 @@ mod tests {
                 .unwrap()
         );
         assert!(
-            !store
+            store
                 .rotate_session_csrf(id, current, current, timestamp - 1, timestamp + 1_000_000)
                 .await
                 .unwrap()
@@ -403,177 +384,77 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn creates_lists_disables_and_protects_the_final_administrator() {
+    async fn only_one_administrator_can_be_created_and_legacy_access_is_revoked() {
         let f = fixture().await;
+        assert!(matches!(
+            f.service
+                .create_administrator(&f.context, "other", "another correct password")
+                .await,
+            Err(ManagementError::Conflict)
+        ));
+        assert!(
+            !f.service
+                .bootstrap_administrator("other", "another correct password", now())
+                .await
+                .unwrap()
+        );
+        let legacy = create(&f, "legacy").await;
+        f.service
+            .store()
+            .validate_all_administrators()
+            .await
+            .unwrap();
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_administrators WHERE active=1")
+                .fetch_one(f.service.store().pool())
+                .await
+                .unwrap();
+        assert_eq!(count, 1);
+        assert!(
+            !f.service
+                .store()
+                .administrator_by_username(&legacy.username)
+                .await
+                .unwrap()
+                .unwrap()
+                .active
+        );
         assert!(matches!(
             f.service
                 .disable_administrator(&f.context, f.context.identity.administrator_id.as_str())
                 .await,
             Err(ManagementError::LastAdministrator)
         ));
-        let secondary = create(&f, "secondary").await;
-        assert!(matches!(
-            f.service
-                .create_administrator(&f.context, "SECONDARY", "another correct password")
-                .await,
-            Err(ManagementError::Conflict)
-        ));
-        assert_eq!(
-            f.service.list_administrators(1, 1).await.unwrap()[0].username,
-            "secondary"
-        );
-        assert!(matches!(
-            f.service.list_administrators(101, 0).await,
-            Err(ManagementError::InvalidInput)
-        ));
-        f.service
-            .disable_administrator(&f.context, secondary.administrator_id.as_str())
-            .await
-            .unwrap();
-        assert!(
-            !f.service
-                .store()
-                .administrator_by_username("secondary")
-                .await
-                .unwrap()
-                .unwrap()
-                .active
-        );
-        assert!(matches!(
-            f.service
-                .disable_administrator(&f.context, secondary.administrator_id.as_str())
-                .await,
-            Err(ManagementError::Conflict)
-        ));
-        let events: Vec<(String, String, Vec<u8>, String, String)> = sqlx::query_as("SELECT action, actor_administrator_id, subject_digest, request_id, detail_json FROM _sarmg_security_audit_events WHERE request_id='management-test' ORDER BY occurred_at_micros, action")
-            .fetch_all(f.service.store().pool()).await.unwrap();
-        assert_eq!(events.len(), 3);
-        for (_, actor, digest, request_id, detail) in events {
-            assert_eq!(actor, f.context.identity.administrator_id.as_str());
-            assert_eq!(digest, sarmg_admin_auth::token_hash("secondary"));
-            assert_eq!(request_id, "management-test");
-            assert_eq!(detail, "{}");
-        }
     }
 
     #[tokio::test]
-    async fn password_change_revokes_sessions_and_rejects_stale_authorization() {
+    async fn account_audit_failure_rolls_back_password_identity_and_session_revocation() {
         let f = fixture().await;
-        f.service
-            .set_administrator_password(
-                &f.context,
-                f.context.identity.administrator_id.as_str(),
-                "replacement correct password",
-            )
-            .await
-            .unwrap();
-        assert!(matches!(
-            f.service
-                .create_administrator(&f.context, "secondary", "another correct password")
-                .await,
-            Err(ManagementError::Unauthorized)
-        ));
-        let record = f
-            .service
-            .store()
-            .administrator_by_username("admin")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(record.session_version, 2);
-        let active: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _sarmg_admin_sessions WHERE revoked_at_micros IS NULL",
-        )
-        .fetch_one(f.service.store().pool())
-        .await
-        .unwrap();
-        assert_eq!(active, 0);
-    }
-
-    #[tokio::test]
-    async fn csrf_rotation_and_expiry_are_rechecked_using_the_commit_clock() {
-        let f = fixture().await;
-        let mut stale = f.context.clone();
-        stale.identity = AuthenticatedIdentity {
-            csrf_hash: [0; 32],
-            ..stale.identity
-        };
-        assert!(matches!(
-            f.service
-                .create_administrator(&stale, "secondary", "another correct password")
-                .await,
-            Err(ManagementError::Unauthorized)
-        ));
-        // A request timestamp before expiry must not authorize a write after it.
-        let expired = now() - 1;
-        sqlx::query("UPDATE _sarmg_admin_sessions SET idle_expires_at_micros=?")
-            .bind(i64::try_from(expired).unwrap())
-            .execute(f.service.store().pool())
-            .await
-            .unwrap();
-        assert!(f.context.now_micros < expired);
-        assert!(matches!(
-            f.service
-                .create_administrator(&f.context, "secondary", "another correct password")
-                .await,
-            Err(ManagementError::Unauthorized)
-        ));
-        assert_eq!(f.service.store().administrator_count().await.unwrap(), 1);
-    }
-
-    #[tokio::test]
-    async fn audit_failure_rolls_back_administrators_passwords_and_revocations() {
-        let f = fixture().await;
-        let secondary = create(&f, "secondary").await;
         sqlx::raw_sql("CREATE TRIGGER reject_audit BEFORE INSERT ON _sarmg_security_audit_events BEGIN SELECT RAISE(ABORT, 'injected audit failure'); END;")
             .execute(f.service.store().pool()).await.unwrap();
         assert!(matches!(
             f.service
-                .create_administrator(&f.context, "third", "another correct password")
-                .await,
-            Err(ManagementError::Store(_))
-        ));
-        assert!(matches!(
-            f.service
-                .disable_administrator(&f.context, secondary.administrator_id.as_str())
-                .await,
-            Err(ManagementError::Store(_))
-        ));
-        assert!(matches!(
-            f.service
-                .set_administrator_password(
+                .update_own_account(
                     &f.context,
-                    f.context.identity.administrator_id.as_str(),
-                    "replacement correct password"
+                    "changed",
+                    "correct horse battery",
+                    Some("updated correct password")
                 )
                 .await,
             Err(ManagementError::Store(_))
         ));
-        assert!(
-            f.service
-                .store()
-                .administrator_by_username("third")
-                .await
-                .unwrap()
-                .is_none()
-        );
-        assert!(
-            f.service
-                .store()
-                .administrator_by_username("secondary")
-                .await
-                .unwrap()
-                .unwrap()
-                .active
-        );
-        let admin = f
+        let original = f
             .service
             .store()
             .administrator_by_username("admin")
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(admin.session_version, 1);
+        assert_eq!(original.session_version, 1);
+        assert!(sarmg_admin_auth::verify_password(
+            "correct horse battery",
+            &original.password_hash
+        ));
         let revoked: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM _sarmg_admin_sessions WHERE revoked_at_micros IS NOT NULL",
         )
@@ -584,47 +465,26 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn concurrent_disable_preserves_one_active_administrator() {
+    async fn minute_activity_updates_can_finish_out_of_order_without_logging_out() {
         let f = fixture().await;
-        let secondary = create(&f, "secondary").await;
-        let login = f
-            .service
-            .login(
-                "secondary",
-                "another correct password",
-                &LoginContext {
-                    source: "127.0.0.1".into(),
-                    request_id: None,
-                    now_micros: now(),
-                },
-            )
-            .await
-            .unwrap();
-        let other = AdministratorManagementContext {
-            identity: f
-                .service
-                .authenticate_session(&login.session_token, now())
+        let store = f.service.store();
+        let id = &f.context.identity.session_id;
+        let hash = f.context.identity.csrf_hash;
+        let timestamp = now() + 61_000_000;
+        let deadline = timestamp + sarmg_admin_core::SESSION_IDLE_MICROS;
+        assert!(
+            store
+                .rotate_session_csrf(id, hash, hash, timestamp + 100, deadline + 100)
                 .await
-                .unwrap(),
-            request_id: Some("other-management".into()),
-            now_micros: now(),
-        };
-        let (first, second) = tokio::join!(
-            f.service
-                .disable_administrator(&f.context, secondary.administrator_id.as_str()),
-            f.service
-                .disable_administrator(&other, f.context.identity.administrator_id.as_str()),
+                .unwrap()
         );
-        assert_ne!(first.is_ok(), second.is_ok());
-        assert!(matches!(
-            first.and(second),
-            Err(ManagementError::Unauthorized)
-        ));
-        let count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_administrators WHERE active=1")
-                .fetch_one(f.service.store().pool())
+        assert!(
+            store
+                .rotate_session_csrf(id, hash, hash, timestamp, deadline)
                 .await
-                .unwrap();
-        assert_eq!(count, 1);
+                .unwrap()
+        );
+        let row: (i64, i64) = sqlx::query_as("SELECT last_seen_at_micros, idle_expires_at_micros FROM _sarmg_admin_sessions WHERE session_id=?").bind(id.as_str()).fetch_one(store.pool()).await.unwrap();
+        assert_eq!(row, ((timestamp + 100) as i64, (deadline + 100) as i64));
     }
 }

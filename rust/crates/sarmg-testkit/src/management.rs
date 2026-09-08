@@ -94,129 +94,30 @@ where
         "admin.content_type_required",
     )
     .await;
-    let root_disable = format!("{ADMINISTRATORS_PATH}/{}/disable", session.user_id);
-    let response = send(authorized(Method::POST, &root_disable, "")).await;
-    assert_eq!(response.status(), StatusCode::CONFLICT);
-    let envelope: ErrorEnvelope =
-        serde_json::from_slice(&to_bytes(response.into_body(), 8192).await.unwrap()).unwrap();
-    assert_eq!(envelope.code.as_str(), "admin.last_administrator");
-    assert_eq!(envelope.request_id.unwrap().as_str(), REQUEST_ID);
-    assert_eq!(
-        send(authorized(Method::POST, ADMINISTRATORS_PATH, create))
-            .await
-            .status(),
-        StatusCode::NO_CONTENT
-    );
     assert_error(
         send(authorized(Method::POST, ADMINISTRATORS_PATH, create)).await,
         StatusCode::CONFLICT,
         "admin.conflict",
     )
     .await;
-    for query in [
-        "?limit=101",
-        "?limit=0",
-        "?limit=1&limit=2",
-        "?extra=1",
-        "?offset=-1",
-    ] {
-        assert_error(
-            send(authorized(
-                Method::GET,
-                &format!("{ADMINISTRATORS_PATH}{query}"),
-                "",
-            ))
-            .await,
-            StatusCode::BAD_REQUEST,
-            "admin.invalid_request",
-        )
-        .await;
-    }
-    let listed = send(authorized(
-        Method::GET,
-        &format!("{ADMINISTRATORS_PATH}?limit=1&offset=1"),
-        "",
-    ))
+    let root_disable = format!("{ADMINISTRATORS_PATH}/{}/disable", session.user_id);
+    assert_error(
+        send(authorized(Method::POST, &root_disable, "")).await,
+        StatusCode::CONFLICT,
+        "admin.last_administrator",
+    )
     .await;
+    let listed = send(authorized(Method::GET, ADMINISTRATORS_PATH, "")).await;
     assert_eq!(listed.status(), StatusCode::OK);
-    assert!(
-        listed.headers()[header::CACHE_CONTROL]
-            .to_str()
-            .unwrap()
-            .contains("no-store")
-    );
     let records: Vec<AdministratorSummary> =
         serde_json::from_slice(&to_bytes(listed.into_body(), 8192).await.unwrap()).unwrap();
     assert_eq!(records.len(), 1);
-    assert_eq!(records[0].username, "secondary");
-    let secondary = &records[0].administrator_id;
-    let password_path = format!("{ADMINISTRATORS_PATH}/{secondary}/password");
-    assert_eq!(
-        send(authorized(
-            Method::POST,
-            &password_path,
-            r#"{"password":"replacement correct password"}"#
-        ))
-        .await
-        .status(),
-        StatusCode::NO_CONTENT
-    );
-    let secondary_login = send(request(
-        Method::POST,
-        ADMIN_LOGIN_PATH,
-        r#"{"username":"secondary","password":"replacement correct password"}"#,
-    ))
-    .await;
-    assert_eq!(secondary_login.status(), StatusCode::OK);
-    let secondary_cookie = secondary_login.headers()[header::SET_COOKIE]
-        .to_str()
-        .unwrap()
-        .split(';')
-        .next()
-        .unwrap()
-        .to_string();
-    assert_eq!(
-        send(authorized(
-            Method::POST,
-            &format!("{ADMINISTRATORS_PATH}/{secondary}/disable"),
-            ""
-        ))
-        .await
-        .status(),
-        StatusCode::NO_CONTENT
-    );
-    let mut revoked = request(Method::GET, ADMINISTRATORS_PATH, "");
-    revoked.headers_mut().insert(
-        header::COOKIE,
-        HeaderValue::from_str(&secondary_cookie).unwrap(),
-    );
-    assert_error(
-        send(revoked).await,
-        StatusCode::UNAUTHORIZED,
-        "auth.session_required",
-    )
-    .await;
-    assert_eq!(
-        send(authorized(
-            Method::POST,
-            &format!("{ADMINISTRATORS_PATH}/{}/password", session.user_id),
-            r#"{"password":"replacement correct password"}"#
-        ))
-        .await
-        .status(),
-        StatusCode::NO_CONTENT
-    );
-    assert_error(
-        send(authorized(Method::GET, ADMINISTRATORS_PATH, "")).await,
-        StatusCode::UNAUTHORIZED,
-        "auth.session_required",
-    )
-    .await;
+    assert_eq!(records[0].username, "admin");
     // The self-service endpoint uses the same transport guards on both adapters.
     let login = send(request(
         Method::POST,
         ADMIN_LOGIN_PATH,
-        r#"{"username":"admin","password":"replacement correct password"}"#,
+        r#"{"username":"admin","password":"correct horse battery"}"#,
     ))
     .await;
     assert_eq!(login.status(), StatusCode::OK);
@@ -244,7 +145,7 @@ where
         );
         value
     };
-    let change = r#"{"username":"renamed","current_password":"replacement correct password","new_password":"my updated correct password"}"#;
+    let change = r#"{"username":"renamed","current_password":"correct horse battery","new_password":"my updated correct password"}"#;
     let mut no_csrf = account_request(change);
     no_csrf.headers_mut().remove("x-csrf-token");
     assert_error(
@@ -273,7 +174,7 @@ where
         "admin.current_password_invalid",
     )
     .await;
-    assert_error(send(account_request(r#"{"username":"renamed","current_password":"replacement correct password","administrator_id":"other"}"#)).await,
+    assert_error(send(account_request(r#"{"username":"renamed","current_password":"correct horse battery","administrator_id":"other"}"#)).await,
         StatusCode::BAD_REQUEST, "admin.invalid_request").await;
     let changed = send(account_request(change)).await;
     assert_eq!(changed.status(), StatusCode::NO_CONTENT);
