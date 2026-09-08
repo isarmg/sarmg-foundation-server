@@ -12,7 +12,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
 不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
 
-当前工作区以 `0.7.1` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
+当前工作区以 `0.7.2` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
 产品 Server 与 Client 使用独立后缀仓库，原不可变标签保持不变。产品采用状态由消费者矩阵记录，
 这不是 Foundation 1.0 完成声明。
 
@@ -198,3 +198,5 @@ Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平�
 - [仓库、依赖、发布与故障运维](docs/operations.md)
 
 代码采用 [Apache License 2.0](LICENSE)。
+
+账号自助设置：管理界面右上角人物图标可以修改当前登录账号名称和密码，需验证当前密码，保存后全部会话失效并重新登录。SQLite 保持账号 ID 和原有数据格式；静态账号存储可通过 `with_persistent_accounts` 启用受保护文件持久化。

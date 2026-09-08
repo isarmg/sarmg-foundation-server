@@ -212,4 +212,92 @@ where
         "auth.session_required",
     )
     .await;
+    // The self-service endpoint uses the same transport guards on both adapters.
+    let login = send(request(
+        Method::POST,
+        ADMIN_LOGIN_PATH,
+        r#"{"username":"admin","password":"replacement correct password"}"#,
+    ))
+    .await;
+    assert_eq!(login.status(), StatusCode::OK);
+    let cookie = login.headers()[header::SET_COOKIE]
+        .to_str()
+        .unwrap()
+        .split(';')
+        .next()
+        .unwrap()
+        .to_owned();
+    let current: AdministratorSession =
+        serde_json::from_slice(&to_bytes(login.into_body(), 8192).await.unwrap()).unwrap();
+    let account_request = |body: &str| {
+        let mut value = request(
+            Method::POST,
+            sarmg_contracts::ADMIN_ACCOUNT_PATH,
+            body.to_owned(),
+        );
+        value
+            .headers_mut()
+            .insert(header::COOKIE, HeaderValue::from_str(&cookie).unwrap());
+        value.headers_mut().insert(
+            "x-csrf-token",
+            HeaderValue::from_str(&current.csrf_token).unwrap(),
+        );
+        value
+    };
+    let change = r#"{"username":"renamed","current_password":"replacement correct password","new_password":"my updated correct password"}"#;
+    let mut no_csrf = account_request(change);
+    no_csrf.headers_mut().remove("x-csrf-token");
+    assert_error(
+        send(no_csrf).await,
+        StatusCode::FORBIDDEN,
+        "auth.csrf_rejected",
+    )
+    .await;
+    let mut cross_origin = account_request(change);
+    cross_origin.headers_mut().insert(
+        header::ORIGIN,
+        HeaderValue::from_static("https://untrusted.example"),
+    );
+    assert_error(
+        send(cross_origin).await,
+        StatusCode::FORBIDDEN,
+        "auth.origin_rejected",
+    )
+    .await;
+    assert_error(
+        send(account_request(
+            r#"{"username":"renamed","current_password":"wrong password"}"#,
+        ))
+        .await,
+        StatusCode::FORBIDDEN,
+        "admin.current_password_invalid",
+    )
+    .await;
+    assert_error(send(account_request(r#"{"username":"renamed","current_password":"replacement correct password","administrator_id":"other"}"#)).await,
+        StatusCode::BAD_REQUEST, "admin.invalid_request").await;
+    let changed = send(account_request(change)).await;
+    assert_eq!(changed.status(), StatusCode::NO_CONTENT);
+    assert!(
+        changed.headers()[header::CACHE_CONTROL]
+            .to_str()
+            .unwrap()
+            .contains("no-store")
+    );
+    assert_error(
+        send(account_request(change)).await,
+        StatusCode::UNAUTHORIZED,
+        "auth.session_required",
+    )
+    .await;
+    let login = send(request(
+        Method::POST,
+        ADMIN_LOGIN_PATH,
+        r#"{"username":"renamed","password":"my updated correct password"}"#,
+    ))
+    .await;
+    assert_eq!(login.status(), StatusCode::OK);
+    let updated: AdministratorSession =
+        serde_json::from_slice(&to_bytes(login.into_body(), 8192).await.unwrap()).unwrap();
+    assert_eq!(updated.user_id, current.user_id);
+    assert_eq!(updated.username, "renamed");
 }

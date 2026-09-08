@@ -3,6 +3,8 @@
 //! Configuration mutation is intentionally unsupported. Restarting the
 //! process drops every browser session by construction.
 
+mod account_file;
+
 use sarmg_admin_core::{
     AdministratorRecord, AdministratorStore, DIGEST_BYTES, Identifier, LoginSuccess,
     SESSIONS_GLOBAL, SESSIONS_PER_ADMINISTRATOR, SecurityAction, SecurityAuditEvent,
@@ -19,11 +21,13 @@ struct State {
     administrators: HashMap<String, AdministratorRecord>,
     sessions: HashMap<[u8; DIGEST_BYTES], SessionRecord>,
     audit_events: Vec<SecurityAuditEvent>,
+    persistence_failed: bool,
 }
 
 #[derive(Debug)]
 pub struct StaticAdministratorStore {
     state: Mutex<State>,
+    account_file: Option<account_file::AccountFile>,
 }
 
 impl StaticAdministratorStore {
@@ -55,12 +59,28 @@ impl StaticAdministratorStore {
             return Err(Error::NoAdministrators);
         }
         Ok(Self {
+            account_file: None,
             state: Mutex::new(State {
                 administrators: by_username,
                 sessions: HashMap::new(),
                 audit_events: Vec::new(),
+                persistence_failed: false,
             }),
         })
+    }
+
+    /// Enable self-service credential changes in a separate protected account
+    /// file. Sessions remain process-local; configured stable IDs stay fixed.
+    pub fn with_persistent_accounts(
+        administrators: impl IntoIterator<Item = AdministratorRecord>,
+        directory: sarmg_fs_safety::PrivateDirectory,
+    ) -> Result<Self, Error> {
+        let configured: Vec<_> = administrators.into_iter().collect();
+        Self::new(configured.clone())?;
+        let (file, records) = account_file::AccountFile::open(directory, configured)?;
+        let mut store = Self::new(records)?;
+        store.account_file = Some(file);
+        Ok(store)
     }
 
     pub fn active_session_count(&self) -> Result<usize, Error> {
@@ -77,7 +97,11 @@ impl StaticAdministratorStore {
     }
 
     fn lock(&self) -> Result<std::sync::MutexGuard<'_, State>, Error> {
-        self.state.lock().map_err(|_| Error::StatePoisoned)
+        let state = self.state.lock().map_err(|_| Error::StatePoisoned)?;
+        if state.persistence_failed {
+            return Err(Error::AccountPersistenceFailed);
+        }
+        Ok(state)
     }
 }
 
@@ -89,16 +113,133 @@ impl AdministratorStore for StaticAdministratorStore {
         false
     }
 
+    fn supports_account_updates(&self) -> bool {
+        self.account_file.is_some()
+    }
+
     async fn list_administrators(&self, _: u32, _: u64) -> Result<Vec<AdministratorRecord>, Error> {
         Err(Error::ConfigurationMutationUnsupported)
     }
 
     async fn manage_administrator(
         &self,
-        _: &sarmg_admin_core::AdministratorManagementContext,
-        _: sarmg_admin_core::AdministratorMutation,
+        context: &sarmg_admin_core::AdministratorManagementContext,
+        mutation: sarmg_admin_core::AdministratorMutation,
     ) -> Result<(), sarmg_admin_core::ManagementError<Error>> {
-        Err(sarmg_admin_core::ManagementError::Unsupported)
+        use sarmg_admin_core::{AdministratorMutation, AuditOutcome, ManagementError};
+        let Some(file) = &self.account_file else {
+            return Err(ManagementError::Unsupported);
+        };
+        let AdministratorMutation::UpdateOwnAccount {
+            username,
+            expected_password_hash,
+            password_hash,
+        } = mutation
+        else {
+            return Err(ManagementError::Unsupported);
+        };
+        context
+            .validate()
+            .map_err(|_| ManagementError::InvalidInput)?;
+        sarmg_admin_auth::require_canonical_administrator_username(&username)
+            .map_err(|_| ManagementError::InvalidInput)?;
+        if let Some(hash) = &password_hash {
+            sarmg_admin_auth::require_current_password_hash(hash)
+                .map_err(|_| ManagementError::InvalidInput)?;
+        }
+        let mut state = self.lock().map_err(ManagementError::Store)?;
+        let now = u64::try_from(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|_| ManagementError::InvalidInput)?
+                .as_micros(),
+        )
+        .map_err(|_| ManagementError::InvalidInput)?
+        .max(context.now_micros);
+        let current = state
+            .administrators
+            .values()
+            .find(|record| record.administrator_id == context.identity.administrator_id)
+            .cloned()
+            .ok_or(ManagementError::Unauthorized)?;
+        let valid = state.sessions.values().any(|session| {
+            session.session_id == context.identity.session_id
+                && session.administrator_id == current.administrator_id
+                && session.csrf_hash == context.identity.csrf_hash
+                && session.administrator_session_version == current.session_version
+                && is_active(session, now)
+        });
+        if !valid || !current.active || current.password_hash != expected_password_hash {
+            return Err(ManagementError::Unauthorized);
+        }
+        if state
+            .administrators
+            .get(&username)
+            .is_some_and(|other| other.administrator_id != current.administrator_id)
+        {
+            return Err(ManagementError::Conflict);
+        }
+        let mut updated = current.clone();
+        updated.username = username.clone();
+        if let Some(hash) = password_hash {
+            updated.password_hash = hash;
+        }
+        updated.session_version = updated
+            .session_version
+            .checked_add(1)
+            .ok_or(ManagementError::InvalidInput)?;
+        updated.updated_at_micros = now;
+        updated
+            .validate()
+            .map_err(|_| ManagementError::InvalidInput)?;
+        let records: Vec<_> = state
+            .administrators
+            .values()
+            .map(|record| {
+                if record.administrator_id == updated.administrator_id {
+                    updated.clone()
+                } else {
+                    record.clone()
+                }
+            })
+            .collect();
+        let events = [
+            SecurityAction::AdministratorAccountUpdated,
+            SecurityAction::AdministratorSessionsRevoked,
+        ]
+        .into_iter()
+        .map(|action| {
+            Ok(SecurityAuditEvent {
+                event_id: Identifier::new(sarmg_admin_auth::random_token().map_err(Error::from)?)
+                    .map_err(Error::from)?,
+                action,
+                outcome: AuditOutcome::Success,
+                actor_administrator_id: Some(current.administrator_id.clone()),
+                subject_digest: Some(sarmg_admin_auth::token_hash(&username)),
+                request_id: context.request_id.clone(),
+                detail_json: "{}".into(),
+                occurred_at_micros: now,
+            })
+        })
+        .collect::<Result<Vec<_>, Error>>()
+        .map_err(ManagementError::Store)?;
+        if let Err(error) = file.save(&records) {
+            // A directory fsync failure may follow rename. Fail closed until
+            // restart reloads the durable file instead of keeping stale hashes.
+            state.persistence_failed = true;
+            return Err(ManagementError::Store(error));
+        }
+        state.administrators.remove(&current.username);
+        state.administrators.insert(username, updated);
+        for session in state
+            .sessions
+            .values_mut()
+            .filter(|session| session.administrator_id == current.administrator_id)
+        {
+            session.revoked_at_micros = Some(now);
+        }
+        state.audit_events.extend(events);
+        Ok(())
     }
 
     async fn administrator_count(&self) -> Result<u64, Error> {
@@ -297,6 +438,12 @@ fn require_action(event: &SecurityAuditEvent, expected: SecurityAction) -> Resul
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error(transparent)]
+    Filesystem(#[from] sarmg_fs_safety::Error),
+    #[error("protected account file is invalid or configured account IDs changed")]
+    InvalidAccountFile,
+    #[error("account persistence failed; restart required to reload durable credentials")]
+    AccountPersistenceFailed,
     #[error(transparent)]
     Core(#[from] sarmg_admin_core::Error),
     #[error(transparent)]

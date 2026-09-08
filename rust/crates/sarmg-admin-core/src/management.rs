@@ -22,6 +22,11 @@ impl AdministratorManagementContext {
 /// Hashes and internal records never implement Serialize for a public response.
 pub enum AdministratorMutation {
     Create(AdministratorRecord),
+    UpdateOwnAccount {
+        username: String,
+        expected_password_hash: String,
+        password_hash: Option<String>,
+    },
     ChangePassword {
         administrator_id: Identifier,
         password_hash: String,
@@ -60,6 +65,8 @@ pub enum ManagementError<StoreError: std::error::Error + Send + Sync + 'static> 
     LastAdministrator,
     #[error("administrator input is invalid")]
     InvalidInput,
+    #[error("current administrator password is incorrect")]
+    InvalidCurrentPassword,
     #[error("administrator password work is unavailable")]
     Busy,
     #[error("administrator storage failed: {0}")]
@@ -67,6 +74,76 @@ pub enum ManagementError<StoreError: std::error::Error + Send + Sync + 'static> 
 }
 
 impl<Store: AdministratorStore + 'static> AdministratorService<Store> {
+    /// Verify the current credential before atomically updating the session's own
+    /// account. The store repeats session/CSRF checks under its mutation lock.
+    pub async fn update_own_account(
+        &self,
+        context: &AdministratorManagementContext,
+        username: &str,
+        current_password: &str,
+        new_password: Option<&str>,
+    ) -> Result<(), ManagementError<Store::StoreError>> {
+        if !self.store.supports_account_updates() {
+            return Err(ManagementError::Unsupported);
+        }
+        context
+            .validate()
+            .map_err(|_| ManagementError::InvalidInput)?;
+        let username = sarmg_admin_auth::normalize_administrator_username(username)
+            .map_err(|_| ManagementError::InvalidInput)?;
+        if current_password.len() > 1024 {
+            return Err(ManagementError::InvalidInput);
+        }
+        let record = self
+            .store
+            .administrator_by_username(&context.identity.username)
+            .await
+            .map_err(ManagementError::Store)?
+            .ok_or(ManagementError::Unauthorized)?;
+        if !record.active || record.administrator_id != context.identity.administrator_id {
+            return Err(ManagementError::Unauthorized);
+        }
+        let account_key = sarmg_admin_auth::token_hash(&record.username);
+        let source_key = sarmg_admin_auth::token_hash(context.identity.session_id.as_str());
+        self.require_login_capacity(source_key, account_key, context.now_micros)
+            .map_err(|_| ManagementError::Busy)?;
+        let permit = tokio::time::timeout(
+            Duration::from_micros(ARGON2_ACQUIRE_TIMEOUT_MICROS),
+            self.argon2_slots.clone().acquire_owned(),
+        )
+        .await
+        .map_err(|_| ManagementError::Busy)?
+        .map_err(|_| ManagementError::Busy)?;
+        let encoded = record.password_hash.clone();
+        let candidate = current_password.to_owned();
+        let matches = tokio::task::spawn_blocking(move || {
+            let matches = sarmg_admin_auth::verify_password(&candidate, &encoded);
+            drop(permit);
+            matches
+        })
+        .await
+        .map_err(|_| ManagementError::Busy)?;
+        if !matches {
+            self.record_login_failure(source_key, account_key, context.now_micros)
+                .map_err(|_| ManagementError::Busy)?;
+            return Err(ManagementError::InvalidCurrentPassword);
+        }
+        let password_hash = match new_password.filter(|value| !value.is_empty()) {
+            Some(value) => Some(self.management_password_hash(value).await?),
+            None => None,
+        };
+        self.store
+            .manage_administrator(
+                context,
+                AdministratorMutation::UpdateOwnAccount {
+                    username,
+                    expected_password_hash: record.password_hash,
+                    password_hash,
+                },
+            )
+            .await
+    }
+
     pub async fn list_administrators(
         &self,
         limit: u32,

@@ -237,6 +237,7 @@ pub enum SecurityAction {
     AdministratorCreated,
     AdministratorDisabled,
     AdministratorPasswordChanged,
+    AdministratorAccountUpdated,
     AdministratorSessionsRevoked,
     SessionCreated,
     SessionRevoked,
@@ -248,6 +249,7 @@ impl SecurityAction {
         match self {
             Self::AdministratorCreated => "administrator.created",
             Self::AdministratorDisabled => "administrator.disabled",
+            Self::AdministratorAccountUpdated => "administrator.account_updated",
             Self::AdministratorPasswordChanged => "administrator.password_changed",
             Self::AdministratorSessionsRevoked => "administrator.sessions_revoked",
             Self::SessionCreated => "session.created",
@@ -303,6 +305,9 @@ pub struct SessionAndAdministrator {
 pub trait AdministratorStore: Send + Sync {
     type StoreError: std::error::Error + Send + Sync + 'static;
     fn supports_management(&self) -> bool;
+    fn supports_account_updates(&self) -> bool {
+        self.supports_management()
+    }
     async fn list_administrators(
         &self,
         limit: u32,

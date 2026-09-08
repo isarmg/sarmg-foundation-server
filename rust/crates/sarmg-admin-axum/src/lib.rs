@@ -88,6 +88,11 @@ where
     } else {
         router
     };
+    let router = if state.service.store().supports_account_updates() {
+        management::account_routes(router)
+    } else {
+        router
+    };
     Ok(router.with_state(state))
 }
 

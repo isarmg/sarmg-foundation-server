@@ -4,7 +4,7 @@ test('configured instance workspace, header actions, names and consumer override
   await page.route('**/api/v2/auth/session',route=>route.fulfill({json:session}));
   await page.goto('/#workspace');
   const actions=page.getByRole('group',{name:"Global actions"});
-  await expect(actions.getByRole('button')).toHaveCount(5);
+  await expect(actions.getByRole('button')).toHaveCount(6);
   await expect(page.getByRole('banner').locator('.sarmg-product-identity')).toBeVisible();
   await expect(page.getByRole('banner').locator('.sarmg-product-identity')).toHaveText('Foundation acceptance');
   await expect(page.locator('.sarmg-product-identity small')).toHaveCount(0);
@@ -12,7 +12,7 @@ test('configured instance workspace, header actions, names and consumer override
   for(const width of [1280,320]){
     await page.setViewportSize({width,height:800});
     const measurements=await page.locator('header .sarmg-header-navigation a, header .sarmg-header-actions button').evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect(),s=getComputedStyle(node);return{y:r.y,height:r.height,size:s.fontSize};}));
-    expect(measurements.length).toBe(8);
+    expect(measurements.length).toBe(9);
     const originalSize=await page.locator('body').evaluate(node=>getComputedStyle(node).fontSize);
     expect(measurements.every(value=>Math.abs(value.y-measurements[0].y)<1&&value.height===44&&value.size===originalSize)).toBe(true);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

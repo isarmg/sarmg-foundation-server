@@ -14,9 +14,13 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.1" }
-sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.1" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.2" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.2" }
 thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sarmg-fs-safety = { path = "../sarmg-fs-safety", version = "=0.7.2" }
 
 [dev-dependencies]
+tempfile.workspace = true
 tokio.workspace = true

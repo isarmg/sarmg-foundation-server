@@ -50,6 +50,29 @@ pub(super) async fn execute(
     }
 
     let (subject, action, revokes_sessions) = match mutation {
+        AdministratorMutation::UpdateOwnAccount {
+            username,
+            expected_password_hash,
+            password_hash,
+        } => {
+            sarmg_admin_auth::require_canonical_administrator_username(&username)
+                .map_err(|_| ManagementError::InvalidInput)?;
+            if let Some(hash) = &password_hash {
+                sarmg_admin_auth::require_current_password_hash(hash)
+                    .map_err(|_| ManagementError::InvalidInput)?;
+            }
+            let id = &context.identity.administrator_id;
+            let changed = sqlx::query("UPDATE _sarmg_administrators SET username=?, password_hash=COALESCE(?, password_hash), session_version=session_version+1, updated_at_micros=? WHERE administrator_id=? AND active=1 AND password_hash=?")
+                .bind(&username).bind(password_hash).bind(timestamp).bind(id.as_str()).bind(expected_password_hash)
+                .execute(&mut *transaction).await.map_err(storage_error)?.rows_affected();
+            if changed != 1 {
+                return Err(ManagementError::Unauthorized);
+            }
+            revoke_administrator_sessions(&mut transaction, id, now)
+                .await
+                .map_err(ManagementError::Store)?;
+            (username, SecurityAction::AdministratorAccountUpdated, true)
+        }
         AdministratorMutation::Create(mut record) => {
             record.created_at_micros = now;
             record.updated_at_micros = now;
@@ -234,6 +257,102 @@ mod tests {
             .await
             .unwrap()
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn own_account_update_is_atomic_and_keeps_identity() {
+        let f = fixture().await;
+        let original = f.context.identity.administrator_id.clone();
+        f.service
+            .update_own_account(
+                &f.context,
+                "renamed",
+                "correct horse battery",
+                Some("updated correct password"),
+            )
+            .await
+            .unwrap();
+        assert!(
+            f.service
+                .store()
+                .administrator_by_username("admin")
+                .await
+                .unwrap()
+                .is_none()
+        );
+        let account = f
+            .service
+            .store()
+            .administrator_by_username("renamed")
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(account.administrator_id, original);
+        assert!(sarmg_admin_auth::verify_password(
+            "updated correct password",
+            &account.password_hash
+        ));
+        let active: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_admin_sessions WHERE administrator_id=? AND revoked_at_micros IS NULL")
+            .bind(original.as_str()).fetch_one(f.service.store().pool()).await.unwrap();
+        assert_eq!(active, 0);
+        assert!(matches!(
+            f.service
+                .update_own_account(&f.context, "again", "updated correct password", None)
+                .await,
+            Err(ManagementError::Unauthorized)
+        ));
+        let events: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_security_audit_events WHERE action='administrator.account_updated'").fetch_one(f.service.store().pool()).await.unwrap();
+        assert_eq!(events, 1);
+    }
+
+    #[tokio::test]
+    async fn wrong_password_and_duplicate_name_leave_account_unchanged() {
+        let f = fixture().await;
+        create(&f, "secondary").await;
+        assert!(matches!(
+            f.service
+                .update_own_account(&f.context, "renamed", "incorrect password", None)
+                .await,
+            Err(ManagementError::InvalidCurrentPassword)
+        ));
+        assert!(matches!(
+            f.service
+                .update_own_account(
+                    &f.context,
+                    "secondary",
+                    "correct horse battery",
+                    Some("updated correct password")
+                )
+                .await,
+            Err(ManagementError::Conflict)
+        ));
+        let account = f
+            .service
+            .store()
+            .administrator_by_username("admin")
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(sarmg_admin_auth::verify_password(
+            "correct horse battery",
+            &account.password_hash
+        ));
+        assert_eq!(account.session_version, 1);
+        f.service
+            .update_own_account(&f.context, "renamed", "correct horse battery", None)
+            .await
+            .unwrap();
+        let account = f
+            .service
+            .store()
+            .administrator_by_username("renamed")
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(sarmg_admin_auth::verify_password(
+            "correct horse battery",
+            &account.password_hash
+        ));
     }
 
     #[tokio::test]

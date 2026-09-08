@@ -24,10 +24,10 @@ importers:
   packages/admin-shell:
     devDependencies:
       '@sarmg/admin-ui':
-        specifier: workspace:0.7.1
+        specifier: workspace:0.7.2
         version: link:../admin-ui
       '@sarmg/admin-web':
-        specifier: workspace:0.7.1
+        specifier: workspace:0.7.2
         version: link:../admin-web
       '@types/react':
         specifier: 19.2.18
@@ -66,10 +66,10 @@ importers:
   packages/admin-web:
     devDependencies:
       '@sarmg/contracts':
-        specifier: workspace:0.7.1
+        specifier: workspace:0.7.2
         version: link:../contracts
       '@sarmg/http-client':
-        specifier: workspace:0.7.1
+        specifier: workspace:0.7.2
         version: link:../http-client
       '@types/react':
         specifier: 19.2.18
@@ -102,7 +102,7 @@ importers:
   packages/http-client:
     devDependencies:
       '@sarmg/contracts':
-        specifier: workspace:0.7.1
+        specifier: workspace:0.7.2
         version: link:../contracts
       typescript:
         specifier: 5.8.3

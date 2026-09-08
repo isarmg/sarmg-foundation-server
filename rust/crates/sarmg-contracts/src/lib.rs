@@ -35,8 +35,8 @@ pub const ADMIN_LOGOUT_PATH: &str = "/api/v2/auth/logout";
 
 mod administrators;
 pub use administrators::{
-    ADMINISTRATORS_PATH, AdministratorCreateRequest, AdministratorPasswordRequest,
-    AdministratorSummary,
+    ADMIN_ACCOUNT_PATH, ADMINISTRATORS_PATH, AdministratorAccountRequest,
+    AdministratorCreateRequest, AdministratorPasswordRequest, AdministratorSummary,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]

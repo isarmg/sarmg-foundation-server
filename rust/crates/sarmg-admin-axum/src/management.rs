@@ -23,6 +23,46 @@ pub(super) fn routes<Store: AdministratorStore + 'static>(
         )
 }
 
+pub(super) fn account_routes<Store: AdministratorStore + 'static>(
+    router: Router<AdapterState<Store>>,
+) -> Router<AdapterState<Store>> {
+    router.route(sarmg_contracts::ADMIN_ACCOUNT_PATH, post(account::<Store>))
+}
+
+async fn account<Store: AdministratorStore + 'static>(
+    State(state): State<AdapterState<Store>>,
+    request: Request,
+) -> Response {
+    let context = match authorize(&state, request.headers(), request.uri(), request.method()).await
+    {
+        Ok(value) => value,
+        Err(response) => return *response,
+    };
+    let id = context_id(&context);
+    let input = match input::<sarmg_contracts::AdministratorAccountRequest>(
+        request,
+        &state.body_admission,
+        id.as_ref(),
+    )
+    .await
+    {
+        Ok(value) => value,
+        Err(response) => return *response,
+    };
+    mutation_response(
+        state
+            .service
+            .update_own_account(
+                &context,
+                &input.username,
+                &input.current_password,
+                input.new_password.as_deref(),
+            )
+            .await,
+        id.as_ref(),
+    )
+}
+
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Pagination {
@@ -228,6 +268,11 @@ fn management_error<E: std::error::Error + Send + Sync + 'static>(
             (StatusCode::CONFLICT, "admin.last_administrator", false)
         }
         ManagementError::InvalidInput => return invalid(id),
+        ManagementError::InvalidCurrentPassword => (
+            StatusCode::FORBIDDEN,
+            "admin.current_password_invalid",
+            false,
+        ),
         ManagementError::Busy => (
             StatusCode::SERVICE_UNAVAILABLE,
             "auth.capacity_unavailable",

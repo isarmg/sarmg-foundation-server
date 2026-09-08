@@ -18,6 +18,9 @@ export { HeaderActions, HeaderNavigation, InstanceHeaderActions, InstanceWorkspa
 export { DEFAULT_WORKSPACE_CONFIG, resolveWorkspaceConfig, validInstanceName } from "./workspace-config.js";
 export type { WorkspaceConfig } from "./workspace-config.js";
 
+import { AccountSettings } from "./account.js";
+export { AccountSettings } from "./account.js";
+
 export { AdministratorsPanel } from "./administrators.js";
 
 export type ProductIdentity = { name: string };
@@ -84,6 +87,7 @@ export function createSarmgAdminApplication(options: AdminApplicationOptions) {
 
 function AdminShell({ options, client }: { options: AdminApplicationOptions; client: AdministratorApiClient }) {
   const session = useAdministratorSession(client);
+  const [accountUpdated, setAccountUpdated] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState<unknown>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
@@ -120,6 +124,7 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
   if (session.phase !== "authenticated") {
     return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-card">{identity}
+      {accountUpdated && <p role="status">{t("账号已更新，请使用新账号信息登录。", "Account updated. Sign in with your updated credentials.")}</p>}
       {session.phase === "loading" ? <LoadingState>{t("正在恢复管理员会话…", "Restoring administrator session…")}</LoadingState>
         : session.phase === "error" ? <ErrorState requestId={errorRequestId(session.error)} onRetry={() => void session.restore()}>
           {t("无法恢复管理员会话。", "Unable to restore administrator session.")}</ErrorState>
@@ -144,6 +149,7 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
       </div></div></div><div className="sarmg-header-actions" role="group" aria-label={t("全局操作", "Global actions")}>
         <div ref={setHeaderActions} style={{ display: "contents" }} /><LanguageToggle /><ThemeToggle />
         <IconButton disabled={logoutPending} aria-label={logoutPending ? t("正在退出…", "Signing out…") : t("退出", "Sign out")} title={logoutPending ? t("正在退出…", "Signing out…") : t("退出", "Sign out")} onClick={() => void logout()}>{workspace.headerControls === "icons" ? <WorkspaceIcon name="logout" /> : t("退出", "Sign out")}</IconButton>
+        <AccountSettings client={client} username={session.session.username} onUpdated={() => setAccountUpdated(true)} />
       </div></PageHeader>
       {toasts.length > 0 && <div className="sarmg-toast-stack" role="region" aria-label={t("通知", "Notifications")}>{toasts.map(toast =>
         <Toast key={toast.id}><span>{toast.message}</span>

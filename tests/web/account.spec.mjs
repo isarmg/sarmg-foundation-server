@@ -1,0 +1,46 @@
+import { test, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+
+test("account menu verifies current password, clears secrets and returns to sign in", async ({ page }) => {
+  const session = { authenticated: true, user_id: "A".repeat(43), username: "admin", role: "admin", csrf_token: "A".repeat(43) };
+  let authenticated = true;
+  let updates = 0;
+  await page.route("**/api/v2/**", async route => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    if (path.endsWith("/auth/session")) return route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? session : { code: "auth.session_required", message: "Sign in required", retryable: false } });
+    expect(path).toBe("/api/v2/platform/administrators/self");
+    expect(request.headers()["x-csrf-token"]).toBe(session.csrf_token);
+    updates++;
+    const input = request.postDataJSON();
+    expect(input.username).toBe("renamed");
+    if (input.current_password !== "correct horse battery") return route.fulfill({ status: 403, json: { code: "admin.current_password_invalid", message: "SECRET server details", retryable: false } });
+    expect(input.new_password).toBe("updated correct password");
+    authenticated = false;
+    return route.fulfill({ status: 204 });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const trigger = page.getByRole("button", { name: "Account settings", exact: true });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Account settings", exact: true });
+  await expect(dialog).toBeVisible();
+  expect((await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
+  await page.getByLabel("Account name", { exact: true }).fill("renamed");
+  await page.getByLabel("Current password", { exact: true }).fill("incorrect password");
+  await page.getByRole("button", { name: "Save account", exact: true }).click();
+  await expect(dialog).toContainText("current password is incorrect");
+  await expect(page.getByLabel("Current password", { exact: true })).toHaveValue("");
+  await expect(page.locator("body")).not.toContainText("SECRET");
+  await page.getByLabel("Current password", { exact: true }).fill("correct horse battery");
+  await page.getByLabel("New password", { exact: true }).fill("updated correct password");
+  await page.getByLabel("Confirm new password", { exact: true }).fill("different password");
+  await page.getByRole("button", { name: "Save account", exact: true }).click();
+  await expect(dialog).toContainText("new passwords do not match");
+  expect(updates).toBe(1);
+  await page.getByLabel("Confirm new password", { exact: true }).fill("updated correct password");
+  await page.getByRole("button", { name: "Save account", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Administrator sign in" })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Account updated");
+  expect(updates).toBe(2);
+  expect(await page.evaluate(() => ({ ...localStorage, ...sessionStorage }))).toEqual({});
+});

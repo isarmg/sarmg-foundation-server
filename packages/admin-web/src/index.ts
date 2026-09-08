@@ -1,5 +1,5 @@
 import {
-  ADMIN_AUTH_PATHS,
+  ADMIN_AUTH_PATHS, ADMIN_ACCOUNT_PATH, isAdministratorAccountRequest, type AdministratorAccountRequest,
   isAdministratorLoginRequest,
   isAdministratorSession,
   type AdministratorSession,
@@ -28,6 +28,7 @@ export type AdministratorApiClient = {
   login(username: string, password: string): Promise<AdministratorSession>;
   restore(): Promise<AdministratorSession>;
   logout(): Promise<void>;
+  updateAccount(input: AdministratorAccountRequest): Promise<void>;
   request<T>(path: string, guard: JsonGuard<T>, init?: RequestInit): Promise<T>;
   currentSession(): AdministratorSession | null;
   subscribe(listener: AdministratorSessionListener): () => void;
@@ -237,6 +238,22 @@ export function createAdministratorApiClient(
             publish(null);
           }
         }
+      });
+    },
+
+    async updateAccount(input) {
+      if (!isAdministratorAccountRequest(input) || (input.new_password && !isAdministratorPassword(input.new_password))) {
+        throw new TypeError("Account input violates the current administrator contract");
+      }
+      const generation = authenticationGeneration;
+      return enqueueAuthenticationMutation(async () => {
+        requireCurrentOperation(generation);
+        await send(ADMIN_ACCOUNT_PATH, isUndefined, { method: "POST", body: JSON.stringify(input) });
+        requireCurrentOperation(generation);
+        // The server has atomically revoked all sessions for this account.
+        // Advance the generation so a delayed restore cannot reauthenticate it.
+        restorePromise = null;
+        invalidate();
       });
     },
 

@@ -5,6 +5,7 @@ export const ADMINISTRATOR_USERNAME_MIN_BYTES = 3;
 export const ADMINISTRATOR_USERNAME_MAX_BYTES = 64;
 export const AUTHENTICATION_TOKEN_ENCODED_BYTES = 43;
 export const ADMINISTRATOR_ROLE = "admin" as const;
+export const ADMIN_ACCOUNT_PATH = "/api/v2/platform/administrators/self";
 export const ADMINISTRATORS_PATH = "/api/v2/platform/administrators";
 export const ADMIN_AUTH_PATHS = Object.freeze({
   login: "/api/v2/auth/login",
@@ -32,6 +33,13 @@ export type AdministratorSession = {
   readonly role: AdministratorRole;
   readonly csrf_token: string;
 };
+
+export type AdministratorAccountRequest = { username: string; current_password: string; new_password?: string };
+export function isAdministratorAccountRequest(value: unknown): value is AdministratorAccountRequest {
+  return isRecord(value) && hasExactKeys(value, value.new_password === undefined ? ["username", "current_password"] : ["username", "current_password", "new_password"])
+    && isAdministratorLoginRequest({ username: value.username, password: value.current_password })
+    && (value.new_password === undefined || isBoundedCredentialText(value.new_password, 1_024));
+}
 
 export type AdministratorCreateRequest = { username: string; password: string };
 export type AdministratorPasswordRequest = { password: string };
