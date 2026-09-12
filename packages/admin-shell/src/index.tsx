@@ -85,7 +85,8 @@ export function createSarmgAdminApplication(options: AdminApplicationOptions) {
 
 function AdminShell({ options, client }: { options: AdminApplicationOptions; client: AdministratorApiClient }) {
   const session = useAdministratorSession(client);
-  const fontsReady = useApplicationFontsReady();
+  const workspace = resolveWorkspaceConfig(options.workspace);
+  const fontState = useApplicationFontsReady(workspace.fontFamily);
   const [accountUpdated, setAccountUpdated] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState<unknown>(null);
@@ -93,19 +94,20 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
   const sequence = useRef(0);
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const [headerNavigation, setHeaderNavigation] = useState<HTMLDivElement | null>(null);
-  const workspace = resolveWorkspaceConfig(options.workspace);
+  const activeFontFamily = fontState === "fallback" && workspace.fontFamily.includes("Sarmg Maple")
+    ? "ui-monospace,monospace" : workspace.fontFamily;
   useEffect(() => {
     const root = document.documentElement;
     const previous = { appearance: root.dataset.sarmgAppearance, selection: root.dataset.sarmgSelection, font: root.style.getPropertyValue("--sarmg-font-ui") };
     root.dataset.sarmgAppearance = workspace.appearance;
     root.dataset.sarmgSelection = workspace.selection;
-    root.style.setProperty("--sarmg-font-ui", workspace.fontFamily);
+    root.style.setProperty("--sarmg-font-ui", activeFontFamily);
     return () => {
       if (previous.appearance === undefined) delete root.dataset.sarmgAppearance; else root.dataset.sarmgAppearance = previous.appearance;
       if (previous.selection === undefined) delete root.dataset.sarmgSelection; else root.dataset.sarmgSelection = previous.selection;
       if (previous.font) root.style.setProperty("--sarmg-font-ui", previous.font); else root.style.removeProperty("--sarmg-font-ui");
     };
-  }, [workspace.appearance, workspace.selection, workspace.fontFamily]);
+  }, [workspace.appearance, workspace.selection, activeFontFamily]);
   const notify = useCallback((message: string) => {
     const id = ++sequence.current;
     setToasts(current => [...current.slice(-4), { id, message: message.slice(0, 512) }]);
@@ -121,7 +123,7 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     if (session.phase !== "authenticated") { setToasts([]); setLogoutError(null); }
   }, [session.phase]);
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
-  if (session.phase === "loading" || !fontsReady) return <ApplicationBootScreen />;
+  if (session.phase === "loading" || fontState === "loading") return <ApplicationBootScreen />;
   if (session.phase !== "authenticated") {
     return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-card">{identity}
       {accountUpdated && <p role="status">{t("账号已更新，请使用新账号信息登录。", "Account updated. Sign in with your updated credentials.")}</p>}
@@ -163,26 +165,41 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
 }
 
 const CORE_FONT_SAMPLE = "管理员登录 Username Password Sign in";
+const FONT_BOOT_TIMEOUT_MS = 1200;
+type ApplicationFontState = "loading" | "ready" | "fallback";
 
-/** Keep the first interactive frame opaque until the UI font has settled. */
-function useApplicationFontsReady(): boolean {
-  const [ready, setReady] = useState(() => typeof document === "undefined");
+/** Wait only for the compact first-paint faces, then keep one font choice for this navigation. */
+function useApplicationFontsReady(fontFamily: string): ApplicationFontState {
+  const usesMaple = fontFamily.includes("Sarmg Maple");
+  const [state, setState] = useState<ApplicationFontState>(() =>
+    typeof document === "undefined" || !usesMaple ? "ready" : "loading");
   useEffect(() => {
-    if (typeof document === "undefined" || !document.fonts) {
-      setReady(true);
+    if (typeof document === "undefined" || !document.fonts || !usesMaple) {
+      setState("ready");
       return;
     }
     let active = true;
-    void Promise.allSettled([
-      document.fonts.load('400 16px "Sarmg Maple"', CORE_FONT_SAMPLE),
-      document.fonts.load('700 16px "Sarmg Maple"', CORE_FONT_SAMPLE),
-      document.fonts.ready,
-    ]).then(() => {
-      if (active) setReady(true);
+    setState("loading");
+    const timeout = window.setTimeout(() => {
+      if (active) { active = false; setState("fallback"); }
+    }, FONT_BOOT_TIMEOUT_MS);
+    void Promise.all([
+      document.fonts.load('400 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE),
+      document.fonts.load('700 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE),
+    ]).then(results => {
+      if (!active) return;
+      active = false;
+      window.clearTimeout(timeout);
+      setState(results.every(faces => faces.length > 0) ? "ready" : "fallback");
+    }, () => {
+      if (!active) return;
+      active = false;
+      window.clearTimeout(timeout);
+      setState("fallback");
     });
-    return () => { active = false; };
-  }, []);
-  return ready;
+    return () => { active = false; window.clearTimeout(timeout); };
+  }, [usesMaple]);
+  return state;
 }
 
 function ApplicationBootScreen() {

@@ -13,7 +13,7 @@ homepage.workspace = true
 workspace = true
 
 [dependencies]
-sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.7.3" }
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.7.4" }
 sqlx.workspace = true
 thiserror.workspace = true
 

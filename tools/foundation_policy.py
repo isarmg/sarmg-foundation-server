@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "0.7.3"
+CURRENT_VERSION = "0.7.4"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.12.1"
 RUST_VERSION = "1.98.0"

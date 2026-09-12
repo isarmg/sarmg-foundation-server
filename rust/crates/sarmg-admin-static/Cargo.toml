@@ -14,12 +14,12 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.3" }
-sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.3" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.4" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.4" }
 thiserror.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sarmg-fs-safety = { path = "../sarmg-fs-safety", version = "=0.7.3" }
+sarmg-fs-safety = { path = "../sarmg-fs-safety", version = "=0.7.4" }
 
 [dev-dependencies]
 tempfile.workspace = true

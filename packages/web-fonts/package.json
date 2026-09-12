@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/web-fonts",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Pinned Maple Mono WOFF2 assets and font mappings",
   "license": "OFL-1.1",
   "type": "module",
@@ -17,6 +17,8 @@
     "./provenance.json": "./dist/provenance.json",
     "./OFL.txt": "./dist/OFL.txt",
     "./MapleMonoNormalNL-Regular.woff2": "./dist/MapleMonoNormalNL-Regular.woff2",
+    "./MapleMonoBootstrap-Regular.woff2": "./dist/MapleMonoBootstrap-Regular.woff2",
+    "./MapleMonoBootstrap-Bold.woff2": "./dist/MapleMonoBootstrap-Bold.woff2",
     "./CJK-LICENSE.txt": "./dist/CJK-LICENSE.txt"
   },
   "files": [
