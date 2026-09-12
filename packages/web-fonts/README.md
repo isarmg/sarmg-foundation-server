@@ -29,4 +29,4 @@ node packages/web-fonts/scripts/build.mjs
 
 更新字体必须发布新的不可变包、更新消费者锁图并重建资源合同，不能覆盖旧归档或伪造原生平台验收。
 随包保留对应许可证；Client 本机 Web 不属于此次 Server 管理 Web 范围。
-首屏子集的发行与消费者验收记录见 0.7.4 Release 文档。
+首屏子集的发行与消费者验收记录见 0.7.5 Release 文档。

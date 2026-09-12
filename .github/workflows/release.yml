@@ -76,4 +76,4 @@ jobs:
           "$RUNNER_TEMP/sarmg-foundation-server-release/release-tree.json"
           --verify-tag
           --title "Sarmg Foundation Server ${GITHUB_REF_NAME}"
-          --notes-file docs/releases/0.7.3.md
+          --notes-file docs/releases/0.7.5.md
