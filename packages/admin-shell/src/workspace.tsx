@@ -35,7 +35,7 @@ export function InstanceWorkspace({ instances, selected, select, label = t("实�
     {sidebarVisible && <aside className="sarmg-instance-sidebar" aria-label={label}><div className="sarmg-instance-list">{instances.map(item =>
       <Button key={item.id} title={item.name} aria-label={t("选择实例 {0}", "Select instance {0}", [item.name])} aria-pressed={selected === item.id} onClick={() => select(item.id)}><span>{item.name}</span></Button>
     )}</div></aside>}
-    <section aria-label={t("实例详情与设置", "Instance details and settings")}>{children}</section>
+    <section className="sarmg-content-stack" aria-label={t("实例详情与设置", "Instance details and settings")}>{children}</section>
   </div>;
 }
 /** Count Unicode scalar values, matching Rust chars(); do not use UTF-16 maxLength. */

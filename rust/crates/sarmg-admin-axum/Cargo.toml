@@ -18,19 +18,19 @@ bytes.workspace = true
 http-body-util.workspace = true
 mime.workspace = true
 tokio.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.5" }
-sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.5" }
-sarmg-contracts = { path = "../sarmg-contracts", version = "=0.7.5" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.6" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.6" }
+sarmg-contracts = { path = "../sarmg-contracts", version = "=0.7.6" }
 serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-sarmg-admin-sqlite = { path = "../sarmg-admin-sqlite", version = "=0.7.5" }
-sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.7.5" }
+sarmg-admin-sqlite = { path = "../sarmg-admin-sqlite", version = "=0.7.6" }
+sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.7.6" }
 sqlx.workspace = true
 tempfile.workspace = true
-sarmg-testkit = { path = "../sarmg-testkit", version = "=0.7.5" }
-sarmg-admin-static = { path = "../sarmg-admin-static", version = "=0.7.5" }
+sarmg-testkit = { path = "../sarmg-testkit", version = "=0.7.6" }
+sarmg-admin-static = { path = "../sarmg-admin-static", version = "=0.7.6" }
 tokio = { workspace = true, features = ["test-util"] }
 http-body.workspace = true
 tower.workspace = true

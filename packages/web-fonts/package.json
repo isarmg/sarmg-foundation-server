@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/web-fonts",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Pinned Maple Mono WOFF2 assets and font mappings",
   "license": "OFL-1.1",
   "type": "module",

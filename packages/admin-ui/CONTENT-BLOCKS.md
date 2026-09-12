@@ -17,12 +17,17 @@
 长表单、详情、表格使用可伸展的 `.sarmg-content-panel`，不要强制塞进固定比例卡片。
 这些类仅规定展示，不包含客户端或服务器行为。
 
+菜单栏到正文首行、标准内容块各行以及上一段内容到子标题默认共用
+`--sarmg-content-spacing`，其默认值是 `--sarmg-space-4`（16px）。普通纵向业务容器可使用
+`.sarmg-content-stack`；它会以该变量建立网格间距，并清除直接子项的块级外边距。
+产品确需不同密度时可以在自身作用域覆盖变量，不应再分别设置标题和正文的临时 margin。
+
 ## 当前发行接入
 
-五个管理 Web 均使用正式 Foundation 包：四个控制平面消费者固定 0.7.0，Dufs 固定 0.7.1。
+五个管理 Web 的本轮目标基线均为正式 Foundation 0.7.6 包。
 直接导入 `@sarmg/admin-ui/styles.css`；包已包含默认内容块 CSS，不再复制到产品 `clients/web/appearance/`，
 也不执行旧的源码快照同步命令。消费者固定 Release tarball URL 与 lockfile integrity，独立构建不需要同级 Foundation 源码。
 
 默认外观可由消费者自定义，不是对外部产品的强制品牌规则。字体由 `@sarmg/web-fonts` 提供，不复制旧版字体规则。
 后续变更必须发布新不可变包并更新消费者锁文件，不覆盖已有 tarball。
-实际版本和验收见 [0.7.0 记录](../../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../../consumers/react-filesystem-0.7.1-evidence.md)。
+本轮统一间距合同及验收见 [0.7.6 Release](../../docs/releases/0.7.6.md)。

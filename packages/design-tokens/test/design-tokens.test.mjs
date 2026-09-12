@@ -46,6 +46,7 @@ const semanticCssNames = {
   actionPrimary: "--sarmg-action-primary",
   bgPage: "--sarmg-bg-page",
   bgPanel: "--sarmg-bg-panel",
+  contentSpacing: "--sarmg-content-spacing",
   textPrimary: "--sarmg-text-primary",
   textDanger: "--sarmg-text-danger",
   textLink: "--sarmg-text-link",

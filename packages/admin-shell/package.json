@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/admin-shell",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Administrator login, recovery, navigation, theme and error shell",
   "license": "Apache-2.0",
   "type": "module",
@@ -31,14 +31,14 @@
     "test:types": "tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck test/workspace-types.ts"
   },
   "peerDependencies": {
-    "@sarmg/admin-ui": "0.7.5",
-    "@sarmg/admin-web": "0.7.5",
+    "@sarmg/admin-ui": "0.7.6",
+    "@sarmg/admin-web": "0.7.6",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@sarmg/admin-ui": "workspace:0.7.5",
-    "@sarmg/admin-web": "workspace:0.7.5",
+    "@sarmg/admin-ui": "workspace:0.7.6",
+    "@sarmg/admin-web": "workspace:0.7.6",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "react": "19.2.8",

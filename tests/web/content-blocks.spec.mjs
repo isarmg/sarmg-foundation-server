@@ -86,3 +86,39 @@ test("default appearance preserves failure handling, login/logout, theme and mod
   expect(await page.locator(".sarmg-auth-card").evaluate(el => getComputedStyle(el).borderTopWidth)).toBe("1px");
   expect(errors).toEqual([]);
 });
+
+test("menu-to-content and content-to-subheading spacing use one Foundation default", async ({ page }) => {
+  await api(page); await page.goto("/");
+  await page.getByLabel("Username", { exact: true }).fill("admin");
+  await page.getByLabel("Password", { exact: true }).fill("correct-password");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Product overview" })).toBeVisible();
+  await page.locator(".sarmg-shell-main > section").evaluate(section => {
+    const anchor = document.createElement("div");
+    anchor.className = "sarmg-table-scroll";
+    anchor.dataset.spacingAnchor = "true";
+    anchor.textContent = "Previous section content";
+    const heading = document.createElement("h2");
+    heading.dataset.spacingSubheading = "true";
+    heading.textContent = "Following subsection";
+    section.append(anchor, heading);
+  });
+  for (const width of [1280, 360]) {
+    await page.setViewportSize({ width, height: 740 });
+    const spacing = await page.evaluate(() => {
+      const header = document.querySelector(".sarmg-page-header");
+      const first = document.querySelector(".sarmg-shell-main > section > h1");
+      const anchor = document.querySelector("[data-spacing-anchor]");
+      const subheading = document.querySelector("[data-spacing-subheading]");
+      if (!header || !first || !anchor || !subheading) throw new Error("Spacing fixture is incomplete");
+      return {
+        token: getComputedStyle(document.documentElement).getPropertyValue("--sarmg-content-spacing").trim(),
+        menuToFirst: first.getBoundingClientRect().top - header.getBoundingClientRect().bottom,
+        contentToSubheading: subheading.getBoundingClientRect().top - anchor.getBoundingClientRect().bottom,
+      };
+    });
+    expect(spacing.token).toBe("16px");
+    expect(spacing.menuToFirst).toBeCloseTo(16, 1);
+    expect(spacing.contentToSubheading).toBeCloseTo(16, 1);
+  }
+});

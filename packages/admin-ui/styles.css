@@ -36,7 +36,9 @@
 .sarmg-navigation { padding: 1rem; border-inline-end: 1px solid currentColor; }
 .sarmg-navigation a { display: block; padding: .75rem; color: inherit; border-radius: var(--sarmg-radius-sm,6px); overflow-wrap: anywhere; }
 .sarmg-navigation a[aria-current="page"] { font-weight: bold; text-decoration-thickness: .2em; }
-.sarmg-shell-main { padding: clamp(1rem,3vw,2rem); min-width: 0; }
+.sarmg-shell-main { padding: var(--sarmg-content-spacing,var(--sarmg-space-4,16px)); min-width: 0; }
+.sarmg-content-stack { display: grid; align-content: start; gap: var(--sarmg-content-spacing,var(--sarmg-space-4,16px)); min-width: 0; }
+.sarmg-content-stack > * { margin-block: 0; }
 .sarmg-skip-link { position: absolute; top: -10rem; inset-inline-start: 1rem; z-index: 30; padding: 1rem; background: var(--sarmg-bg-panel,#fff); color: inherit; }
 .sarmg-skip-link:focus { top: .5rem; }
 .sarmg-theme-select { display: flex; align-items: center; gap: .5rem; }

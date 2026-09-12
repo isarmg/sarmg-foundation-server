@@ -15,6 +15,7 @@
   --sarmg-space-4: 16px;
   --sarmg-space-6: 24px;
   --sarmg-space-8: 32px;
+  --sarmg-content-spacing: var(--sarmg-space-4);
   --sarmg-radius-sm: 6px;
   --sarmg-radius-md: 8px;
   --sarmg-radius-lg: 12px;
