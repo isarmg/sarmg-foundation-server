@@ -1,6 +1,6 @@
 import React, { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AdministratorsPanel, createSarmgAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceWorkspace, InstanceNameField } from "../../../packages/admin-shell/dist/index.js";
+import { createSarmgAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceWorkspace, InstanceNameField } from "../../../packages/admin-shell/dist/index.js";
 import { createAdministratorApiClient } from "../../../packages/admin-web/dist/index.js";
 import { Button, Dialog, FormField, TextField } from "../../../packages/admin-ui/dist/index.js";
 import "../../../packages/design-tokens/tokens.css";
@@ -20,7 +20,6 @@ function ProductRoutes() {
   const [failed, setFailed] = useState(false);
   if (failed) throw Object.assign(new Error("SECRET internal path /private/database"), { requestId: "render-123" });
   if (window.location.hash === "#workspace") return <WorkspaceFixture />;
-  if (window.location.hash === "#administrators") return <AdministratorsPanel />;
   return <section><h1>Product overview</h1>
     <Button onClick={() => setDialog(true)}>Open modal</Button>
     <Button onClick={() => notify("Saved successfully")}>Show notification</Button>
@@ -34,7 +33,7 @@ function ProductRoutes() {
 const App = createSarmgAdminApplication({
   product: { name: "Foundation acceptance" },
   client: createAdministratorApiClient(),
-  navigation: [{ label: "Overview", href: "#overview" }, { label: "Activity", href: "#activity" }, { label: "Administrators", href: "#administrators" }],
+  navigation: [{ label: "Overview", href: "#overview" }, { label: "Activity", href: "#activity" }],
   routes: <ProductRoutes />,
   workspace: window.location.search === "?workspace=custom" ? {appearance:"custom-brand",layout:"custom",selection:"custom"} : undefined,
 });

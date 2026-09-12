@@ -70,7 +70,7 @@ def main():
                 (ROOT / name).write_bytes(data)
                 assert set(TTFont(io.BytesIO(data)).getBestCmap()) == set(chunk)
                 assets[name] = hashlib.sha256(data).hexdigest()
-                faces.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./{name}") format("woff2");font-style:normal;font-weight:{weight};font-display:swap;unicode-range:{ranges(chunk)}}}')
+                faces.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./{name}") format("woff2");font-style:normal;font-weight:{weight};font-display:block;unicode-range:{ranges(chunk)}}}')
                 print(f"{name}: {len(data)} bytes", flush=True)
 
             for offset in range(0, len(points), 2048):
@@ -81,7 +81,7 @@ def main():
     # subset lacking Latin glyphs and silently fall back to a system font.
     for style in ["normal", "italic"]:
         for weight in [400, 700]:
-            faces.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./MapleMono-Italic.woff2") format("woff2");font-style:{style};font-weight:{weight};font-display:swap;unicode-range:{latin_ranges}}}')
+            faces.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./MapleMono-Italic.woff2") format("woff2");font-style:{style};font-weight:{weight};font-display:block;unicode-range:{latin_ranges}}}')
     faces.append(':root{--sarmg-font-ui:"Sarmg Maple",ui-monospace,monospace;--sarmg-font-mono:"Sarmg Maple",ui-monospace,monospace;font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0,"ss06" 1}')
     faces.append('body,button,input,select,textarea,code,pre,kbd,samp{font-family:var(--sarmg-font-ui);font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0,"clig" 0,"dlig" 0,"ss06" 1}')
     (ROOT / "fonts.css").write_text("\n".join(faces) + "\n")

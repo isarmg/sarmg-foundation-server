@@ -36,7 +36,7 @@ with zipfile.ZipFile(io.BytesIO(archive)) as source:
         name = f"MapleMonoNormalNL-{style}.woff2"
         (root / name).write_bytes(data)
         manifest["assets"][name] = hashlib.sha256(data).hexdigest()
-        css.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./{name}") format("woff2");font-style:normal;font-weight:{weight};font-display:swap;unicode-range:{ranges(set(font.getBestCmap()) - covered)}}}')
+        css.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./{name}") format("woff2");font-style:normal;font-weight:{weight};font-display:block;unicode-range:{ranges(set(font.getBestCmap()) - covered)}}}')
     data = source.read("LICENSE.txt")
     (root / "NORMAL-LICENSE.txt").write_bytes(data)
     manifest["assets"]["NORMAL-LICENSE.txt"] = hashlib.sha256(data).hexdigest()

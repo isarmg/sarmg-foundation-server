@@ -5,7 +5,7 @@ import {
   type FormEvent, type ReactNode,
 } from "react";
 import {
-  Button, ErrorState, FormField, IconButton, LoadingState, PageHeader, TextField, Toast,
+  Button, ErrorState, FormField, IconButton, PageHeader, TextField, Toast,
 } from "@sarmg/admin-ui";
 import {
   createAdministratorApiClient, type AdministratorApiClient,
@@ -20,8 +20,6 @@ export type { WorkspaceConfig } from "./workspace-config.js";
 
 import { AccountSettings } from "./account.js";
 export { AccountSettings } from "./account.js";
-
-export { AdministratorsPanel } from "./administrators.js";
 
 export type ProductIdentity = { name: string };
 export type NavigationItem = { label: string; href: string };
@@ -87,6 +85,7 @@ export function createSarmgAdminApplication(options: AdminApplicationOptions) {
 
 function AdminShell({ options, client }: { options: AdminApplicationOptions; client: AdministratorApiClient }) {
   const session = useAdministratorSession(client);
+  const fontsReady = useApplicationFontsReady();
   const [accountUpdated, setAccountUpdated] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState<unknown>(null);
@@ -122,11 +121,11 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     if (session.phase !== "authenticated") { setToasts([]); setLogoutError(null); }
   }, [session.phase]);
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
+  if (session.phase === "loading" || !fontsReady) return <ApplicationBootScreen />;
   if (session.phase !== "authenticated") {
     return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-card">{identity}
       {accountUpdated && <p role="status">{t("账号已更新，请使用新账号信息登录。", "Account updated. Sign in with your updated credentials.")}</p>}
-      {session.phase === "loading" ? <LoadingState>{t("正在恢复管理员会话…", "Restoring administrator session…")}</LoadingState>
-        : session.phase === "error" ? <ErrorState requestId={errorRequestId(session.error)} onRetry={() => void session.restore()}>
+      {session.phase === "error" ? <ErrorState requestId={errorRequestId(session.error)} onRetry={() => void session.restore()}>
           {t("无法恢复管理员会话。", "Unable to restore administrator session.")}</ErrorState>
         : <LoginPage login={session.login} />}
     </div></div>;
@@ -161,6 +160,34 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
       </main></div>
     </div>
   </Context.Provider>;
+}
+
+const CORE_FONT_SAMPLE = "管理员登录 Username Password Sign in";
+
+/** Keep the first interactive frame opaque until the UI font has settled. */
+function useApplicationFontsReady(): boolean {
+  const [ready, setReady] = useState(() => typeof document === "undefined");
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.fonts) {
+      setReady(true);
+      return;
+    }
+    let active = true;
+    void Promise.allSettled([
+      document.fonts.load('400 16px "Sarmg Maple"', CORE_FONT_SAMPLE),
+      document.fonts.load('700 16px "Sarmg Maple"', CORE_FONT_SAMPLE),
+      document.fonts.ready,
+    ]).then(() => {
+      if (active) setReady(true);
+    });
+    return () => { active = false; };
+  }, []);
+  return ready;
+}
+
+function ApplicationBootScreen() {
+  return <div className="sarmg-application-boot" role="status" aria-busy="true"
+    aria-label={t("正在准备应用…", "Preparing application…")} />;
 }
 
 export function LoginPage({ login }: { login: (username: string, password: string) => Promise<void> }) {

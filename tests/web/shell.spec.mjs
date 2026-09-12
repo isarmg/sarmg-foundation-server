@@ -22,6 +22,19 @@ async function mockApi(page, authenticated = false) {
   });
 }
 
+test("session restore uses an opaque boot shell", async ({ page }) => {
+  let release;
+  await page.route("**/api/v2/auth/session", async route => {
+    await new Promise(resolve => { release = resolve; });
+    await route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "auth.session_required" }) });
+  });
+  await page.goto("/");
+  await expect(page.locator(".sarmg-application-boot")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("Restoring administrator session");
+  release();
+  await expect(page.getByRole("heading", { name: "Administrator sign in" })).toBeVisible();
+});
+
 test("failed login stays mounted, clears password, and displays only safe failure and Request ID", async ({ page }) => {
   await mockApi(page); await page.goto("/");
   await page.getByLabel("Username", { exact: true }).fill("admin");

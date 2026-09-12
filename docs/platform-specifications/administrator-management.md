@@ -45,7 +45,7 @@ Session 并写入 sessions-revoked 审计。审计 actor 来自重新验证的�
 
 ## 产品迁移与验收
 
-产品通过 Foundation router 挂载接口、通过 `AdministratorsPanel` 展示管理页，不注册第二套用户 API。
+产品通过 Foundation router 挂载接口；管理员账号信息不再通过独立列表/管理页展示，账号名称和密码只从 Shell 右上角人物图标进入自助设置，不注册第二套用户 API。
 共享危险确认对话框默认焦点在取消按钮；错误置于对话框内；失败密码清空；修改自己密码后重新恢复 Session，
 收到 401 切回登录。静态账户产品不挂载该面板。
 

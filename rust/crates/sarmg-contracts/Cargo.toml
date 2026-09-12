@@ -13,9 +13,9 @@ homepage.workspace = true
 workspace = true
 
 [dependencies]
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.2" }
-sarmg-error = { path = "../sarmg-error", version = "=0.7.2" }
-sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.7.2" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.3" }
+sarmg-error = { path = "../sarmg-error", version = "=0.7.3" }
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.7.3" }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

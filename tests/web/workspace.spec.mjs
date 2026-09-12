@@ -12,7 +12,7 @@ test('configured instance workspace, header actions, names and consumer override
   for(const width of [1280,320]){
     await page.setViewportSize({width,height:800});
     const measurements=await page.locator('header .sarmg-header-navigation a, header .sarmg-header-actions button').evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect(),s=getComputedStyle(node);return{y:r.y,height:r.height,size:s.fontSize};}));
-    expect(measurements.length).toBe(9);
+    expect(measurements.length).toBe(8);
     const originalSize=await page.locator('body').evaluate(node=>getComputedStyle(node).fontSize);
     expect(measurements.every(value=>Math.abs(value.y-measurements[0].y)<1&&value.height===44&&value.size===originalSize)).toBe(true);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

@@ -48,7 +48,7 @@ for name, expected in list(provenance["assets"].items()):
         (ROOT / child).write_bytes(encoded)
         assert set(TTFont(io.BytesIO(encoded)).getBestCmap()) == set(chunk)
         provenance["assets"][child] = hashlib.sha256(encoded).hexdigest()
-        replacement.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./{child}") format("woff2");font-style:normal;font-weight:{weight};font-display:swap;unicode-range:{ranges(chunk)}}}')
+        replacement.append(f'@font-face{{font-family:"Sarmg Maple";src:url("./{child}") format("woff2");font-style:normal;font-weight:{weight};font-display:block;unicode-range:{ranges(chunk)}}}')
 
     middle = len(points) // 2
     emit(points[:middle])

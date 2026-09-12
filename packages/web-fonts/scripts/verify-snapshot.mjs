@@ -17,6 +17,8 @@ const cjk = (await readdir(new URL("cjk/", root))).map(name => `cjk/${name}`).so
 assert.deepEqual(cjk, Object.keys(provenance.assets).filter(name => name.startsWith("cjk/")).sort());
 const css = await readFile(new URL("fonts.css", root), "utf8");
 assert.ok(css.includes('font-variant-ligatures:none'));
+assert.ok(css.includes('font-display:block'));
+assert.ok(!css.includes('font-display:swap'));
 assert.ok(css.includes('"calt" 0,"liga" 0,"clig" 0,"dlig" 0'));
 assert.ok(css.includes('font-style:normal;font-weight:400'));
 assert.ok(css.includes('font-style:normal;font-weight:700'));

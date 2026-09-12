@@ -24,6 +24,9 @@
 .sarmg-toast-stack { margin: 1rem; display: grid; gap: .5rem; min-width: 0; }
 .sarmg-toast { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid currentColor; border-radius: var(--sarmg-radius-md,8px); background: var(--sarmg-bg-panel,#fff); overflow-wrap: anywhere; }
 .sarmg-admin-shell,.sarmg-auth-shell { min-height: 100dvh; color: var(--sarmg-text-primary,#18181b); background: var(--sarmg-bg-page,#fafafa); font-family: var(--sarmg-font-ui,monospace); line-height: var(--sarmg-line-height-body,1.5); }
+.sarmg-application-boot { display: grid; place-items: center; min-height: 100dvh; color: var(--sarmg-text-primary,#18181b); background: var(--sarmg-bg-page,#fafafa); }
+.sarmg-application-boot::after { content: ""; width: 1.25rem; height: 1.25rem; border: .15rem solid currentColor; border-inline-end-color: transparent; border-radius: 50%; animation: sarmg-application-boot-spin .8s linear infinite; }
+@keyframes sarmg-application-boot-spin { to { transform: rotate(360deg); } }
 .sarmg-auth-shell { display: grid; place-items: center; padding: 1rem; box-sizing: border-box; }
 .sarmg-auth-card { width: min(28rem,100%); padding: 1.5rem; box-sizing: border-box; background: var(--sarmg-bg-panel,#fff); border: 1px solid currentColor; border-radius: var(--sarmg-radius-lg,12px); }
 .sarmg-page-header { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid currentColor; background: var(--sarmg-bg-panel,#fff); }

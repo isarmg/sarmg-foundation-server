@@ -11,7 +11,7 @@ Shell 拥有登录、Session 恢复/重试、退出、导航、跳过导航链�
 `@sarmg/admin-ui` 提供当前 UI primitives。Dialog 使用 native modal，并明确封闭键盘 Tab 循环、支持 Escape
 和恢复原焦点。危险确认默认聚焦取消。Button 默认 type=button，IconButton 强制可访问名称。
 通知最多五条，可由键盘关闭，位于页头下方正常文档流中，不叠加遮挡业务按钮或键盘焦点。
-Table 可键盘横向滚动；loading/error 有可见文本与正确 live/alert 语义。
+Table 可键盘横向滚动；业务 loading/error 有可见文本与正确 live/alert 语义。初始会话和核心字体启动阶段使用不暴露恢复细节的不透明启动界面，准备完成后才挂载登录页或已认证工作区。
 
 React 产品统一导入 design-tokens 的 tokens.css、tokens.dark.css、reset.css、accessibility.css，
 web-fonts/fonts.css 及 admin-ui/styles.css。不再维护产品私有登录页、全局 Shell 或字体副本。
