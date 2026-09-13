@@ -12,7 +12,8 @@ pub struct BoundListeners {
 }
 
 impl BoundListeners {
-    /// Port zero on the first address establishes the shared dynamic port.
+    /// The first successfully bound address establishes the shared port; any
+    /// later address using port zero is rebound to that same fixed or dynamic port.
     /// Failure drops every previous bind before product state can be opened.
     pub fn bind(addresses: impl IntoIterator<Item = SocketAddr>) -> io::Result<Self> {
         let mut listeners = Vec::new();
@@ -79,5 +80,19 @@ mod tests {
         .unwrap();
         assert_ne!(bound.addresses()[0].port(), 0);
         assert_eq!(bound.addresses()[0].port(), bound.addresses()[1].port());
+    }
+
+    #[tokio::test]
+    async fn zero_after_a_fixed_port_uses_the_fixed_port() {
+        let available = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = available.local_addr().unwrap().port();
+        drop(available);
+        let bound = BoundListeners::bind([
+            SocketAddr::from(([127, 0, 0, 1], port)),
+            SocketAddr::from(([127, 0, 0, 2], 0)),
+        ])
+        .unwrap();
+        assert_eq!(bound.addresses()[0].port(), port);
+        assert_eq!(bound.addresses()[1].port(), port);
     }
 }

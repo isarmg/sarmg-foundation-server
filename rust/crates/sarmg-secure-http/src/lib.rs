@@ -135,17 +135,12 @@ impl SecureHttpClient {
     }
 
     fn bound_client(&self, host: &str, addresses: &[SocketAddr]) -> Result<Client, Error> {
-        let mut builder = Client::builder()
+        let builder = Client::builder()
             .timeout(self.total_timeout)
             .connect_timeout(self.connect_timeout)
             .redirect(Policy::none())
+            .no_proxy()
             .resolve_to_addrs(host, addresses);
-        if matches!(
-            self.policy,
-            NetworkPolicy::PrivateDevice { .. } | NetworkPolicy::LoopbackDevelopment
-        ) {
-            builder = builder.no_proxy();
-        }
         Ok(builder.build()?)
     }
 }
@@ -225,11 +220,16 @@ pub async fn bounded_response(
 }
 
 fn validate_address(policy: NetworkPolicy, address: IpAddr) -> Result<(), Error> {
+    let address = match address {
+        IpAddr::V6(v6) => v6.to_ipv4_mapped().map(IpAddr::V4).unwrap_or(address),
+        _ => address,
+    };
     if is_metadata(address) || address.is_unspecified() || address.is_multicast() {
         return Err(Error::ForbiddenAddress(address));
     }
     match policy {
-        NetworkPolicy::PublicHttps => Ok(()),
+        NetworkPolicy::PublicHttps if is_public_address(address) => Ok(()),
+        NetworkPolicy::PublicHttps => Err(Error::ForbiddenAddress(address)),
         NetworkPolicy::LoopbackDevelopment if address.is_loopback() => Ok(()),
         NetworkPolicy::LoopbackDevelopment => Err(Error::ForbiddenAddress(address)),
         NetworkPolicy::PrivateDevice {
@@ -243,6 +243,36 @@ fn validate_address(policy: NetworkPolicy, address: IpAddr) -> Result<(), Error>
                 return Err(Error::ForbiddenAddress(address));
             }
             Ok(())
+        }
+    }
+}
+fn is_public_address(ip: IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v) => {
+            let [a, b, c, _] = v.octets();
+            !(a == 0
+                || a == 10
+                || a == 127
+                || (a == 100 && (64..=127).contains(&b))
+                || (a == 169 && b == 254)
+                || (a == 172 && (16..=31).contains(&b))
+                || (a == 192 && b == 0 && c == 0)
+                || (a == 192 && b == 0 && c == 2)
+                || (a == 192 && b == 88 && c == 99)
+                || (a == 192 && b == 168)
+                || (a == 198 && (b == 18 || b == 19))
+                || (a == 198 && b == 51 && c == 100)
+                || (a == 203 && b == 0 && c == 113)
+                || a >= 224)
+        }
+        IpAddr::V6(v) => {
+            let segments = v.segments();
+            !(v.is_loopback()
+                || v.is_unicast_link_local()
+                || (segments[0] & 0xfe00) == 0xfc00
+                || segments == [0x100, 0, 0, 0, 0, 0, 0, 0]
+                || (segments[0] == 0x2001 && segments[1] == 0x0db8)
+                || (segments[0] == 0x2001 && segments[1] == 0x0002))
         }
     }
 }
@@ -312,5 +342,17 @@ mod tests {
             )
             .is_err()
         );
+        for address in [
+            "127.0.0.1",
+            "10.0.0.1",
+            "192.168.0.1",
+            "::1",
+            "fc00::1",
+            "fe80::1",
+        ] {
+            assert!(
+                validate_address(NetworkPolicy::PublicHttps, address.parse().unwrap()).is_err()
+            );
+        }
     }
 }

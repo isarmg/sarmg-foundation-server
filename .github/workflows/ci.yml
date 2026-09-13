@@ -77,15 +77,15 @@ jobs:
         run: npm install --global pnpm@10.12.1 --ignore-scripts
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Typecheck packages
-        run: pnpm typecheck
       - name: Build packages
         run: pnpm build
+      - name: Typecheck packages
+        run: pnpm typecheck:built
       - name: Test packages
-        run: pnpm test
+        run: pnpm test:built
       - name: Install browser test engines
         run: pnpm exec playwright install --with-deps chromium firefox
       - name: Verify keyboard, authentication, workspace and WCAG AA contracts
-        run: pnpm test:web
+        run: pnpm test:web:built
       - name: Verify publishable tarballs from a clean build
         run: python3 scripts/package-artifacts.py smoke

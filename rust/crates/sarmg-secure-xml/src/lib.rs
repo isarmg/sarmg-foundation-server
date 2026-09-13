@@ -1,5 +1,6 @@
 //! Mechanism-only XML parser. Product namespaces and element semantics stay in products.
 
+use quick_xml::{Reader, events::Event};
 use std::time::{Duration, Instant};
 
 pub use roxmltree::Document;
@@ -21,36 +22,88 @@ pub fn parse_bounded<'a>(
     if input.len() > budget.max_bytes {
         return Err(Error::Budget("bytes"));
     }
-    let upper = input.to_ascii_uppercase();
-    if upper.contains("<!DOCTYPE") || upper.contains("<!ENTITY") {
-        return Err(Error::ForbiddenDeclaration);
-    }
     let started = Instant::now();
+    preflight(input, budget, started)?;
     let document = Document::parse(input)?;
-    let mut nodes = 0_usize;
+    if started.elapsed() > budget.max_parse_time {
+        return Err(Error::Budget("time"));
+    }
+    Ok(document)
+}
+
+fn preflight(input: &str, budget: XmlBudget, started: Instant) -> Result<(), Error> {
+    let mut reader = Reader::from_str(input);
+    reader.config_mut().check_end_names = true;
+    let mut depth = 1_usize;
+    let mut nodes = 1_usize;
     let mut text = 0_usize;
-    for node in document.descendants() {
-        nodes = nodes.checked_add(1).ok_or(Error::Budget("nodes"))?;
-        if nodes > budget.max_nodes {
-            return Err(Error::Budget("nodes"));
-        }
-        if node.ancestors().count() > budget.max_depth {
-            return Err(Error::Budget("depth"));
-        }
-        if let Some(value) = node.text().filter(|_| node.is_text()) {
-            if value.len() > budget.max_text_node_bytes {
-                return Err(Error::Budget("text node"));
-            }
-            text = text.checked_add(value.len()).ok_or(Error::Budget("text"))?;
-            if text > budget.max_text_bytes {
-                return Err(Error::Budget("text"));
-            }
-        }
+    loop {
         if started.elapsed() > budget.max_parse_time {
             return Err(Error::Budget("time"));
         }
+        match reader.read_event().map_err(Error::Streaming)? {
+            Event::Start(_) => {
+                depth = depth.checked_add(1).ok_or(Error::Budget("depth"))?;
+                add_node(&mut nodes, depth, budget)?;
+            }
+            Event::Empty(_) => add_node(
+                &mut nodes,
+                depth.checked_add(1).ok_or(Error::Budget("depth"))?,
+                budget,
+            )?,
+            Event::End(_) => {
+                depth = depth.checked_sub(1).ok_or(Error::Budget("depth"))?;
+            }
+            Event::Text(value) => {
+                add_node(
+                    &mut nodes,
+                    depth.checked_add(1).ok_or(Error::Budget("depth"))?,
+                    budget,
+                )?;
+                if value.len() > budget.max_text_node_bytes {
+                    return Err(Error::Budget("text node"));
+                }
+                text = text.checked_add(value.len()).ok_or(Error::Budget("text"))?;
+                if text > budget.max_text_bytes {
+                    return Err(Error::Budget("text"));
+                }
+            }
+            Event::CData(value) => {
+                add_node(
+                    &mut nodes,
+                    depth.checked_add(1).ok_or(Error::Budget("depth"))?,
+                    budget,
+                )?;
+                if value.len() > budget.max_text_node_bytes {
+                    return Err(Error::Budget("text node"));
+                }
+                text = text.checked_add(value.len()).ok_or(Error::Budget("text"))?;
+                if text > budget.max_text_bytes {
+                    return Err(Error::Budget("text"));
+                }
+            }
+            Event::Comment(_) | Event::PI(_) => add_node(
+                &mut nodes,
+                depth.checked_add(1).ok_or(Error::Budget("depth"))?,
+                budget,
+            )?,
+            Event::DocType(_) => return Err(Error::ForbiddenDeclaration),
+            Event::Eof => break,
+            Event::Decl(_) | Event::GeneralRef(_) => {}
+        }
     }
-    Ok(document)
+    Ok(())
+}
+
+fn add_node(nodes: &mut usize, depth: usize, budget: XmlBudget) -> Result<(), Error> {
+    *nodes = nodes.checked_add(1).ok_or(Error::Budget("nodes"))?;
+    if *nodes > budget.max_nodes {
+        return Err(Error::Budget("nodes"));
+    }
+    if depth > budget.max_depth {
+        return Err(Error::Budget("depth"));
+    }
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -61,6 +114,8 @@ pub enum Error {
     Budget(&'static str),
     #[error(transparent)]
     Parse(#[from] roxmltree::Error),
+    #[error("XML is malformed")]
+    Streaming(quick_xml::Error),
 }
 
 #[cfg(test)]
@@ -97,5 +152,21 @@ mod tests {
                 .name(),
             "a"
         );
+    }
+
+    #[test]
+    fn rejects_node_and_text_budgets_during_streaming_preflight() {
+        let mut small = budget();
+        small.max_nodes = 2;
+        assert!(matches!(
+            parse_bounded("<a><b/></a>", small),
+            Err(Error::Budget("nodes"))
+        ));
+        small = budget();
+        small.max_text_bytes = 1;
+        assert!(matches!(
+            parse_bounded("<a>ok</a>", small),
+            Err(Error::Budget("text"))
+        ));
     }
 }

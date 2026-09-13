@@ -16,6 +16,8 @@ use std::{
 };
 use thiserror::Error;
 
+pub const AUDIT_EVENTS_MAX: usize = 4096;
+
 #[derive(Debug)]
 struct State {
     administrators: HashMap<String, AdministratorRecord>,
@@ -84,11 +86,12 @@ impl StaticAdministratorStore {
     }
 
     pub fn active_session_count(&self) -> Result<usize, Error> {
+        let now = current_time_micros()?;
         Ok(self
             .lock()?
             .sessions
             .values()
-            .filter(|session| session.revoked_at_micros.is_none())
+            .filter(|session| is_active(session, now))
             .count())
     }
 
@@ -231,14 +234,10 @@ impl AdministratorStore for StaticAdministratorStore {
         }
         state.administrators.remove(&current.username);
         state.administrators.insert(username, updated);
-        for session in state
+        state
             .sessions
-            .values_mut()
-            .filter(|session| session.administrator_id == current.administrator_id)
-        {
-            session.revoked_at_micros = Some(now);
-        }
-        state.audit_events.extend(events);
+            .retain(|_, session| session.administrator_id != current.administrator_id);
+        append_audit_events(&mut state.audit_events, events);
         Ok(())
     }
 
@@ -315,8 +314,10 @@ impl AdministratorStore for StaticAdministratorStore {
             .sessions
             .insert(login.session.token_hash, login.session.clone());
         prune_sessions(&mut state.sessions, &login.session.administrator_id, now);
-        state.audit_events.push(login.session_created_event);
-        state.audit_events.push(login.login_succeeded_event);
+        append_audit_events(
+            &mut state.audit_events,
+            [login.session_created_event, login.login_succeeded_event],
+        );
         Ok(())
     }
 
@@ -360,16 +361,20 @@ impl AdministratorStore for StaticAdministratorStore {
     ) -> Result<(), Error> {
         require_action(&event, SecurityAction::SessionRevoked)?;
         let mut state = self.lock()?;
-        let session = state
+        let key = state
             .sessions
-            .values_mut()
-            .find(|session| &session.session_id == session_id)
+            .iter()
+            .find_map(|(key, session)| (&session.session_id == session_id).then_some(*key))
             .ok_or(Error::SessionNotActive)?;
-        if session.revoked_at_micros.is_some() {
+        if !state
+            .sessions
+            .get(&key)
+            .is_some_and(|session| is_active(session, now_micros))
+        {
             return Err(Error::SessionNotActive);
         }
-        session.revoked_at_micros = Some(now_micros);
-        state.audit_events.push(event);
+        state.sessions.remove(&key);
+        append_audit_events(&mut state.audit_events, [event]);
         Ok(())
     }
 }
@@ -379,6 +384,7 @@ fn prune_sessions(
     administrator_id: &Identifier,
     now: u64,
 ) {
+    sessions.retain(|_, session| is_active(session, now));
     let mut administrator_keys: Vec<_> = sessions
         .iter()
         .filter(|(_, session)| {
@@ -398,9 +404,7 @@ fn prune_sessions(
         .into_iter()
         .skip(SESSIONS_PER_ADMINISTRATOR)
     {
-        if let Some(session) = sessions.get_mut(&key) {
-            session.revoked_at_micros = Some(now);
-        }
+        sessions.remove(&key);
     }
     let mut global_keys: Vec<_> = sessions
         .iter()
@@ -415,10 +419,28 @@ fn prune_sessions(
         .collect();
     global_keys.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| right.2.cmp(&left.2)));
     for (key, _, _) in global_keys.into_iter().skip(SESSIONS_GLOBAL) {
-        if let Some(session) = sessions.get_mut(&key) {
-            session.revoked_at_micros = Some(now);
-        }
+        sessions.remove(&key);
     }
+}
+
+fn append_audit_events(
+    events: &mut Vec<SecurityAuditEvent>,
+    incoming: impl IntoIterator<Item = SecurityAuditEvent>,
+) {
+    events.extend(incoming);
+    if events.len() > AUDIT_EVENTS_MAX {
+        events.drain(..events.len() - AUDIT_EVENTS_MAX);
+    }
+}
+
+fn current_time_micros() -> Result<u64, Error> {
+    u64::try_from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| sarmg_admin_core::Error::InvalidTimestamp)?
+            .as_micros(),
+    )
+    .map_err(|_| sarmg_admin_core::Error::InvalidTimestamp.into())
 }
 
 fn is_active(session: &SessionRecord, now: u64) -> bool {
@@ -544,16 +566,17 @@ mod tests {
             last_login_at_micros: None,
         };
         let store = StaticAdministratorStore::new([administrator])?;
+        let now = current_time_micros()?;
         let session = SessionRecord {
             session_id: Identifier::new("static-session")?,
             administrator_id: administrator_id.clone(),
             token_hash: [5; 32],
             csrf_hash: [6; 32],
             administrator_session_version: 1,
-            created_at_micros: 2,
-            last_seen_at_micros: 2,
-            idle_expires_at_micros: 100,
-            absolute_expires_at_micros: 200,
+            created_at_micros: now,
+            last_seen_at_micros: now,
+            idle_expires_at_micros: now + 100_000_000,
+            absolute_expires_at_micros: now + 200_000_000,
             revoked_at_micros: None,
         };
         store
@@ -578,22 +601,46 @@ mod tests {
         );
         assert!(
             store
-                .rotate_session_csrf(&session.session_id, [6; 32], [7; 32], 3, 100)
+                .rotate_session_csrf(
+                    &session.session_id,
+                    [6; 32],
+                    [7; 32],
+                    now + 1,
+                    now + 100_000_000,
+                )
                 .await?
         );
         assert!(
             !store
-                .rotate_session_csrf(&session.session_id, [6; 32], [6; 32], 4, 100)
+                .rotate_session_csrf(
+                    &session.session_id,
+                    [6; 32],
+                    [6; 32],
+                    now + 2,
+                    now + 100_000_000,
+                )
                 .await?
         );
         assert!(
             !store
-                .rotate_session_csrf(&session.session_id, [6; 32], [8; 32], 4, 100)
+                .rotate_session_csrf(
+                    &session.session_id,
+                    [6; 32],
+                    [8; 32],
+                    now + 2,
+                    now + 100_000_000,
+                )
                 .await?
         );
         assert!(
             store
-                .rotate_session_csrf(&session.session_id, [7; 32], [7; 32], 2, 100)
+                .rotate_session_csrf(
+                    &session.session_id,
+                    [7; 32],
+                    [7; 32],
+                    now,
+                    now + 100_000_000,
+                )
                 .await?
         );
         assert_eq!(
@@ -649,7 +696,7 @@ mod tests {
         let context = LoginContext {
             source: "127.0.0.1".into(),
             request_id: Some("request-1".into()),
-            now_micros: 10,
+            now_micros: current_time_micros()?,
         };
         assert!(matches!(
             service.login("missing", "wrong password!", &context).await,

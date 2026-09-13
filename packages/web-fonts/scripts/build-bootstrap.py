@@ -45,9 +45,8 @@ def main():
     for style, weight in [("Regular", 400), ("Bold", 700)]:
         latin_path = ROOT / f"MapleMonoNormalNL-{style}.woff2"
         sources = [latin_path, *sorted((ROOT / "cjk").glob(f"MapleMonoNL-CN-{style}-*.woff2"))]
-        latin = set(TTFont(latin_path).getBestCmap())
         available = set().union(*(set(TTFont(source).getBestCmap()) for source in sources))
-        expected = latin | (requested & available)
+        expected = requested & available
         assert requested <= available, f"bootstrap glyphs missing from {style} source"
         with tempfile.TemporaryDirectory() as temporary:
             fragments = []
@@ -75,7 +74,11 @@ def main():
         )
 
     css_path = ROOT / "fonts.css"
-    lines = [line for line in css_path.read_text().splitlines() if FAMILY not in line]
+    lines = [
+        line
+        for line in css_path.read_text().splitlines()
+        if not line.startswith(f'@font-face{{font-family:"{FAMILY}"')
+    ]
     root_index = next(index for index, line in enumerate(lines) if line.startswith(":root{"))
     lines[root_index:root_index] = faces
     lines = [

@@ -22,6 +22,7 @@ export type AdministratorApiClientOptions = {
   baseUrl?: string | URL;
   fetchImpl?: typeof fetch;
   onUnauthorized?: () => void | Promise<void>;
+  onSubscriberError?: (error: unknown) => void;
 };
 
 export type AdministratorApiClient = {
@@ -62,7 +63,13 @@ export function createAdministratorApiClient(
 
   const publish = (next: AdministratorSession | null) => {
     session = next;
-    for (const listener of listeners) listener(next);
+    for (const listener of listeners) {
+      try {
+        listener(next);
+      } catch (error) {
+        try { options.onSubscriberError?.(error); } catch { /* observers stay isolated */ }
+      }
+    }
   };
 
   const invalidate = () => {

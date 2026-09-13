@@ -232,6 +232,22 @@ test("logout clears local state immediately and owns the outgoing CSRF header", 
   );
 });
 
+test("subscriber failures cannot change authentication outcomes", async () => {
+  const reported = [];
+  const client = createAdministratorApiClient({
+    baseUrl: BASE_URL,
+    onSubscriberError: (error) => reported.push(error.message),
+    fetchImpl: async (url) => new URL(url).pathname.endsWith("/auth/logout")
+      ? new Response(null, { status: 204 })
+      : json(SESSION),
+  });
+  client.subscribe(() => { throw new Error("broken observer"); });
+  assert.deepEqual(await client.login("admin", "correct horse battery staple"), SESSION);
+  await client.logout();
+  assert.deepEqual(reported, ["broken observer", "broken observer"]);
+  assert.equal(client.currentSession(), null);
+});
+
 test("overlapping login then logout is serialized and ends anonymous", async () => {
   const requests = [];
   const client = createAdministratorApiClient({

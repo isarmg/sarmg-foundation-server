@@ -89,7 +89,6 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
   const fontState = useApplicationFontsReady(workspace.fontFamily);
   const [accountUpdated, setAccountUpdated] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
-  const [logoutError, setLogoutError] = useState<unknown>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const sequence = useRef(0);
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
@@ -120,21 +119,25 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     return () => { window.removeEventListener("popstate", changed); window.removeEventListener("hashchange", changed); };
   }, []);
   useEffect(() => {
-    if (session.phase !== "authenticated") { setToasts([]); setLogoutError(null); }
-  }, [session.phase]);
+    if (session.phase !== "authenticated") setToasts([]);
+    if (session.phase === "authenticated" && accountUpdated) setAccountUpdated(false);
+  }, [session.phase, accountUpdated]);
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
   if (session.phase === "loading" || fontState === "loading") return <ApplicationBootScreen />;
   if (session.phase !== "authenticated") {
     return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-card">{identity}
       {accountUpdated && <p role="status">{t("账号已更新，请使用新账号信息登录。", "Account updated. Sign in with your updated credentials.")}</p>}
+      {session.phase === "anonymous_logout_unconfirmed" && <ErrorState requestId={errorRequestId(session.error)}>
+        {t("本地已退出，但无法确认服务器会话已注销。请重试登录或关闭浏览器。", "Signed out locally, but the server session could not be confirmed as revoked. Sign in again or close the browser.")}
+      </ErrorState>}
       {session.phase === "error" ? <ErrorState requestId={errorRequestId(session.error)} onRetry={() => void session.restore()}>
           {t("无法恢复管理员会话。", "Unable to restore administrator session.")}</ErrorState>
         : <LoginPage login={session.login} />}
     </div></div>;
   }
   async function logout() {
-    setLogoutPending(true); setLogoutError(null);
-    try { await session.logout(); } catch (error) { setLogoutError(error); }
+    setLogoutPending(true);
+    try { await session.logout(); } catch { /* the anonymous state renders the warning */ }
     finally { setLogoutPending(false); }
   }
   return <Context.Provider value={{ client, session: session.session, notify }}>
@@ -157,7 +160,6 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
           <IconButton aria-label={t("关闭通知", "Dismiss notification")} onClick={() => setToasts(current => current.filter(item => item.id !== toast.id))}>×</IconButton>
         </Toast>)}</div>}
       <div className="sarmg-shell-layout sarmg-shell-layout--full"><main id="sarmg-main-content" className="sarmg-shell-main" tabIndex={-1}>
-        {logoutError !== null && <ErrorState requestId={errorRequestId(logoutError)}>{t("无法确认退出结果，请重试。", "Sign out could not be confirmed. Try again.")}</ErrorState>}
         <ApplicationErrorBoundary resetKey={location}><WorkspaceContext.Provider value={workspace}><HeaderNavigationContext.Provider value={headerNavigation}><HeaderActionsContext.Provider value={headerActions}>{options.routes}</HeaderActionsContext.Provider></HeaderNavigationContext.Provider></WorkspaceContext.Provider></ApplicationErrorBoundary>
       </main></div>
     </div>
@@ -183,14 +185,11 @@ function useApplicationFontsReady(fontFamily: string): ApplicationFontState {
     const timeout = window.setTimeout(() => {
       if (active) { active = false; setState("fallback"); }
     }, FONT_BOOT_TIMEOUT_MS);
-    void Promise.all([
-      document.fonts.load('400 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE),
-      document.fonts.load('700 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE),
-    ]).then(results => {
+    void document.fonts.load('400 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE).then(faces => {
       if (!active) return;
       active = false;
       window.clearTimeout(timeout);
-      setState(results.every(faces => faces.length > 0) ? "ready" : "fallback");
+      setState(faces.length > 0 ? "ready" : "fallback");
     }, () => {
       if (!active) return;
       active = false;

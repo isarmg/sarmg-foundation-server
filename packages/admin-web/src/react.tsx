@@ -8,6 +8,7 @@ import type { AdministratorApiClient } from "./index.js";
 export type AdministratorSessionState =
   | { phase: "loading"; session: null; error: null }
   | { phase: "anonymous"; session: null; error: null }
+  | { phase: "anonymous_logout_unconfirmed"; session: null; error: unknown }
   | { phase: "authenticated"; session: AdministratorSession; error: null }
   | { phase: "error"; session: null; error: unknown };
 
@@ -110,12 +111,20 @@ export function useAdministratorSession(
   const logout = useCallback(async () => {
     const generation = stateGeneration.current + 1;
     stateGeneration.current = generation;
+    let failed = false;
     try {
       await client.logout();
+    } catch (error) {
+      failed = true;
+      if (activeClient.current === client && client.currentSession() === null) {
+        setState({ phase: "anonymous_logout_unconfirmed", session: null, error });
+      }
+      throw error;
     } finally {
       if (
         activeClient.current === client &&
-        stateGeneration.current === generation
+        stateGeneration.current === generation &&
+        !failed
       ) {
         const current = client.currentSession();
         setState(

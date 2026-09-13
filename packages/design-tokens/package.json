@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/design-tokens",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "Sarmg Web 项目的语义设计令牌、reset 与可访问性基线",
   "license": "Apache-2.0",
   "repository": {
@@ -35,7 +35,8 @@
     "clean": "node scripts/clean.mjs",
     "build": "pnpm run clean && tsc -p tsconfig.json && node scripts/copy-css.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node scripts/test.mjs"
+    "test": "node scripts/test.mjs",
+    "test:built": "node --test test/*.test.mjs"
   },
   "devDependencies": {
     "typescript": "5.8.3"

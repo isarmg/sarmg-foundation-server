@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/web-fonts",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "Pinned Maple Mono WOFF2 assets and font mappings",
   "license": "OFL-1.1",
   "type": "module",
@@ -30,7 +30,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "node scripts/verify.mjs",
-    "test": "node scripts/build.mjs"
+    "test": "node scripts/build.mjs",
+    "test:built": "node scripts/verify.mjs"
   },
   "engines": {
     "node": ">=26.7.0 <27"
