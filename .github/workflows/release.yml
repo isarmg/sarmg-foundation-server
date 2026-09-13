@@ -71,10 +71,17 @@ jobs:
       - name: Publish immutable GitHub Release assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME"
-          "$RUNNER_TEMP/sarmg-foundation-server-release/artifacts/"*
-          "$RUNNER_TEMP/sarmg-foundation-server-release/release-tree.json"
-          --verify-tag
-          --title "Sarmg Foundation Server ${GITHUB_REF_NAME}"
-          --notes-file docs/releases/0.7.9.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="docs/releases/${version}.md"
+          test -f "$notes"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Refusing to reuse or overwrite existing release $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            "$RUNNER_TEMP/sarmg-foundation-server-release/artifacts/"* \
+            "$RUNNER_TEMP/sarmg-foundation-server-release/release-tree.json" \
+            --verify-tag \
+            --title "Sarmg Foundation Server ${GITHUB_REF_NAME}" \
+            --notes-file "$notes"
