@@ -12,7 +12,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
 不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
 
-当前工作区以 `0.7.9` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
+当前工作区以 `0.7.10` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
 产品 Server 与 Client 使用独立后缀仓库，原不可变标签保持不变。产品采用状态由消费者矩阵记录，
 这不是 Foundation 1.0 完成声明。
 
@@ -138,7 +138,7 @@ sarmg-foundation-server/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.7.9` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.7.10` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
@@ -180,12 +180,12 @@ Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平�
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.7.9"`。
+   并同时声明 `version = "=0.7.10"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.7.9` tag 的专用 release job 可获得 `contents: write`。
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.7.10` tag 的专用 release job 可获得 `contents: write`。
 5. 发布资产包含 8 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、

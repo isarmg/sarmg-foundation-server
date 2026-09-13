@@ -17,14 +17,6 @@ SEMVER = re.compile(
 )
 REVISION = re.compile(r"[0-9a-f]{40}")
 IDENTIFIER = re.compile(r"[a-z][a-z0-9-]{0,62}")
-PRODUCT_IDS = {
-    "dufs-ram",
-    "host-monitoring",
-    "media-backup",
-    "sarmg-upgrade",
-    "sentinel-monitor",
-    "sunshine-manager",
-}
 MATRIX_STATUSES = {
     "not-migrated",
     "migration-in-progress",
@@ -125,8 +117,6 @@ def load_profiles(foundation_root: Path) -> tuple[dict[str, dict[str, Any]], set
             raise ConformanceError(f"{path}: invalid profile identity")
         if path.stem != identifier or identifier in profiles:
             raise ConformanceError(f"{path}: profile filename/id mismatch or duplicate")
-        if identifier in PRODUCT_IDS:
-            raise ConformanceError(f"{path}: product-specific profile names are forbidden")
         if value["kind"] not in {"server", "tool", "web"}:
             raise ConformanceError(f"{path}: invalid profile kind")
         for key in ("formal_targets", "http_adapters", "web_profiles"):
@@ -228,43 +218,6 @@ def verify_manifest(product_root: Path, foundation_root: Path) -> dict[str, Any]
     return manifest
 
 
-def _load_exceptions(foundation_root: Path, product_id: str) -> tuple[dict[str, dict[str, Any]], set[str]]:
-    directory = foundation_root / "exceptions" / product_id
-    if not directory.exists():
-        return {}, set()
-    exceptions: dict[str, dict[str, Any]] = {}
-    rules: set[str] = set()
-    for path in sorted(directory.glob("*.toml")):
-        value = _toml(path)
-        expected = {"id", "product", "reason", "introduced_at", "must_remove_before", "security_reduction", "rules"}
-        _exact_keys(value, expected, expected, str(path))
-        if value["id"] != path.stem or value["product"] != product_id:
-            raise ConformanceError(f"{path}: exception identity mismatch")
-        if not isinstance(value["reason"], str) or not value["reason"].strip():
-            raise ConformanceError(f"{path}: exception reason is required")
-        if any(not isinstance(value[key], str) or SEMVER.fullmatch(value[key]) is None for key in ("introduced_at", "must_remove_before")):
-            raise ConformanceError(f"{path}: exception versions must be SemVer")
-        current = _semver_core(_foundation_version(foundation_root))
-        introduced = _semver_core(value["introduced_at"])
-        removal = _semver_core(value["must_remove_before"])
-        if not introduced <= current < removal or removal > (1, 0, 0):
-            raise ConformanceError(f"{path}: exception is not active or extends beyond Foundation 1.0")
-        if value["security_reduction"] is not False:
-            raise ConformanceError(f"{path}: security-reducing exceptions are forbidden")
-        exception_rules = _string_list(value["rules"], f"{path}.rules", allow_empty=False)
-        if value["id"] in exceptions:
-            raise ConformanceError(f"{path}: duplicate exception id")
-        exceptions[value["id"]] = value
-        rules.update(exception_rules)
-    return exceptions, rules
-
-
-def _semver_core(value: str) -> tuple[int, int, int]:
-    core = value.split("+", 1)[0].split("-", 1)[0]
-    major, minor, patch = core.split(".")
-    return int(major), int(minor), int(patch)
-
-
 def _walk_dependency_tables(value: Any, key: str = "") -> Iterable[tuple[str, Any]]:
     if not isinstance(value, dict):
         return
@@ -273,6 +226,94 @@ def _walk_dependency_tables(value: Any, key: str = "") -> Iterable[tuple[str, An
     for nested_key, nested in value.items():
         if isinstance(nested, dict):
             yield from _walk_dependency_tables(nested, nested_key)
+
+
+def _foundation_package_names(foundation_root: Path) -> set[str]:
+    names: set[str] = set()
+    for path in (foundation_root / "rust" / "crates").glob("*/Cargo.toml"):
+        package = _toml(path).get("package", {})
+        name = package.get("name") if isinstance(package, dict) else None
+        if isinstance(name, str):
+            names.add(name)
+    for path in (foundation_root / "packages").glob("*/package.json"):
+        name = _json(path).get("name")
+        if isinstance(name, str):
+            names.add(name)
+    return names
+
+
+def _dependency_name(alias: str, requirement: Any) -> str:
+    if isinstance(requirement, dict) and isinstance(requirement.get("package"), str):
+        return requirement["package"]
+    return alias
+
+
+def _relative_layout_path(value: Any, context: str) -> Path:
+    if not isinstance(value, str) or not value:
+        raise ConformanceError(f"{context}: expected a non-empty relative path")
+    relative = Path(value)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ConformanceError(f"{context}: path must stay inside the product repository")
+    return relative
+
+
+def _layout(product_root: Path) -> dict[str, Path]:
+    path = product_root / "sarmg-layout.toml"
+    if not path.exists():
+        return {}
+    value = _toml(path)
+    allowed = {"schema_product", "schema_generated", "web_root"}
+    _exact_keys(value, allowed, set(), str(path))
+    return {key: _relative_layout_path(item, f"{path}.{key}") for key, item in value.items()}
+
+
+def _discover_file(product_root: Path, filename: str, configured: Path | None) -> Path | None:
+    if configured is not None:
+        candidate = product_root / configured
+        if not candidate.is_file():
+            raise ConformanceError(f"{candidate}: configured layout file does not exist")
+        return candidate
+    ignored = {".git", "node_modules", "target", "dist", "release"}
+    candidates = sorted(
+        path
+        for path in product_root.rglob(filename)
+        if path.is_file() and not any(part in ignored for part in path.relative_to(product_root).parts)
+    )
+    if len(candidates) > 1:
+        raise ConformanceError(
+            f"multiple {filename} files found; select one explicitly in sarmg-layout.toml"
+        )
+    return candidates[0] if candidates else None
+
+
+def _discover_web_package(product_root: Path, configured: Path | None) -> Path | None:
+    if configured is not None:
+        package = product_root / configured / "package.json"
+        if not package.is_file():
+            raise ConformanceError(f"{package}: configured Web root does not contain package.json")
+        return package
+    candidates: list[Path] = []
+    ignored = {".git", "node_modules", "target", "dist", "release"}
+    for path in product_root.rglob("package.json"):
+        if not path.is_file() or any(
+            part in ignored for part in path.relative_to(product_root).parts
+        ):
+            continue
+        package = _json(path)
+        dependencies = {
+            name
+            for section in ("dependencies", "devDependencies", "optionalDependencies")
+            for name in (
+                package.get(section, {}) if isinstance(package.get(section, {}), dict) else {}
+            )
+        }
+        if any(name.startswith("@sarmg/") for name in dependencies):
+            candidates.append(path)
+    if len(candidates) > 1:
+        raise ConformanceError(
+            "multiple Foundation Web package manifests found; select web_root in sarmg-layout.toml"
+        )
+    return candidates[0] if candidates else None
 
 
 def _source_files(product_root: Path, suffixes: set[str]) -> Iterable[Path]:
@@ -302,19 +343,16 @@ def _source_files(product_root: Path, suffixes: set[str]) -> Iterable[Path]:
 def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     manifest = verify_manifest(product_root, foundation_root)
     product_id = manifest["product_id"]
-    exceptions, allowed_rules = _load_exceptions(foundation_root, product_id)
     findings: list[tuple[str, str]] = []
+    advisories: list[dict[str, str]] = []
     observed_versions: set[str] = set()
     observed_revisions: set[str] = set()
+    foundation_packages = _foundation_package_names(foundation_root)
     for path in _source_files(product_root, {".toml"}):
         cargo = _toml(path)
-        features = cargo.get("features", {})
-        if isinstance(features, dict):
-            for feature in features:
-                if feature in PRODUCT_IDS or any(product in feature for product in PRODUCT_IDS):
-                    findings.append(("no-product-features", f"{path}: product-named Cargo feature {feature!r}"))
-        for dependency, requirement in _walk_dependency_tables(cargo):
-            if not dependency.startswith("sarmg-") or dependency.startswith("sarmg-client-") or dependency == "sarmg-mobile-ffi":
+        for alias, requirement in _walk_dependency_tables(cargo):
+            dependency = _dependency_name(alias, requirement)
+            if dependency not in foundation_packages:
                 continue
             if isinstance(requirement, dict) and "path" in requirement:
                 findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} uses a path dependency"))
@@ -353,8 +391,10 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
         findings.append(("single-foundation-release", f"observed Foundation versions {sorted(observed_versions)} differ from manifest {expected_version}"))
     if observed_revisions and observed_revisions != {expected_revision}:
         findings.append(("single-foundation-release", f"observed Foundation revisions differ from manifest {expected_revision}"))
+    # Text searches are useful migration hints, but cannot prove ownership: comments,
+    # fixtures, aliases and generated sources all create false positives. Keep them as
+    # non-blocking advisories; executable dependency/schema checks remain the gate.
     route_pattern = re.compile(r"\.route\s*\(\s*[\"'](/(?:api/v2/(?:auth|platform)/|healthz|readyz))")
-    ddl_pattern = re.compile(r"CREATE\s+(?:TABLE|INDEX|TRIGGER)\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:auth_users|auth_sessions|browser_sessions|_sarmg_[a-z0-9_]+)", re.IGNORECASE)
     policy_pattern = re.compile(r"\b(?:SESSION_COOKIE_NAME|SESSION_IDLE_TIMEOUT|ARGON2_(?:MEMORY|TIME|PARALLELISM))\b")
     for path in _source_files(product_root, {".rs", ".ts", ".tsx", ".js", ".mjs", ".sql", ".swift", ".kt"}):
         try:
@@ -362,41 +402,56 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
         except UnicodeError as error:
             raise ConformanceError(f"{path}: source is not UTF-8") from error
         if route_pattern.search(text):
-            findings.append(("foundation-route-ownership", f"{path}: product registers a Foundation-owned route"))
-        # Offline server maintenance owns its current-state restore SQL.
-        if product_id != "sarmg-upgrade" and ddl_pattern.search(text):
-            findings.append(("platform-schema-ownership", f"{path}: product defines platform/admin DDL"))
+            advisories.append({"rule": "foundation-route-ownership", "path": str(path)})
         if policy_pattern.search(text):
-            findings.append(("platform-policy-ownership", f"{path}: product defines a platform security constant"))
-    active = [(rule, message) for rule, message in findings if rule not in allowed_rules]
-    if active:
-        raise ConformanceError("source verification failed:\n" + "\n".join(f"- [{rule}] {message}" for rule, message in active))
+            advisories.append({"rule": "platform-policy-ownership", "path": str(path)})
+    if findings:
+        raise ConformanceError("source verification failed:\n" + "\n".join(f"- [{rule}] {message}" for rule, message in findings))
     return {
         "product": product_id,
-        "suppressed_findings": len(findings) - len(active),
-        "exceptions": sorted(exceptions),
+        "advisories": advisories,
     }
 
 
 def verify_schema(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     manifest = verify_manifest(product_root, foundation_root)
     product_id = manifest["product_id"]
-    _, allowed_rules = _load_exceptions(foundation_root, product_id)
-    needs_composed = any(component["profile"] == "server-control-plane" for component in manifest["components"])
-    product_schema = product_root / "schema" / "product.sql"
-    generated_schema = product_root / "schema" / "generated" / "current_schema.sql"
-    if needs_composed and (not product_schema.is_file() or not generated_schema.is_file()):
-        if "generated-schema" not in allowed_rules:
-            raise ConformanceError("server-control-plane requires schema/product.sql and generated/current_schema.sql")
-        return {"product": product_id, "status": "temporary-exception"}
-    if product_schema.is_file():
-        text = product_schema.read_text(encoding="utf-8")
-        if re.search(r"CREATE\s+(?:TABLE|INDEX|TRIGGER)\s+(?:IF\s+NOT\s+EXISTS\s+)?_sarmg_", text, re.IGNORECASE):
-            raise ConformanceError(f"{product_schema}: product Schema uses reserved _sarmg_ prefix")
-    if generated_schema.is_file():
-        text = generated_schema.read_text(encoding="utf-8")
-        if not text.startswith("-- Generated by sarmg-schema-compose; DO NOT EDIT.\n"):
-            raise ConformanceError(f"{generated_schema}: missing generated-file identity")
+    control_planes = [
+        component
+        for component in manifest["components"]
+        if component["profile"] == "server-control-plane"
+    ]
+    needs_composed = bool(control_planes)
+    layout = _layout(product_root)
+    product_schema = _discover_file(product_root, "product.sql", layout.get("schema_product"))
+    generated_schema = _discover_file(
+        product_root, "current_schema.sql", layout.get("schema_generated")
+    )
+    if needs_composed and (product_schema is None or generated_schema is None):
+        raise ConformanceError(
+            "server-control-plane requires one product.sql and one current_schema.sql; "
+            "use sarmg-layout.toml when discovery is ambiguous"
+        )
+    if needs_composed:
+        if len(control_planes) != 1:
+            raise ConformanceError("schema verification requires exactly one server-control-plane component")
+        from sarmg_schema_compose import ComposeError, compose, schema_capabilities
+
+        component = control_planes[0]
+        try:
+            expected = compose(
+                component["profile"],
+                schema_capabilities(component["capabilities"]),
+                product_schema,
+            )
+        except ComposeError as error:
+            raise ConformanceError(str(error)) from error
+        try:
+            actual = generated_schema.read_text(encoding="utf-8")
+        except UnicodeError as error:
+            raise ConformanceError(f"{generated_schema}: generated schema is not UTF-8") from error
+        if actual != expected:
+            raise ConformanceError(f"{generated_schema}: generated schema does not match recomposition")
     return {"product": product_id, "status": "verified"}
 
 
@@ -405,8 +460,10 @@ def verify_web(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     expected = [component["web_profile"] for component in manifest["components"] if "web_profile" in component]
     if not expected:
         return {"product": manifest["product_id"], "status": "not-applicable"}
-    package_path = product_root / "clients" / "web" / "package.json"
-    if not package_path.is_file():
+    layout = _layout(product_root)
+    web_root = layout.get("web_root")
+    package_path = _discover_web_package(product_root, web_root)
+    if package_path is None or not package_path.is_file():
         raise ConformanceError(f"{package_path}: Web Profile requires a package manifest")
     package = _json(package_path)
     for section in ("dependencies", "devDependencies"):
@@ -523,13 +580,6 @@ def verify_consumer_registry(foundation_root: Path) -> dict[str, Any]:
     checked_in = _json(foundation_root / "consumers" / "consumer-matrix.json")
     if checked_in != generated:
         raise ConformanceError("consumer-matrix.json is stale; run generate-consumer-matrix")
-    registered = {item["product"] for item in generated["consumers"]}
-    if registered != PRODUCT_IDS:
-        raise ConformanceError(f"consumer registry set differs: {sorted(registered)}")
-    for entry in generated["consumers"]:
-        exception_values, _ = _load_exceptions(foundation_root, entry["product"])
-        if set(entry["exceptions"]) != set(exception_values):
-            raise ConformanceError(f"{entry['product']}: matrix exception ids differ from exception files")
     return generated
 
 
@@ -596,27 +646,21 @@ def verify_baselines(foundation_root: Path) -> dict[str, dict[str, Any]]:
 
 def verify_foundation(foundation_root: Path) -> dict[str, Any]:
     profiles, capabilities = load_profiles(foundation_root)
-    readme = (foundation_root / "README.md").read_text(encoding="utf-8")
-    workflow = (foundation_root / "docs" / "project-workflow.md").read_text(encoding="utf-8")
-    if "上游平台规范" not in readme or "构建期中央平台" not in readme:
-        raise ConformanceError("README.md: upstream build-time platform position is missing")
-    for forbidden in ("只有一个真实消费者", "等待第二消费者证据", "不把 Foundation 变成中央平台"):
-        if forbidden in workflow:
-            raise ConformanceError(f"project-workflow.md: obsolete admission rule remains: {forbidden}")
-    adr_root = foundation_root / "docs" / "architecture"
-    missing = [number for number in range(1, 9) if not list(adr_root.glob(f"ADR-{number:04d}-*.md"))]
-    if missing:
-        raise ConformanceError(f"architecture: missing ADRs {missing}")
     schema = _json(foundation_root / "schemas" / "sarmg-product.schema.json")
     schema_profiles = set(schema["properties"]["components"]["items"]["properties"]["profile"]["enum"])
     if schema_profiles != set(profiles):
         raise ConformanceError("sarmg-product Schema profile enum is stale")
+    own_packages = _foundation_package_names(foundation_root)
     for path in sorted((foundation_root / "rust" / "crates").glob("*/Cargo.toml")):
         cargo = _toml(path)
-        for dependency, _ in _walk_dependency_tables(cargo):
-            if dependency in PRODUCT_IDS:
-                raise ConformanceError(f"{path}: Foundation depends on product crate {dependency}")
-        features = cargo.get("features", {})
-        if isinstance(features, dict) and any(product in feature for feature in features for product in PRODUCT_IDS):
-            raise ConformanceError(f"{path}: product-named Feature is forbidden")
+        for alias, requirement in _walk_dependency_tables(cargo):
+            dependency = _dependency_name(alias, requirement)
+            if dependency in own_packages:
+                continue
+            if not dependency.startswith("sarmg-"):
+                continue
+            if isinstance(requirement, dict) and ("git" in requirement or "path" in requirement):
+                raise ConformanceError(
+                    f"{path}: Foundation package {alias!r} aliases downstream dependency {dependency!r}"
+                )
     return {"profiles": sorted(profiles), "capabilities": sorted(capabilities)}

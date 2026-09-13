@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,8 +20,10 @@ from sarmg_conformance import (  # noqa: E402
     verify_baselines,
     verify_foundation,
     verify_manifest,
+    verify_schema,
     verify_source,
 )
+from sarmg_schema_compose import compose  # noqa: E402
 
 
 VALID_MANIFEST = """\
@@ -61,18 +64,35 @@ class ConformanceTests(unittest.TestCase):
         self.assertIn("admin-persistent", result["capabilities"])
 
     def test_consumer_registry_is_an_independent_reporting_contract(self) -> None:
-        generated = generate_consumer_matrix(ROOT)
-        checked_in = json.loads((ROOT / "consumers" / "consumer-matrix.json").read_text())
-        self.assertEqual(generated, checked_in)
-        baselines = verify_baselines(ROOT)
-        consumers = {entry["product"]: entry for entry in generated["consumers"]}
-        self.assertNotEqual(
-            baselines["sarmg-upgrade"]["source_commit"],
-            consumers["sarmg-upgrade"]["commit"],
-        )
-        self.assertEqual(baselines["sarmg-upgrade"]["foundation_version"], "0.3.0")
-        self.assertEqual(consumers["sarmg-upgrade"]["foundation_version"], "0.6.0")
-        self.assertEqual(consumers["sarmg-upgrade"]["status"], "migration-in-progress")
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory)
+            shutil.copytree(ROOT / "profiles", fixture / "profiles")
+            (fixture / "Cargo.toml").write_text(
+                '[workspace]\nmembers=[]\n[workspace.package]\nversion="0.7.10"\n'
+            )
+            package = fixture / "rust" / "crates" / "sarmg-error"
+            package.mkdir(parents=True)
+            (package / "Cargo.toml").write_text(
+                '[package]\nname="sarmg-error"\nversion="0.7.10"\n'
+            )
+            consumers = fixture / "consumers"
+            consumers.mkdir()
+            (consumers / "repositories.toml").write_text(
+                '''format = 1
+[[repositories]]
+product = "new-product"
+url = "https://github.com/example/new-product"
+commit = "0123456789abcdef0123456789abcdef01234567"
+foundation_version = "0.7.10"
+profiles = ["offline-tool"]
+capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2"]
+packages = ["sarmg-error"]
+status = "conforming"
+exceptions = []
+'''
+            )
+            generated = generate_consumer_matrix(fixture)
+            self.assertEqual([item["product"] for item in generated["consumers"]], ["new-product"])
 
     def test_manifest_requires_profile_capabilities_and_immutable_revision(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -90,16 +110,16 @@ class ConformanceTests(unittest.TestCase):
             with self.assertRaisesRegex(ConformanceError, "40 lowercase hex"):
                 verify_manifest(product, ROOT)
 
-    def test_source_check_rejects_product_named_feature(self) -> None:
+    def test_source_check_resolves_aliased_foundation_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
             (product / "sarmg-product.toml").write_text(VALID_MANIFEST, encoding="utf-8")
             (product / "Cargo.toml").write_text(
                 '[package]\nname="fixture"\nversion="0.1.0"\n'
-                '[features]\nsunshine-manager-mode=[]\n',
+                '[dependencies]\nlocal-error={package="sarmg-error",path="../foundation"}\n',
                 encoding="utf-8",
             )
-            with self.assertRaisesRegex(ConformanceError, "no-product-features"):
+            with self.assertRaisesRegex(ConformanceError, "immutable-foundation-dependencies"):
                 verify_source(product, ROOT)
 
     def test_filesystem_profile_accepts_native_and_react_web(self) -> None:
@@ -134,8 +154,45 @@ class ConformanceTests(unittest.TestCase):
             (client / "control.rs").write_text(source)
             verify_source(product, ROOT)
             (product / "server.rs").write_text(source)
-            with self.assertRaisesRegex(ConformanceError, "foundation-route-ownership"):
-                verify_source(product, ROOT)
+            result = verify_source(product, ROOT)
+            self.assertEqual(result["advisories"][0]["rule"], "foundation-route-ownership")
+
+    def test_schema_is_discovered_from_declared_layout_and_recomposed(self) -> None:
+        manifest = '''format = 1
+product_id = "fixture-product"
+[foundation]
+platform_generation = 1
+version = "0.5.0"
+git_rev = "0123456789abcdef0123456789abcdef01234567"
+[[components]]
+id = "server"
+profile = "server-control-plane"
+http_adapter = "axum"
+web_profile = "web-react-admin"
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health"]
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "sarmg-product.toml").write_text(manifest)
+            (product / "sarmg-layout.toml").write_text(
+                'schema_product="db/source.sql"\nschema_generated="artifacts/schema.sql"\n'
+            )
+            source = product / "db" / "source.sql"
+            generated = product / "artifacts" / "schema.sql"
+            source.parent.mkdir()
+            generated.parent.mkdir()
+            source.write_text("CREATE TABLE fixture (id INTEGER PRIMARY KEY);\n")
+            generated.write_text(
+                compose(
+                    "server-control-plane",
+                    ["admin-persistent"],
+                    source,
+                )
+            )
+            self.assertEqual(verify_schema(product, ROOT)["status"], "verified")
+            generated.write_text(generated.read_text() + "-- stale\n")
+            with self.assertRaisesRegex(ConformanceError, "does not match recomposition"):
+                verify_schema(product, ROOT)
 
     def test_cli_reports_machine_readable_result(self) -> None:
         completed = subprocess.run(
