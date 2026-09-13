@@ -5,7 +5,7 @@ test('native consumers share icons and keep product callbacks and theme behavior
   const config=await readFile(new URL('../../packages/admin-shell/dist/workspace-config.js',import.meta.url),'utf8');
   const native=await readFile(new URL('../../packages/admin-shell/dist/native-workspace.js',import.meta.url),'utf8');
   await page.goto('/');
-  await page.setContent('<header id="head"><div id="actions"><button id="create">Create</button><button id="logout"><span>admin</span></button></div></header><main id="content">Files</main>');
+  await page.locator('body').evaluate((body,markup)=>{body.innerHTML=markup;},'<header id="head"><div id="actions"><button id="create">Create</button><button id="logout"><span>admin</span></button></div></header><main id="content">Files</main>');
   await page.addScriptTag({type:'module',content:i18n+'\n'+config+'\n'+native.replace(/^import .*?;\n/gm,'')+'\nconst logout=document.getElementById("logout"); logout.addEventListener("click",()=>document.body.dataset.loggedOut="true"); const create=document.getElementById("create"); create.textContent=""; create.addEventListener("click",()=>document.body.dataset.created="true"); configureNativeWorkspace({header:document.getElementById("head"),content:document.getElementById("content"),actions:document.getElementById("actions"),create,logout,refresh:()=>document.body.dataset.refreshed="true",instanceName:"Shared root",instanceHref:"/"});'});
   const actions=page.getByRole('group',{name:"Global actions"});await expect(actions.getByRole('button')).toHaveCount(5);
   await actions.getByRole('button',{name:"Create instance"}).click();await expect(page.locator('body')).toHaveAttribute('data-created','true');
@@ -20,7 +20,7 @@ test('native consumers can localize labels without replacing their existing logo
   const config=await readFile(new URL('../../packages/admin-shell/dist/workspace-config.js',import.meta.url),'utf8');
   const native=await readFile(new URL('../../packages/admin-shell/dist/native-workspace.js',import.meta.url),'utf8');
   await page.goto('/');
-  await page.setContent('<header id="head"><div id="actions"><button id="logout" aria-label="Sign out"></button></div></header><main id="content">Files</main>');
+  await page.locator('body').evaluate((body,markup)=>{body.innerHTML=markup;},'<header id="head"><div id="actions"><button id="logout" aria-label="Sign out"></button></div></header><main id="content">Files</main>');
   await page.addScriptTag({type:'module',content:i18n+'\n'+config+'\n'+native.replace(/^import .*?;\n/gm,'')+'\nconst logout=document.getElementById("logout"); logout.addEventListener("click",()=>document.body.dataset.loggedOut="true"); configureNativeWorkspace({header:document.getElementById("head"),content:document.getElementById("content"),actions:document.getElementById("actions"),logout,refresh:()=>document.body.dataset.refreshed="true",instanceName:"Shared root",instanceHref:"/",labels:{actions:"Global actions",refresh:"Reload page",light:"Switch to light mode",dark:"Switch to dark mode",instances:"Shared root instance"}});'});
   const actions=page.getByRole('group',{name:'Global actions'});
   await expect(actions.getByRole('button')).toHaveCount(4);
