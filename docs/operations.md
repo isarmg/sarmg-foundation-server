@@ -93,8 +93,11 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 - 所有 crate 启用 workspace lint，内部 Rust dependency 精确 `=0.7.9`；
 - 内部 npm build dependency 使用 `workspace:0.7.9`，peer 使用精确 `0.7.9`；
 - `admin-web` 的 React/Vite/TypeScript/type package 精确一致；
-- consumer matrix 只含 6 个已知消费者、已知组件和自洽状态；
 - 源码和文档不存在已取消的项目/客户端名称。
+
+消费者矩阵是独立接入报告，不参与 `check-foundation.py`、Foundation CI 或 Release 门禁。维护报告时另外
+运行 `python3 scripts/sarmg-conformance.py verify-consumers` 与
+`python3 scripts/sarmg-conformance.py generate-consumer-matrix --check`；产品行为验收仍在对应产品仓库完成。
 
 若检查报 unknown package/member，不要把未知项加入 allowlist 让测试变绿；先确认它是否经过共享准入。若
 报旧名称，修改真实产品身份，而不是用字符串拼接绕过扫描；policy 自己为了定义拒绝项而拼接是有意避免

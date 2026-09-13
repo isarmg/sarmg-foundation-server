@@ -318,16 +318,17 @@ React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依
 | `non-conforming` | 已声明 Profile 但当前验证失败 | 保留真实失败状态，不伪装绿色 |
 | `temporary-exception` | 迁移期存在已登记例外 | 例外必须有期限且不得降低安全下限 |
 
-`packages` 只列消费者直接采用的 Foundation 组件，不能把传递依赖或相似本地实现算作已采用。每次发布后
-必须用最终消费者 commit 更新矩阵；矩阵 Schema 与 `check-foundation.py` 会拒绝未知仓库、未知组件、重复
-项和自相矛盾状态。
+`packages` 只列消费者直接采用的 Foundation 组件，不能把传递依赖或相似本地实现算作已采用。消费者矩阵
+是独立的接入报告，不是 Foundation 自身构建、测试或发布的前置条件；新增、删除或暂时失败的产品不会阻塞
+公共实现发布。需要更新报告时显式运行 `verify-consumers` 与 `generate-consumer-matrix --check`，产品行为验收仍
+在对应产品仓库完成。
 
 ## 12. Release 流程
 
 ```text
 main 工作树完全干净
 ├─ 全部 Rust/Web/Python/package 门禁通过
-├─ Cargo/npm/policy/consumer matrix 版本一致
+├─ Cargo/npm/policy 版本一致（消费者报告独立维护）
 ├─ 十三个 Cargo package 均携带审核过的根 LICENSE
 ├─ 创建唯一 annotated v0.5.0 tag
 ├─ push tag 触发唯一 release job

@@ -59,6 +59,8 @@ class ConformanceTests(unittest.TestCase):
         result = verify_foundation(ROOT)
         self.assertEqual(len(result["profiles"]), 5)
         self.assertIn("admin-persistent", result["capabilities"])
+
+    def test_consumer_registry_is_an_independent_reporting_contract(self) -> None:
         generated = generate_consumer_matrix(ROOT)
         checked_in = json.loads((ROOT / "consumers" / "consumer-matrix.json").read_text())
         self.assertEqual(generated, checked_in)

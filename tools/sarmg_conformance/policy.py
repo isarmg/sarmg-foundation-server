@@ -619,6 +619,4 @@ def verify_foundation(foundation_root: Path) -> dict[str, Any]:
         features = cargo.get("features", {})
         if isinstance(features, dict) and any(product in feature for feature in features for product in PRODUCT_IDS):
             raise ConformanceError(f"{path}: product-named Feature is forbidden")
-    verify_consumer_registry(foundation_root)
-    verify_baselines(foundation_root)
     return {"profiles": sorted(profiles), "capabilities": sorted(capabilities)}

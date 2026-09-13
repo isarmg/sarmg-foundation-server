@@ -138,7 +138,7 @@ sarmg-foundation-server/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.6.1` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.7.9` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
@@ -150,7 +150,6 @@ smoke 和所有消费者验证。
 ```bash
 python3 scripts/check-foundation.py
 python3 scripts/sarmg-conformance.py verify-foundation
-python3 scripts/sarmg-conformance.py verify-consumers
 python3 scripts/check-rust-package-licenses.py
 python3 scripts/check-workflow-supply-chain.py
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
@@ -166,6 +165,9 @@ python3 scripts/package-artifacts.py smoke
 git diff --check
 ```
 
+消费者矩阵是单独维护的采用报告，不是 Foundation 自身构建或发布的依赖。产品接入与业务行为由产品仓库
+验收；维护报告时再显式运行 `verify-consumers` 与 `generate-consumer-matrix --check`。
+
 `package-artifacts.py smoke` 会安全清理旧 `dist`、构建 8 个 package、检查所有 export、生成真实 `.tgz`、
 审计 tar member，再在临时空目录离线安装并解析每个公开入口。workspace 中能 import 但 tarball 不能安装，
 不算通过。
@@ -178,12 +180,12 @@ Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平�
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.6.1"`。
+   并同时声明 `version = "=0.7.9"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.6.1` tag 的专用 release job 可获得 `contents: write`。
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.7.9` tag 的专用 release job 可获得 `contents: write`。
 5. 发布资产包含 8 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、

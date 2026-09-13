@@ -1,4 +1,4 @@
-"""Repository-wide identity and consumer-matrix checks for one current release."""
+"""Repository-wide checks for one self-contained Foundation release."""
 
 from __future__ import annotations
 
@@ -62,14 +62,6 @@ KNOWN_PACKAGES = {
 RUST_PACKAGES = tuple(
     sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
 )
-KNOWN_CONSUMERS = {
-    "dufs-ram",
-    "host-monitoring",
-    "media-backup",
-    "sarmg-upgrade",
-    "sentinel-monitor",
-    "sunshine-manager",
-}
 class FoundationPolicyError(RuntimeError):
     """The repository does not describe one internally consistent release."""
 
@@ -128,6 +120,14 @@ def _exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None
 def check_versions(root: Path) -> None:
     root_license = root / "LICENSE"
     root_license_bytes = read_audited_root_license(root_license)
+
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    if f"| Foundation 版本 | `{CURRENT_VERSION}` |" not in readme:
+        raise FoundationPolicyError("README.md: Foundation version table is stale")
+    if f'version = "={CURRENT_VERSION}"' not in readme:
+        raise FoundationPolicyError("README.md: Rust consumer version example is stale")
+    if f"`v{CURRENT_VERSION}` tag" not in readme:
+        raise FoundationPolicyError("README.md: release tag example is stale")
 
     root_package = _json(root / "package.json")
     if root_package.get("version") != CURRENT_VERSION:
@@ -233,21 +233,8 @@ def check_versions(root: Path) -> None:
                     )
 
 
-def check_consumer_matrix(root: Path) -> None:
-    from sarmg_conformance import ConformanceError, verify_consumer_registry
-
-    try:
-        matrix = verify_consumer_registry(root)
-    except ConformanceError as error:
-        raise FoundationPolicyError(str(error)) from error
-    repositories = {consumer["product"] for consumer in matrix["consumers"]}
-    if repositories != KNOWN_CONSUMERS:
-        raise FoundationPolicyError(f"consumer repository set differs: {sorted(repositories)}")
-
-
 def check_repository(root: Path) -> None:
     root = root.resolve(strict=True)
     if root == Path(root.anchor):
         raise FoundationPolicyError("refusing to check a filesystem root")
     check_versions(root)
-    check_consumer_matrix(root)
