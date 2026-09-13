@@ -30,6 +30,9 @@ createSarmgAdminApplication({
 
 `InstanceWorkspace` 左侧只显示实例名称，右侧由产品传入内容与设置；窄屏纵向排列。
 `InstanceHeaderActions` 将产品的新建、刷新动作放入右上角，随后是主题、退出。
+`InstancePageNavigation` 提供统一的 `instances`、`details`、`logs` 三页状态和本地化标签。除 Dufs RAM 外，
+所有 Server 管理页都使用这一导航：实例列表包含总览和每个实例摘要，详细信息合并状态与配置，日志集中展示业务记录。
+产品只提供页面内容和当前选中实例，不再各自定义一套页面枚举或导航文案。
 创建动作没有传入时不显示“+”，不虚构产品不支持的 API。
 `InstanceNameField` 与 `validInstanceName` 按 Unicode 字符计数（与 Rust `chars()` 一致），
 名称去除首尾空白后为 1–32 字符，禁止控制字符；消费者可配置更严格的上限，不能超过服务端上限。
@@ -50,9 +53,8 @@ SVG 高度使用 `1em` 匹配文字，点击区域高 44px，窄屏仅导航区�
 产品版本仍用于协议校验及发布身份，不因删除显示而改变。
 菜单栏左侧保留项目名称，只移除版本。名称和导航处于同一可滚动区域，窄屏不会挤出右侧操作图标。
 `emptyInstanceSidebar: "collapse"` 为默认规则：空实例列表不渲染侧栏、不预留宽度。
-产品可在全局总览、系统管理等与实例选择无关的页面传入 `showSidebar={false}`，有实例时也使用全宽内容。
-Sunshine 与 Host Monitoring 的顶部“实例”进入独立列表页；选中实例后进入业务内容，
-不再在业务页旁常驻实例栏。其他产品保留各自实例栏。
+产品可在实例列表和日志等与实例选择无关的页面传入 `showSidebar={false}`，有实例时也使用全宽内容；
+侧栏只允许在需要快速切换实例的详细信息页出现。
 
 服务端平台路由不再注册 `/api/v2/platform/diagnostics`，匿名及已登录请求均返回 404；
 登录、权限、Request ID、健康检查、内部任务监督及日志不受影响。
@@ -63,7 +65,7 @@ Sunshine 与 Host Monitoring 的顶部“实例”进入独立列表页；选中
 | Sunshine Manager | Client 管理实例 | 新建实例并生成配对码 |
 | Host Monitoring | 已配对监控实例 | 新建实例并生成配对码 |
 | Sentinel Monitor | 摄像头 | 新建摄像头 |
-| Media Backup | 备份用户 | 新建备份用户（不等同平台管理员） |
+| Media Backup | 备份用户下的客户端实例 | 新建备份用户或客户端实例（不等同平台管理员） |
 | Dufs | 单个共享根目录 | 在当前目录新建文件夹；不支持远程多实例 |
 
 ## 当前不可变包分发

@@ -14,7 +14,8 @@ import { useAdministratorSession, type AdministratorSessionController } from "@s
 
 import { WorkspaceContext, HeaderActionsContext, HeaderNavigationContext, WorkspaceIcon } from "./workspace.js";
 import { resolveWorkspaceConfig, type WorkspaceConfig } from "./workspace-config.js";
-export { HeaderActions, HeaderNavigation, InstanceHeaderActions, InstanceWorkspace, InstanceNameField, WorkspaceIcon } from "./workspace.js";
+export { HeaderActions, HeaderNavigation, InstanceHeaderActions, InstancePageNavigation, InstanceWorkspace, InstanceNameField, WorkspaceIcon } from "./workspace.js";
+export type { InstancePage } from "./workspace.js";
 export { DEFAULT_WORKSPACE_CONFIG, resolveWorkspaceConfig, validInstanceName } from "./workspace-config.js";
 export type { WorkspaceConfig } from "./workspace-config.js";
 
