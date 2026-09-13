@@ -14,8 +14,8 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.10" }
-sarmg-contracts = { path = "../sarmg-contracts", version = "=0.7.10" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.11" }
+sarmg-contracts = { path = "../sarmg-contracts", version = "=0.7.11" }
 serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
