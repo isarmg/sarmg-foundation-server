@@ -14,12 +14,12 @@ workspace = true
 
 [dependencies]
 async-trait.workspace = true
-sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.7" }
-sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.7" }
+sarmg-admin-auth = { path = "../sarmg-admin-auth", version = "=0.7.8" }
+sarmg-admin-core = { path = "../sarmg-admin-core", version = "=0.7.8" }
 sqlx.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.7.7" }
+sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.7.8" }
 tempfile.workspace = true
 tokio.workspace = true
