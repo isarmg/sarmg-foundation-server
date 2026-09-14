@@ -12,7 +12,6 @@ test('default workspace policy and explicit consumer customization',()=>{
   assert.equal(DEFAULT_WORKSPACE_CONFIG.headerIconSize,'1em');
   assert.equal('layout' in DEFAULT_WORKSPACE_CONFIG,false);
   assert.equal('emptyInstanceSidebar' in DEFAULT_WORKSPACE_CONFIG,false);
-  for(const input of [{layout:'instances'},{layout:'custom'},{emptyInstanceSidebar:'collapse'}])assert.throws(()=>resolveWorkspaceConfig(input));
   for(const input of [{diagnostics:true},{showVersion:true},{navigationPlacement:'sidebar'},{headerIconSize:'22px'}])assert.throws(()=>resolveWorkspaceConfig(input));
   assert.equal(resolveWorkspaceConfig({appearance:'custom-brand'}).appearance,'custom-brand');
   assert.equal(DEFAULT_WORKSPACE_CONFIG.appearance,'content-blocks');

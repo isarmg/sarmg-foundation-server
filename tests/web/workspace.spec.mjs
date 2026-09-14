@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test';
-test('configured instance workspace, header actions, names and consumer override',async({page})=>{
+test('configured admin workspace, header actions, names and consumer override',async({page})=>{
   const session={authenticated:true,user_id:'A'.repeat(43),username:'admin',role:'admin',csrf_token:'A'.repeat(43)};
   await page.route('**/api/v2/auth/session',route=>route.fulfill({json:session}));
   await page.goto('/#workspace');

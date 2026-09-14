@@ -22,9 +22,6 @@ export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = Object.freeze({
   headerIconSize: "1em",
 });
 export function resolveWorkspaceConfig(input: Partial<WorkspaceConfig> = {}): WorkspaceConfig {
-  if ("layout" in input || "emptyInstanceSidebar" in input) {
-    throw new TypeError("Removed Foundation workspace configuration");
-  }
   const result = { ...DEFAULT_WORKSPACE_CONFIG, ...input };
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(result.appearance)
     || !["underline", "custom"].includes(result.selection)
