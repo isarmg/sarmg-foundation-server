@@ -1,7 +1,6 @@
 /** Shared by React and native Web consumers; no product operations or authentication. */
 export type WorkspaceConfig = Readonly<{
   appearance: string;
-  layout: "instances" | "custom";
   selection: "underline" | "custom";
   fontFamily: string;
   instanceNameMaxCharacters: number;
@@ -10,11 +9,9 @@ export type WorkspaceConfig = Readonly<{
   showVersion: false;
   navigationPlacement: "header";
   headerIconSize: "1em";
-  emptyInstanceSidebar: "collapse";
 }>;
 export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = Object.freeze({
   appearance: "content-blocks",
-  layout: "instances" as "instances" | "custom",
   selection: "underline" as "underline" | "custom",
   fontFamily: '"Sarmg Maple",ui-monospace,monospace',
   instanceNameMaxCharacters: 32,
@@ -23,17 +20,17 @@ export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = Object.freeze({
   showVersion: false,
   navigationPlacement: "header",
   headerIconSize: "1em",
-  emptyInstanceSidebar: "collapse",
 });
 export function resolveWorkspaceConfig(input: Partial<WorkspaceConfig> = {}): WorkspaceConfig {
+  if ("layout" in input || "emptyInstanceSidebar" in input) {
+    throw new TypeError("Removed Foundation workspace configuration");
+  }
   const result = { ...DEFAULT_WORKSPACE_CONFIG, ...input };
   if (!/^[a-z][a-z0-9-]{0,63}$/.test(result.appearance)
-    || !["instances", "custom"].includes(result.layout)
     || !["underline", "custom"].includes(result.selection)
     || !["icons", "text"].includes(result.headerControls)
     || result.diagnostics !== false || result.showVersion !== false || result.navigationPlacement !== "header"
     || result.headerIconSize !== "1em"
-    || result.emptyInstanceSidebar !== "collapse"
     || !result.fontFamily.trim()
     || !Number.isInteger(result.instanceNameMaxCharacters)
     || result.instanceNameMaxCharacters < 1 || result.instanceNameMaxCharacters > 32) {

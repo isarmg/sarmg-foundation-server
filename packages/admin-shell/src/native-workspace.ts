@@ -1,16 +1,14 @@
 import { t } from "@sarmg/admin-ui/i18n";
 import { createLanguageControl } from "@sarmg/admin-ui/i18n";
-import { resolveWorkspaceConfig, WORKSPACE_ICON_PATHS, validInstanceName, type WorkspaceConfig } from "./workspace-config.js";
+import { resolveWorkspaceConfig, WORKSPACE_ICON_PATHS, type WorkspaceConfig } from "./workspace-config.js";
 /** Native Web adapter: retains existing product listeners, including logout/CSRF. */
-export function configureNativeWorkspace({ header, content, actions, create, logout, refresh, instanceName, instanceHref, labels = {}, config: input }: {
-  header: HTMLElement; content: HTMLElement; actions: HTMLElement; create?: HTMLButtonElement;
-  logout: HTMLButtonElement; refresh(): void; instanceName: string; instanceHref: string; config?: Partial<WorkspaceConfig>;
-  labels?: Partial<{ actions: string; refresh: string; light: string; dark: string; logout: string; instances: string }>;
+export function configureNativeWorkspace({ header, actions, create, logout, refresh, labels = {}, config: input }: {
+  header: HTMLElement; actions: HTMLElement; create?: HTMLButtonElement;
+  logout: HTMLButtonElement; refresh(): void; config?: Partial<WorkspaceConfig>;
+  labels?: Partial<{ actions: string; refresh: string; light: string; dark: string; logout: string }>;
 }) {
   const config = resolveWorkspaceConfig(input);
   header.style.setProperty("--sarmg-header-icon-size", config.headerIconSize);
-  if (!validInstanceName(instanceName, config.instanceNameMaxCharacters)) throw new TypeError("Invalid instance name");
-  if (!/^\/(?!\/)/.test(instanceHref) || /[\\\u0000-\u0020\u007f]/.test(instanceHref)) throw new TypeError("Instance target must be local");
   document.documentElement.dataset.sarmgAppearance = config.appearance;
   document.documentElement.dataset.sarmgSelection = config.selection;
   document.documentElement.style.setProperty("--sarmg-font-ui", config.fontFamily);
@@ -35,12 +33,5 @@ export function configureNativeWorkspace({ header, content, actions, create, log
   const update = () => { document.documentElement.dataset.theme = dark ? "dark" : "light"; icon(theme,dark?"sun":"moon",dark?(labels.light ?? t("切换到浅色模式", "Switch to light mode")):(labels.dark ?? t("切换到深色模式", "Switch to dark mode"))); };
   update(); theme.addEventListener("click",()=>{dark=!dark;update();}); actions.append(theme);
   icon(logout,"logout",labels.logout ?? logout.getAttribute("aria-label") ?? t("退出", "Sign out")); logout.querySelectorAll<HTMLSpanElement>("span:not([data-workspace-label])").forEach(node=>node.hidden=true); actions.append(logout);
-  if (config.layout === "instances") {
-    const workspace = document.createElement("div"); workspace.className="sarmg-instance-workspace sarmg-native-workspace";
-    const sidebar = document.createElement("aside"); sidebar.className="sarmg-instance-sidebar"; sidebar.setAttribute("aria-label",labels.instances ?? t("共享根实例", "Shared root instance"));
-    const list = document.createElement("div"); list.className="sarmg-instance-list";
-    const link = document.createElement("a"); link.href=instanceHref; link.className="sarmg-button"; link.textContent=instanceName; link.title=instanceName; link.setAttribute("aria-current","page"); list.append(link); sidebar.append(list);
-    content.before(workspace); workspace.append(sidebar,content); content.classList.add("sarmg-instance-detail");
-  }
   header.append(actions);
 }

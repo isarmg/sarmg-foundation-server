@@ -68,12 +68,12 @@ class ConformanceTests(unittest.TestCase):
             fixture = Path(directory)
             shutil.copytree(ROOT / "profiles", fixture / "profiles")
             (fixture / "Cargo.toml").write_text(
-                '[workspace]\nmembers=[]\n[workspace.package]\nversion="0.7.11"\n'
+                '[workspace]\nmembers=[]\n[workspace.package]\nversion="0.8.0"\n'
             )
             package = fixture / "rust" / "crates" / "sarmg-error"
             package.mkdir(parents=True)
             (package / "Cargo.toml").write_text(
-                '[package]\nname="sarmg-error"\nversion="0.7.11"\n'
+                '[package]\nname="sarmg-error"\nversion="0.8.0"\n'
             )
             consumers = fixture / "consumers"
             consumers.mkdir()
@@ -83,7 +83,7 @@ class ConformanceTests(unittest.TestCase):
 product = "new-product"
 url = "https://github.com/example/new-product"
 commit = "0123456789abcdef0123456789abcdef01234567"
-foundation_version = "0.7.11"
+foundation_version = "0.8.0"
 profiles = ["offline-tool"]
 capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2"]
 packages = ["sarmg-error"]

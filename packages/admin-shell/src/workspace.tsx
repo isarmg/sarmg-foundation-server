@@ -39,18 +39,6 @@ export function InstanceHeaderActions({ create, refresh, refreshing = false, cre
     {refresh && <IconButton aria-label={refreshLabel} title={refreshLabel} onClick={refresh} disabled={refreshing}>{config.headerControls === "icons" ? <WorkspaceIcon name="refresh" /> : refreshLabel}</IconButton>}
   </HeaderActions>;
 }
-export function InstanceWorkspace({ instances, selected, select, label = t("实例", "Instances"), showSidebar = true, children }: {
-  instances: readonly { id: string; name: string }[]; selected?: string | null; select(id: string): void; label?: string; showSidebar?: boolean; children: ReactNode;
-}) {
-  const config = useContext(WorkspaceContext);
-  const sidebarVisible = showSidebar && instances.length > 0;
-  return <div className={config.layout === "instances" ? `sarmg-instance-workspace${sidebarVisible ? "" : " sarmg-instance-workspace--full"}` : "sarmg-custom-workspace"}>
-    {sidebarVisible && <aside className="sarmg-instance-sidebar" aria-label={label}><div className="sarmg-instance-list">{instances.map(item =>
-      <Button key={item.id} title={item.name} aria-label={t("选择实例 {0}", "Select instance {0}", [item.name])} aria-pressed={selected === item.id} onClick={() => select(item.id)}><span>{item.name}</span></Button>
-    )}</div></aside>}
-    <section className="sarmg-content-stack" aria-label={t("实例详情与设置", "Instance details and settings")}>{children}</section>
-  </div>;
-}
 /** Count Unicode scalar values, matching Rust chars(); do not use UTF-16 maxLength. */
 export function InstanceNameField({ onChange, onInput, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, "maxLength">) {
   const config = useContext(WorkspaceContext);

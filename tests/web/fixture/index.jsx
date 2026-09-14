@@ -1,6 +1,6 @@
 import React, { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createSarmgAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceWorkspace, InstanceNameField } from "../../../packages/admin-shell/dist/index.js";
+import { createSarmgAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceNameField } from "../../../packages/admin-shell/dist/index.js";
 import { createAdministratorApiClient } from "../../../packages/admin-web/dist/index.js";
 import { Button, Dialog, FormField, TextField } from "../../../packages/admin-ui/dist/index.js";
 import "../../../packages/design-tokens/tokens.css";
@@ -11,8 +11,8 @@ import "../../../packages/web-fonts/fonts.css";
 import "../../../packages/admin-ui/styles.css";
 
 function WorkspaceFixture() {
-  const [selected,setSelected] = useState("1"); const [creating,setCreating] = useState(false); const [revision,setRevision] = useState(0);
-  return <><InstanceHeaderActions create={() => setCreating(true)} refresh={() => setRevision(value=>value+1)} /><InstanceWorkspace instances={[{id:"1",name:"Alpha"},{id:"2",name:"第二实例"}]} selected={selected} select={setSelected}><h1>Selected {selected}</h1><p>Revision {revision}</p></InstanceWorkspace>{creating && <Dialog title="New instance" onClose={()=>setCreating(false)}><FormField label="Instance name"><InstanceNameField /></FormField></Dialog>}</>;
+  const [creating,setCreating] = useState(false); const [revision,setRevision] = useState(0);
+  return <section className="sarmg-content-stack"><InstanceHeaderActions create={() => setCreating(true)} refresh={() => setRevision(value=>value+1)} /><h1>Full-width workspace</h1><p>Revision {revision}</p>{creating && <Dialog title="New instance" onClose={()=>setCreating(false)}><FormField label="Instance name"><InstanceNameField /></FormField></Dialog>}</section>;
 }
 function ProductRoutes() {
   const { notify } = useAdminApplication();
@@ -35,6 +35,6 @@ const App = createSarmgAdminApplication({
   client: createAdministratorApiClient(),
   navigation: [{ label: "Overview", href: "#overview" }, { label: "Activity", href: "#activity" }],
   routes: <ProductRoutes />,
-  workspace: window.location.search === "?workspace=custom" ? {appearance:"custom-brand",layout:"custom",selection:"custom"} : undefined,
+  workspace: window.location.search === "?workspace=custom" ? {appearance:"custom-brand",selection:"custom"} : undefined,
 });
 createRoot(document.getElementById("root")).render(<StrictMode><App /></StrictMode>);

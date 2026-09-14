@@ -18,9 +18,9 @@ test('configured instance workspace, header actions, names and consumer override
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     for(const svg of await actions.locator('svg').all())expect((await svg.boundingBox()).height).toBe(parseFloat(originalSize));
   }
-  await expect(page.getByRole('complementary').getByRole('button')).toHaveText(['Alpha','第二实例']);
-  await page.getByRole('button',{name:"Select instance 第二实例"}).click();
-  await expect(page.getByRole('heading',{name:'Selected 2'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Full-width workspace'})).toBeVisible();
+  await expect(page.getByRole('complementary')).toHaveCount(0);
+  await expect(page.locator('.sarmg-instance-sidebar, .sarmg-instance-workspace')).toHaveCount(0);
   await actions.getByRole('button',{name:"Refresh",exact:true}).click();
   await expect(page.getByText('Revision 1')).toBeVisible();
   await actions.getByRole('button',{name:"Create instance",exact:true}).click();
@@ -33,6 +33,6 @@ test('configured instance workspace, header actions, names and consumer override
   await expect(actions.getByRole('button',{name:"Create instance",exact:true})).toBeFocused();
   await page.goto('/?workspace=custom#workspace');
   await expect(page.locator('html')).toHaveAttribute('data-sarmg-appearance','custom-brand');
-  await expect(page.locator('.sarmg-custom-workspace')).toBeVisible();
+  await expect(page.locator('.sarmg-instance-sidebar, .sarmg-instance-workspace')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-sarmg-selection','custom');
 });
