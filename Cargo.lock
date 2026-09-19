@@ -1274,11 +1274,12 @@ checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
 
 [[package]]
 name = "sarmg-admin-auth"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "argon2",
  "base64",
  "getrandom 0.4.3",
+ "hmac",
  "sha2",
  "subtle",
  "thiserror",
@@ -1286,7 +1287,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-admin-axum"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "axum",
  "bytes",
@@ -1310,7 +1311,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-admin-core"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-trait",
  "sarmg-admin-auth",
@@ -1322,7 +1323,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-admin-hyper"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "axum",
  "bytes",
@@ -1344,7 +1345,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-admin-sqlite"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-trait",
  "sarmg-admin-auth",
@@ -1358,7 +1359,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-admin-static"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-trait",
  "sarmg-admin-auth",
@@ -1373,7 +1374,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-contracts"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "sarmg-admin-auth",
  "sarmg-error",
@@ -1385,7 +1386,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-error"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -1394,7 +1395,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-fs-safety"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "getrandom 0.4.3",
  "rustix",
@@ -1404,12 +1405,13 @@ dependencies = [
 
 [[package]]
 name = "sarmg-operations"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-trait",
  "serde",
  "serde_json",
  "sqlx",
+ "tempfile",
  "thiserror",
  "tokio",
  "uuid",
@@ -1417,7 +1419,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-platform-db"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "sarmg-schema-identity",
  "sarmg-sqlite",
@@ -1430,7 +1432,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-schema-identity"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -1440,14 +1442,14 @@ dependencies = [
 
 [[package]]
 name = "sarmg-secret"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "zeroize",
 ]
 
 [[package]]
 name = "sarmg-secret-envelope"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "aes-gcm",
  "getrandom 0.4.3",
@@ -1460,7 +1462,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-secure-http"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "ipnet",
  "reqwest",
@@ -1471,7 +1473,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-secure-xml"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "quick-xml",
  "roxmltree",
@@ -1480,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-server-runtime"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1507,11 +1509,11 @@ dependencies = [
 
 [[package]]
 name = "sarmg-server-target"
-version = "0.8.1"
+version = "0.8.2"
 
 [[package]]
 name = "sarmg-sqlite"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "sarmg-schema-identity",
  "sqlx",
@@ -1522,7 +1524,7 @@ dependencies = [
 
 [[package]]
 name = "sarmg-state-file"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "rustix",
  "sarmg-server-target",
@@ -1532,12 +1534,13 @@ dependencies = [
 
 [[package]]
 name = "sarmg-testkit"
-version = "0.8.1"
+version = "0.8.2"
 dependencies = [
  "axum",
  "http-body",
  "sarmg-contracts",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

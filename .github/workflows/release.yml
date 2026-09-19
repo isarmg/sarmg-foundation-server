@@ -25,6 +25,7 @@ jobs:
         run: |
           python3 scripts/check-workflow-supply-chain.py
           python3 scripts/check-foundation.py
+          python3 scripts/sarmg-conformance.py verify-foundation
       - name: Install exact Rust toolchain
         run: rustup toolchain install 1.98.0 --profile minimal --component rustfmt,clippy
       - name: Prove the server target gate rejects non-canonical targets
@@ -60,6 +61,8 @@ jobs:
           pnpm build
           pnpm typecheck:built
           pnpm test:built
+          pnpm exec playwright install --with-deps chromium firefox
+          pnpm test:web:built
           python3 -m unittest discover -s tools/tests -p 'test_*.py'
           python3 scripts/package-artifacts.py smoke
       - name: Build exact release tree

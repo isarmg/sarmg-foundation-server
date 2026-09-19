@@ -109,14 +109,17 @@ export function useAdministratorSession(
   }, [client]);
 
   const logout = useCallback(async () => {
-    const generation = stateGeneration.current + 1;
-    stateGeneration.current = generation;
+    stateGeneration.current += 1;
+    // logout synchronously publishes null; capture after that notification so
+    // our own subscription does not make the operation's result stale.
+    const pending = client.logout();
+    const generation = stateGeneration.current;
     let failed = false;
     try {
-      await client.logout();
+      await pending;
     } catch (error) {
       failed = true;
-      if (activeClient.current === client && client.currentSession() === null) {
+      if (activeClient.current === client && stateGeneration.current === generation && client.currentSession() === null) {
         setState({ phase: "anonymous_logout_unconfirmed", session: null, error });
       }
       throw error;

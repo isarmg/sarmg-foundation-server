@@ -105,11 +105,11 @@ export function RequestId({ value }: { value?: string | null }) {
   return value && /^[A-Za-z0-9._:-]{1,128}$/.test(value)
     ? <p className="sarmg-request-id">{t("请求标识：", "Request ID:")}<code>{value}</code></p> : null;
 }
-export function ErrorState({ children, requestId, onRetry }: {
-  children: ReactNode; requestId?: string | null; onRetry?: () => void;
+export function ErrorState({ children, requestId, onRetry, retryLabel }: {
+  children: ReactNode; requestId?: string | null; onRetry?: () => void; retryLabel?: string;
 }) {
   return <div className="sarmg-error" role="alert"><div>{children}</div>
-    <RequestId value={requestId} />{onRetry && <Button onClick={onRetry}>{t("重试", "Try again")}</Button>}
+    <RequestId value={requestId} />{onRetry && <Button onClick={onRetry}>{retryLabel ?? t("重试", "Try again")}</Button>}
   </div>;
 }
 export function LoadingState({ children = t("正在加载…", "Loading…") }: { children?: ReactNode }) {

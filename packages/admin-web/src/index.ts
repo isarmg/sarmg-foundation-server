@@ -12,8 +12,6 @@ import {
 import { isAdministratorPassword } from "./password.js";
 export { isAdministratorPassword, ADMINISTRATOR_PASSWORD_MIN_BYTES, ADMINISTRATOR_PASSWORD_MAX_BYTES } from "./password.js";
 
-export { createAdministratorManagementClient, type AdministratorManagementClient } from "./management.js";
-export { type AdministratorSummary } from "@sarmg/contracts";
 
 export type JsonGuard<T> = (value: unknown) => value is T;
 export type AdministratorSessionListener = (session: AdministratorSession | null) => void;
@@ -123,6 +121,8 @@ export function createAdministratorApiClient(
         ? {}
         : { csrfToken: authenticationContext.csrfToken }),
       onUnauthorized: async () => {
+        // Logout handles invalid-session confirmation without publishing again.
+        if (path === ADMIN_AUTH_PATHS.logout) return;
         // A request from an older session must not erase a newer login.
         if (
           authenticationContext.generation !== authenticationGeneration ||
@@ -184,11 +184,8 @@ export function createAdministratorApiClient(
     restore() {
       if (restorePromise) return restorePromise;
       const generation = authenticationGeneration;
-      const precedingMutations = authenticationMutationTail;
-      const pending = precedingMutations
-        .then(() => {
-          requireCurrentOperation(generation);
-          return send(
+      const pending = enqueueAuthenticationMutation(async () => {
+          const received = await send(
             ADMIN_AUTH_PATHS.session,
             isAdministratorSession,
             {},
@@ -198,11 +195,9 @@ export function createAdministratorApiClient(
               sessionAtDispatch: session,
             },
           );
-        })
-        .then((received) => {
-          requireCurrentOperation(generation);
           const authenticated = freezeAdministratorSession(received);
           transportSession = authenticated;
+          requireCurrentOperation(generation);
           publish(authenticated);
           return authenticated;
         })
@@ -239,12 +234,13 @@ export function createAdministratorApiClient(
             { method: "POST" },
             { generation, csrfToken, sessionAtDispatch: null },
           );
-        } finally {
-          transportSession = null;
-          if (generation === authenticationGeneration && session !== null) {
-            publish(null);
-          }
+        } catch (error) {
+          // Only a Foundation invalid-session response confirms that this
+          // target is gone. Keep its in-memory CSRF context for other failures.
+          if (!(error instanceof ApiClientError && error.status === 401
+            && error.code === "auth.session_required")) throw error;
         }
+        transportSession = null;
       });
     },
 

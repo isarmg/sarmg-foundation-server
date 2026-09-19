@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "0.8.1"
+CURRENT_VERSION = "0.8.2"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.12.1"
 RUST_VERSION = "1.98.0"
@@ -19,6 +19,7 @@ APACHE_2_LICENSE_SHA256 = (
     "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
 )
 WEB_TOOLCHAIN_DEV_DEPENDENCIES = {
+    "@types/node": "26.6.2",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "4.7.0",
@@ -187,7 +188,7 @@ def check_versions(root: Path) -> None:
     toolchain = _json(root / "packages" / "web-toolchain" / "package.json")
     toolchain_development = toolchain.get("devDependencies", {})
     for dependency, expected in WEB_TOOLCHAIN_DEV_DEPENDENCIES.items():
-        if dependency.startswith("@types/"):
+        if dependency.startswith("@types/") and dependency != "@types/node":
             continue
         if toolchain_development.get(dependency) != expected:
             raise FoundationPolicyError(

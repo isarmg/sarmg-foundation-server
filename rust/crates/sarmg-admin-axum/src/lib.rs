@@ -83,11 +83,6 @@ where
         .route(ADMIN_LOGIN_PATH, post(login::<Store>))
         .route(ADMIN_SESSION_PATH, get(session::<Store>))
         .route(ADMIN_LOGOUT_PATH, post(logout::<Store>));
-    let router = if state.service.store().supports_management() {
-        management::routes(router)
-    } else {
-        router
-    };
     let router = if state.service.store().supports_account_updates() {
         management::account_routes(router)
     } else {

@@ -34,10 +34,7 @@ pub const ADMIN_SESSION_PATH: &str = "/api/v2/auth/session";
 pub const ADMIN_LOGOUT_PATH: &str = "/api/v2/auth/logout";
 
 mod administrators;
-pub use administrators::{
-    ADMIN_ACCOUNT_PATH, ADMINISTRATORS_PATH, AdministratorAccountRequest,
-    AdministratorCreateRequest, AdministratorPasswordRequest, AdministratorSummary,
-};
+pub use administrators::{ADMIN_ACCOUNT_PATH, ADMINISTRATORS_PATH, AdministratorAccountRequest};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum AdministratorRole {

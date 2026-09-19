@@ -31,7 +31,12 @@ pub const LIVENESS_PATH: &str = "/healthz";
 pub const READINESS_PATH: &str = "/readyz";
 /// Exact platform roots/subtrees that filesystem consumers must reserve.
 /// This does not reserve unrelated files beneath `/api` or `/api/v2`.
-pub const PLATFORM_RESERVED_PATHS: &[&str] = &[LIVENESS_PATH, READINESS_PATH, "/api/v2/auth"];
+pub const PLATFORM_RESERVED_PATHS: &[&str] = &[
+    LIVENESS_PATH,
+    READINESS_PATH,
+    "/api/v2/auth",
+    sarmg_contracts::ADMINISTRATORS_PATH,
+];
 pub const DEFAULT_REQUEST_BODY_BYTES: usize = 1024 * 1024;
 pub const HEALTH_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 pub const HEALTH_CHECK_TIMEOUT: Duration = Duration::from_secs(2);

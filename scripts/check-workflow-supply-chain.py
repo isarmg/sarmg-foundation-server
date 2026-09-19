@@ -387,6 +387,29 @@ def validate_actions(source: str, lines: list[Line]) -> None:
         raise fail(source, None, "workflow must contain at least one pinned actions/checkout step")
 
 
+def validate_release_gates(source: str, lines: list[Line]) -> None:
+    if not is_release_workflow(source):
+        return
+    required = [
+        "python3 scripts/sarmg-conformance.py verify-foundation",
+        "pnpm build",
+        "pnpm exec playwright install --with-deps chromium firefox",
+        "pnpm test:web:built",
+    ]
+    build = next((line.number for line in lines if line.content == "python3 scripts/build-release-assets.py"), None)
+    previous = 0
+    for command in required:
+        matches = [line for line in lines if line.indent == 10 and line.content == command]
+        if len(matches) != 1 or build is None or not previous < matches[0].number < build:
+            raise fail(source, None, f"release gate missing or out of order: {command}")
+        previous = matches[0].number
+    # These literal run steps must execute normally and stop the job on failure.
+    # Keep this bounded policy specific to the existing release workflow.
+    for line in lines:
+        if line.indent <= 8 and (line.content.startswith("if:") or line.content.startswith("continue-on-error:") or line.content.startswith("shell:")):
+            raise fail(source, line, "release validation and publication cannot override failure propagation")
+
+
 def validate_workflow(source: str, text: str) -> None:
     lines = logical_lines(source, text)
     one_exact_top_level_permissions(source, lines)
@@ -394,6 +417,7 @@ def validate_workflow(source: str, text: str) -> None:
     for header, segment in job_segments(source, lines):
         validate_job(source, header, segment)
     validate_actions(source, lines)
+    validate_release_gates(source, lines)
 
 
 def repository_root() -> Path:

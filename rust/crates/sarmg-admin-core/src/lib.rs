@@ -1,9 +1,7 @@
 //! Framework- and storage-independent administrator control-plane contract.
 
 mod management;
-pub use management::{
-    AdministratorManagementContext, AdministratorMutation, AdministratorSummary, ManagementError,
-};
+pub use management::{AdministratorManagementContext, AdministratorMutation, ManagementError};
 
 use sarmg_admin_auth::{
     AdministratorOriginMode, require_canonical_administrator_username,
@@ -304,15 +302,7 @@ pub struct SessionAndAdministrator {
 #[async_trait::async_trait]
 pub trait AdministratorStore: Send + Sync {
     type StoreError: std::error::Error + Send + Sync + 'static;
-    fn supports_management(&self) -> bool;
-    fn supports_account_updates(&self) -> bool {
-        self.supports_management()
-    }
-    async fn list_administrators(
-        &self,
-        limit: u32,
-        offset: u64,
-    ) -> Result<Vec<AdministratorRecord>, Self::StoreError>;
+    fn supports_account_updates(&self) -> bool;
     async fn manage_administrator(
         &self,
         context: &AdministratorManagementContext,
@@ -340,11 +330,10 @@ pub trait AdministratorStore: Send + Sync {
         events: [SecurityAuditEvent; 2],
     ) -> Result<(), Self::StoreError>;
     async fn commit_login_success(&self, login: LoginSuccess) -> Result<(), Self::StoreError>;
-    async fn rotate_session_csrf(
+    async fn touch_session(
         &self,
         session_id: &Identifier,
         expected_csrf_hash: [u8; DIGEST_BYTES],
-        csrf_hash: [u8; DIGEST_BYTES],
         now_micros: u64,
         idle_expires_at_micros: u64,
     ) -> Result<bool, Self::StoreError>;
@@ -603,7 +592,7 @@ where
         };
 
         let session_token = sarmg_admin_auth::random_token()?;
-        let csrf_token = sarmg_admin_auth::random_token()?;
+        let csrf_token = sarmg_admin_auth::derive_csrf_token(&session_token)?;
         let idle_expires_at_micros = context
             .now_micros
             .checked_add(SESSION_IDLE_MICROS)
@@ -658,44 +647,12 @@ where
         session_token: &str,
         now_micros: u64,
     ) -> Result<AuthenticatedSession, ServiceError<Store::StoreError>> {
-        if !sarmg_admin_auth::is_token_shape(session_token) {
-            return Err(ServiceError::InvalidSession);
-        }
-        require_persistable_time(now_micros)?;
-        let Some(found) = self
-            .store
-            .session_by_token_hash(sarmg_admin_auth::token_hash(session_token))
-            .await
-            .map_err(ServiceError::Store)?
-        else {
-            return Err(ServiceError::InvalidSession);
-        };
-        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active {
-            return Err(ServiceError::InvalidSession);
-        }
-        let csrf_token = sarmg_admin_auth::random_token()?;
-        let idle_expires = now_micros
-            .checked_add(SESSION_IDLE_MICROS)
-            .ok_or(Error::InvalidTimestamp)?
-            .min(found.session.absolute_expires_at_micros);
-        let updated = self
-            .store
-            .rotate_session_csrf(
-                &found.session.session_id,
-                found.session.csrf_hash,
-                sarmg_admin_auth::token_hash(&csrf_token),
-                now_micros,
-                idle_expires,
-            )
-            .await
-            .map_err(ServiceError::Store)?;
-        if !updated {
-            return Err(ServiceError::InvalidSession);
-        }
+        let identity = self.authenticate_session(session_token, now_micros).await?;
+        let csrf_token = sarmg_admin_auth::derive_csrf_token(session_token)?;
         Ok(AuthenticatedSession {
             administrator: sarmg_contracts::AdministratorSession::new(
-                found.administrator.administrator_id.as_str(),
-                found.administrator.username,
+                identity.administrator_id.as_str(),
+                identity.username,
                 &csrf_token,
             )
             .map_err(ServiceError::Contract)?,
@@ -720,7 +677,12 @@ where
         else {
             return Err(ServiceError::InvalidSession);
         };
-        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active {
+        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active
+            || !sarmg_admin_auth::token_matches_hash(
+                &sarmg_admin_auth::derive_csrf_token(session_token)?,
+                &found.session.csrf_hash,
+            )
+        {
             return Err(ServiceError::InvalidSession);
         }
         if found.session.should_write_last_seen(now_micros) {
@@ -730,9 +692,8 @@ where
                 .min(found.session.absolute_expires_at_micros);
             let updated = self
                 .store
-                .rotate_session_csrf(
+                .touch_session(
                     &found.session.session_id,
-                    found.session.csrf_hash,
                     found.session.csrf_hash,
                     now_micros,
                     idle_expires,
@@ -740,8 +701,7 @@ where
                 .await
                 .map_err(ServiceError::Store)?;
             if !updated {
-                // A concurrent session restore may have rotated CSRF after
-                // this request read it. Recheck authorization instead of
+                // Recheck the current session after an activity update race instead of
                 // treating a failed activity write as proof of logout.
                 found = self
                     .store
@@ -749,7 +709,12 @@ where
                     .await
                     .map_err(ServiceError::Store)?
                     .ok_or(ServiceError::InvalidSession)?;
-                if found.session.status(&found.administrator, now_micros) != SessionStatus::Active {
+                if found.session.status(&found.administrator, now_micros) != SessionStatus::Active
+                    || !sarmg_admin_auth::token_matches_hash(
+                        &sarmg_admin_auth::derive_csrf_token(session_token)?,
+                        &found.session.csrf_hash,
+                    )
+                {
                     return Err(ServiceError::InvalidSession);
                 }
             }
@@ -780,7 +745,12 @@ where
         else {
             return Err(ServiceError::InvalidSession);
         };
-        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active {
+        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active
+            || !sarmg_admin_auth::token_matches_hash(
+                &sarmg_admin_auth::derive_csrf_token(session_token)?,
+                &found.session.csrf_hash,
+            )
+        {
             return Err(ServiceError::InvalidSession);
         }
         self.store
@@ -821,7 +791,12 @@ where
         else {
             return Err(ServiceError::InvalidSession);
         };
-        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active {
+        if found.session.status(&found.administrator, now_micros) != SessionStatus::Active
+            || !sarmg_admin_auth::token_matches_hash(
+                &sarmg_admin_auth::derive_csrf_token(session_token)?,
+                &found.session.csrf_hash,
+            )
+        {
             return Err(ServiceError::InvalidSession);
         }
         sarmg_admin_auth::require_csrf_token_matches_hash(

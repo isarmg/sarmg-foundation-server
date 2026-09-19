@@ -299,6 +299,15 @@ pub struct AuditEvent {
     pub created_at_micros: i64,
 }
 
+fn matches_claim(current: &Operation, claim: &Operation) -> bool {
+    current.operation_id == claim.operation_id
+        && current.state == OperationState::Running
+        && claim.state == OperationState::Running
+        && current.attempt == claim.attempt
+        && current.lease_owner == claim.lease_owner
+        && current.lease_expiry_micros == claim.lease_expiry_micros
+}
+
 #[derive(Clone)]
 pub struct SqliteOperationStore {
     pool: SqlitePool,
@@ -332,7 +341,11 @@ impl SqliteOperationStore {
     }
 
     pub async fn enqueue(&self, value: NewOperation) -> Result<EnqueueOutcome, Error> {
-        let mut transaction = self.pool.begin().await.map_err(storage)?;
+        let mut transaction = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(storage)?;
         let outcome = Self::enqueue_in(&mut transaction, value).await?;
         transaction.commit().await.map_err(storage)?;
         Ok(outcome)
@@ -584,14 +597,18 @@ impl SqliteOperationStore {
         }
     }
 
-    pub async fn apply_transition(
+    async fn apply_transition(
         &self,
         operation_id: &str,
         event: Transition,
         result_payload: Option<&[u8]>,
         now_micros: i64,
     ) -> Result<StoredOperation, Error> {
-        let mut transaction = self.pool.begin().await.map_err(storage)?;
+        let mut transaction = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(storage)?;
         let updated = Self::apply_transition_checked_in(
             &mut transaction,
             operation_id,
@@ -609,17 +626,19 @@ impl SqliteOperationStore {
     /// running lease. This fences late results from superseded workers.
     pub async fn apply_transition_owned(
         &self,
-        operation_id: &str,
-        owner: &str,
+        claim: &Operation,
         event: Transition,
         result_payload: Option<&[u8]>,
         now_micros: i64,
     ) -> Result<StoredOperation, Error> {
-        let mut transaction = self.pool.begin().await.map_err(storage)?;
+        let mut transaction = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(storage)?;
         let updated = Self::apply_transition_owned_in(
             &mut transaction,
-            operation_id,
-            owner,
+            claim,
             event,
             result_payload,
             now_micros,
@@ -634,23 +653,28 @@ impl SqliteOperationStore {
     /// the enclosing transaction if their product writes must not be published.
     pub async fn apply_transition_owned_in(
         transaction: &mut Transaction<'_, Sqlite>,
-        operation_id: &str,
-        owner: &str,
+        claim: &Operation,
         event: Transition,
         result_payload: Option<&[u8]>,
         now_micros: i64,
     ) -> Result<StoredOperation, Error> {
-        if owner.is_empty() || owner.len() > MAX_IDENTIFIER_BYTES {
+        if claim.state != OperationState::Running
+            || claim.lease_expiry_micros.is_none()
+            || claim
+                .lease_owner
+                .as_ref()
+                .is_none_or(|owner| owner.is_empty() || owner.len() > MAX_IDENTIFIER_BYTES)
+        {
             return Err(Error::InvalidRecord);
         }
         let mut savepoint = transaction.begin().await.map_err(storage)?;
         match Self::apply_transition_checked_in(
             &mut savepoint,
-            operation_id,
+            &claim.operation_id,
             event,
             result_payload,
             now_micros,
-            Some(owner),
+            Some(claim),
         )
         .await
         {
@@ -680,15 +704,15 @@ impl SqliteOperationStore {
         {
             return Err(Error::InvalidRecord);
         }
-        let mut transaction = self.pool.begin().await.map_err(storage)?;
+        let mut transaction = self
+            .pool
+            .begin_with("BEGIN IMMEDIATE")
+            .await
+            .map_err(storage)?;
         let current = get_by_id_in(&mut transaction, &claim.operation_id)
             .await?
             .ok_or(Error::NotFound)?;
-        if current.operation.state != OperationState::Running
-            || current.operation.attempt != claim.attempt
-            || current.operation.lease_owner != claim.lease_owner
-            || current.operation.lease_expiry_micros != claim.lease_expiry_micros
-        {
+        if !matches_claim(&current.operation, claim) {
             return Err(Error::ConcurrentModification);
         }
         let updated = Self::apply_transition_checked_in(
@@ -759,7 +783,7 @@ impl SqliteOperationStore {
         event: Transition,
         result_payload: Option<&[u8]>,
         now_micros: i64,
-        expected_owner: Option<&str>,
+        expected_claim: Option<&Operation>,
     ) -> Result<StoredOperation, Error> {
         if result_payload.is_some_and(|value| value.len() > MAX_PAYLOAD_BYTES) || now_micros < 0 {
             return Err(Error::InvalidRecord);
@@ -773,11 +797,9 @@ impl SqliteOperationStore {
             .map(decode_operation)
             .transpose()?
             .ok_or(Error::NotFound)?;
-        if let Some(owner) = expected_owner
-            && (current.operation.state != OperationState::Running
-                || current.operation.lease_owner.as_deref() != Some(owner)
-                || current
-                    .operation
+        if let Some(claim) = expected_claim
+            && (!matches_claim(&current.operation, claim)
+                || claim
                     .lease_expiry_micros
                     .is_none_or(|expiry| expiry <= now_micros))
         {
@@ -785,12 +807,11 @@ impl SqliteOperationStore {
         }
         let before = current.operation.state;
         let previous_attempt = current.operation.attempt;
-        let previous_expiry = current.operation.lease_expiry_micros;
         transition(&mut current.operation, event)?;
         let resolution = (current.operation.state == OperationState::Resolved)
             .then(|| current.operation.error_code.clone())
             .flatten();
-        let sql = if expected_owner.is_some() {
+        let sql = if expected_claim.is_some() {
             "UPDATE _sarmg_operations SET state=?,attempt=?,not_before_micros=?,lease_owner=?,\
              lease_expiry_micros=?,error_code=?,resolution_code=?,result_payload=COALESCE(?,result_payload),\
              updated_at_micros=? WHERE operation_id=? AND state=? AND attempt=? \
@@ -812,9 +833,14 @@ impl SqliteOperationStore {
             .bind(now_micros)
             .bind(operation_id)
             .bind(before.as_str())
-            .bind(i64::from(previous_attempt));
-        if let Some(owner) = expected_owner {
-            query = query.bind(owner).bind(previous_expiry).bind(now_micros);
+            .bind(i64::from(
+                expected_claim.map_or(previous_attempt, |claim| claim.attempt),
+            ));
+        if let Some(claim) = expected_claim {
+            query = query
+                .bind(&claim.lease_owner)
+                .bind(claim.lease_expiry_micros)
+                .bind(now_micros);
         }
         let done = query.execute(&mut **transaction).await.map_err(storage)?;
         if done.rows_affected() != 1 {
@@ -1269,26 +1295,74 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn enqueue_waits_for_writer_before_reading_idempotency() {
+        let directory = tempfile::tempdir().unwrap();
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(2)
+            .connect_with(
+                sqlx::sqlite::SqliteConnectOptions::new()
+                    .filename(directory.path().join("operations.db"))
+                    .create_if_missing(true)
+                    .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+                    .busy_timeout(std::time::Duration::from_secs(5)),
+            )
+            .await
+            .unwrap();
+        sqlx::raw_sql(PLATFORM_OPERATIONS_DDL)
+            .execute(&pool)
+            .await
+            .unwrap();
+        let store = SqliteOperationStore::new(pool);
+        let mut writer = store.pool.begin_with("BEGIN IMMEDIATE").await.unwrap();
+        SqliteOperationStore::enqueue_in(&mut writer, new_operation("a", "camera", 1))
+            .await
+            .unwrap();
+        // `a2` has the same idempotency digest and request fingerprint as `a`,
+        // while keeping a distinct operation ID. The blocked enqueue must see
+        // the committed row after acquiring the writer lock.
+        let mut pending = std::pin::pin!(store.enqueue(new_operation("a2", "camera", 1)));
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(50), &mut pending)
+                .await
+                .is_err()
+        );
+        writer.commit().await.unwrap();
+        assert!(matches!(
+            pending.await.unwrap(),
+            EnqueueOutcome::Existing(_)
+        ));
+        assert_eq!(store.pending_audit_count().await.unwrap(), 1);
+    }
+
+    #[tokio::test]
     async fn completion_requires_current_owner_and_unexpired_lease() {
         let store = store().await;
         store
             .enqueue(new_operation("a", "camera", 1))
             .await
             .unwrap();
-        store
+        let claim = store
             .claim_next("media", "owner", 2, 10)
             .await
             .unwrap()
             .unwrap();
         assert!(
             store
-                .apply_transition_owned("a", "other", Transition::Succeed, Some(b"{}"), 3)
+                .apply_transition_owned(
+                    &Operation {
+                        lease_owner: Some("other".into()),
+                        ..claim.operation.clone()
+                    },
+                    Transition::Succeed,
+                    Some(b"{}"),
+                    3
+                )
                 .await
                 .is_err()
         );
         assert!(
             store
-                .apply_transition_owned("a", "owner", Transition::Succeed, Some(b"{}"), 10)
+                .apply_transition_owned(&claim.operation, Transition::Succeed, Some(b"{}"), 10)
                 .await
                 .is_err()
         );
@@ -1296,7 +1370,7 @@ mod tests {
         assert_eq!(current.operation.state, OperationState::Running);
         assert_eq!(store.pending_audit_count().await.unwrap(), 2);
         store
-            .apply_transition_owned("a", "owner", Transition::Succeed, Some(b"{}"), 3)
+            .apply_transition_owned(&claim.operation, Transition::Succeed, Some(b"{}"), 3)
             .await
             .unwrap();
         assert_eq!(store.active_operation_count().await.unwrap(), 0);
@@ -1310,7 +1384,7 @@ mod tests {
             .enqueue(new_operation("a", "camera", 1))
             .await
             .unwrap();
-        store
+        let claim = store
             .claim_next("media", "owner", 2, 10)
             .await
             .unwrap()
@@ -1318,8 +1392,7 @@ mod tests {
         let mut tx = store.pool.begin().await.unwrap();
         let updated = SqliteOperationStore::apply_transition_owned_in(
             &mut tx,
-            "a",
-            "owner",
+            &claim.operation,
             Transition::Succeed,
             Some(b"result"),
             3,
@@ -1355,7 +1428,7 @@ mod tests {
             .enqueue(new_operation("a", "camera", 1))
             .await
             .unwrap();
-        store
+        let claim = store
             .claim_next("media", "owner", 2, 10)
             .await
             .unwrap()
@@ -1366,8 +1439,7 @@ mod tests {
         assert!(
             SqliteOperationStore::apply_transition_owned_in(
                 &mut tx,
-                "a",
-                "owner",
+                &claim.operation,
                 Transition::Succeed,
                 Some(b"result"),
                 3,
@@ -1396,8 +1468,7 @@ mod tests {
             .unwrap();
         store
             .apply_transition_owned(
-                "a",
-                "owner",
+                &first.operation,
                 Transition::Fail {
                     code: "rejected".into(),
                     retryable: true,
@@ -1413,6 +1484,15 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
+        let audit_before = store.pending_audit_count().await.unwrap();
+        assert_eq!(
+            store
+                .apply_transition_owned(&first.operation, Transition::Succeed, Some(b"stale"), 5)
+                .await,
+            Err(Error::ConcurrentModification)
+        );
+        assert_eq!(store.get("a").await.unwrap().unwrap(), second);
+        assert_eq!(store.pending_audit_count().await.unwrap(), audit_before);
         assert_eq!(
             store.abandon_claim(&first.operation, "ambiguous", 21).await,
             Err(Error::ConcurrentModification)

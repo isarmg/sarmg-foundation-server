@@ -11,7 +11,7 @@ Foundation 没有生产 daemon、监听端口、业务数据库、用户表、Se
 
 | 项目 | 唯一当前值 | 权威位置 | 漂移时的处理 |
 |---|---|---|---|
-| Foundation 版本 | `0.8.1` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
+| Foundation 版本 | `0.8.2` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
 | Rust | `1.98.0` | `rust-toolchain.toml` | 不用其他版本代替验证 |
 | Rust edition/MSRV | 2024 / `1.98` | workspace package | 作为工具链大问题单独升级 |
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI | 切换 Node，不放宽 engine |
@@ -21,7 +21,7 @@ Foundation 没有生产 daemon、监听端口、业务数据库、用户表、Se
 | Vite / React plugin | `7.3.6` / `4.7.0` | `admin-web` toolchain/peer/dev deps | 所有非 Dufs Web 同步验证 |
 | Server target | `x86_64-unknown-linux-gnu` | `sarmg-server-target` | Server 其他 target 编译必须失败 |
 | License | Apache-2.0 | 根及六个 crate 的 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |
-| Release tag | `v0.8.1` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
+| Release tag | `v0.8.2` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
 
 Foundation 自身的 source/tool release identity 默认 target 是 `source-any`；`sarmg-server-target` 是消费者
 Server 的编译门禁，不能把 Foundation 误写成 AMD64 在线服务。
@@ -79,19 +79,19 @@ git status --short
 
 失败后修复实际原因，从受影响层向下重跑；最终交付前再完整跑一次。禁止用以下方式“修复”失败：放宽
 strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提高到无界 body、删除竞态/攻击负例、添加
-旧字段 alias、跳过 tarball offline install 或把消费者矩阵手改为 conforming。
+旧字段 alias、跳过 tarball isolated install + TypeScript/Vite 或把消费者矩阵手改为 conforming。
 
 ## 5. Repository Policy 运维
 
 `scripts/check-foundation.py` 调用 `tools/foundation_policy.py`，当前核对：
 
-- Cargo/npm/policy 的版本均为 `0.8.1`；
+- Cargo/npm/policy 的版本均为 `0.8.2`；
 - Rust `1.98.0`、Node `26.7.0`、pnpm `10.12.1` 的事实源一致；
 - Rust workspace 恰好包含 6 个已知 crate，npm workspace 恰好包含 4 个已知 package；
 - 根 `LICENSE` 必须匹配审核过的 Apache-2.0 SHA-256；六个 crate 必须各有普通、单链接、byte-exact副本，
   且 `cargo package --list` 必须把它作为唯一根 `LICENSE` 分发；
-- 所有 crate 启用 workspace lint，内部 Rust dependency 精确 `=0.8.1`；
-- 内部 npm build dependency 使用 `workspace:0.8.1`，peer 使用精确 `0.8.1`；
+- 所有 crate 启用 workspace lint，内部 Rust dependency 精确 `=0.8.2`；
+- 内部 npm build dependency 使用 `workspace:0.8.2`，peer 使用精确 `0.8.2`；
 - `admin-web` 的 React/Vite/TypeScript/type package 精确一致；
 - 源码和文档不存在已取消的项目/客户端名称。
 
@@ -154,7 +154,7 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 1. `pnpm typecheck` 验证源码类型，不写产物；
 2. `pnpm test` 由各包先 clean/build，再从 `dist` 运行单元/契约测试；
 3. `package-artifacts.py check` 只审计现有 dist；
-4. `package-artifacts.py smoke` clean、重建、pack、检查 tar并在空目录 offline install。
+4. `package-artifacts.py smoke` clean、重建、pack、检查 tar并在空目录 isolated install + TypeScript/Vite。
 
 只有第 4 阶段证明实际发布形态。monorepo 软链接能掩盖缺失 dependency/export，所以不能只执行第 1、2
 阶段后发布。
@@ -167,7 +167,7 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 - tar member 必须 canonical、无 absolute/`..`/backslash、duplicate、symlink、hardlink、device 或源码泄漏；
 - 发布 manifest 内不得出现 `workspace:`；
 - `admin-web`/`http-client` 的内部 peer 必须精确版本，消费者显式拥有；
-- 临时消费者使用 `npm --offline --ignore-scripts` 同时安装 4 个 tgz 并解析所有 export。
+- 临时消费者使用 `npm --ignore-scripts` 同时安装 全部包的真实 tgz 并解析所有 export。
 
 ### 7.3 常见故障
 
@@ -178,7 +178,7 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 | export missing | build/copy script 与 manifest 分叉 | 修复 source→dist 和 export 单一事实源 |
 | stale artifact | clean 没清除被删产物 | 修复 clean，重跑 smoke；不要手工补文件 |
 | tar contains workspace | runtime dependency 声明错误 | peer 用精确版本，workspace 仅 dev/build 使用 |
-| offline peer failure | 没同时安装显式 peer | 修正消费者依赖或 package metadata |
+| peer resolution failure | 没同时安装显式 peer | 修正消费者依赖或 package metadata |
 | linked file rejected | package 树含 symlink/hardlink | 生成真实单链接文件；查供应链污染 |
 | admin toolchain assertion | 产品 React/Vite/Node 漂移 | 全产品同步使用精确 Foundation baseline |
 
@@ -189,8 +189,8 @@ Foundation 当前不要求 crates.io 在线依赖。正式消费者使用 releas
 ```toml
 sarmg-admin-auth = {
   git = "https://github.com/isarmg/sarmg-foundation-server.git",
-  rev = "<v0.8.1 对应的 40 位 commit>",
-  version = "=0.8.1"
+  rev = "<v0.8.2 对应的 40 位 commit>",
+  version = "=0.8.2"
 }
 ```
 
@@ -260,7 +260,7 @@ YAML anchor 和 action outside steps。修改 workflow policy 时必须同时新
   runtime，必须覆盖至少两个不同产品，不能用 Foundation 自测替代消费者证据；
 - 十三个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
 - GitHub 不存在同名 tag/release；
-- tag `v0.8.1` 精确指向当前 HEAD，source revision 为完整小写 SHA。
+- tag `v0.8.2` 精确指向当前 HEAD，source revision 为完整小写 SHA。
 
 ### 11.2 构建命令与输出
 
@@ -277,11 +277,11 @@ python3 scripts/build-release-assets.py \
 sarmg-foundation-server-release/
 ├─ release-tree.json
 └─ artifacts/
-   ├─ sarmg-admin-web-0.8.1.tgz
-   ├─ sarmg-contracts-0.8.1.tgz
-   ├─ sarmg-design-tokens-0.8.1.tgz
-   ├─ sarmg-http-client-0.8.1.tgz
-   ├─ sarmg-release-tool-0.8.1.tar.gz
+   ├─ sarmg-admin-web-0.8.2.tgz
+   ├─ sarmg-contracts-0.8.2.tgz
+   ├─ sarmg-design-tokens-0.8.2.tgz
+   ├─ sarmg-http-client-0.8.2.tgz
+   ├─ sarmg-release-tool-0.8.2.tar.gz
    ├─ state-contract.json
    ├─ release-identity.json
    ├─ build-inventory.json
@@ -306,7 +306,7 @@ release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool 
 1. 从 GitHub Release 下载所有资产到空目录；
 2. 在 `artifacts/` 内运行 `sha256sum -c SHA256SUMS`；
 3. 使用随附 release tool 验证 `artifacts/` 与外层 `release-tree.json`；
-4. 分别检查 4 个 tgz 的 package name/version/exports，执行空目录离线安装；
+4. 分别检查 全部包的真实 tgz 的 package name/version/exports，执行隔离目录正常 peer 安装；
 5. 将每个消费者的 Rust path 换为完整 Git rev、Web file 换为 release tgz URL；
 6. 重建消费者 lock，在独立 checkout 完成完整产品测试、发行解包和断网运行；
 7. 按产品提交并更新 consumer matrix 的真实 commit/status。
@@ -364,6 +364,14 @@ API，应同步升级消费者；不得在 Foundation 添加 alias 维持另一�
 需要备份：Git 仓库及对象、annotated tag、GitHub Release metadata/assets、CI 配置、Cargo/pnpm lock、
 Schema/fixture、consumer matrix 和文档。registry cache、`node_modules`、`target`、`dist` 不是源码备份。
 
-建议每个发布周期至少执行：从空缓存 locked install；4 个 tgz 离线安装；release-tree 回下载验证；所有
+建议每个发布周期至少执行：从空缓存 locked install；全部包的真实 tgz 离线安装；release-tree 回下载验证；所有
 consumer matrix 项状态复核；完整 SHA action 与权限扫描；旧名称/current-only 扫描；管理员合同/Server
 target 跨产品抽查。Foundation 无业务数据，所以不得把产品 backup 文件复制进本仓或 Release。
+
+## 当前修复版本切换
+
+账户保持既有 DDL、ID 和 Argon2 PHC。完成 bootstrap 后必须通过单活动管理员只读校验；多账户、非活动账户或非法记录应停止启动，运维显式处理，校验不自动改写数据。
+CSRF 改为同会话稳定派生；旧随机 CSRF 会话失效，需要重新登录。Web 退出未确认时使用“重试退出”，关闭浏览器不保证服务端撤销。
+登录失败阈值限制新请求准入；阈值前已准入的有限请求可完成，仍受 Argon2 槽位与失败记录容器上限约束。
+Release 在同一提交构建后执行 conformance、Chromium/Firefox 浏览器验收，再构建发布树；失败必须阻止发布。
+包 smoke 的依赖准备允许联网，使用 manifest 精确 peers 与真实 tgz，在隔离目录执行 Node 导入、TypeScript 和 Vite JS/CSS 构建。运行时无注册表依赖。

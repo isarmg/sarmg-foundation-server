@@ -40,12 +40,8 @@ impl HyperAdministratorRouter {
             || path
                 .strip_prefix(sarmg_contracts::ADMINISTRATORS_PATH)
                 .is_some_and(|tail| tail.starts_with('/'))
-            || matches!(
-                path,
-                sarmg_contracts::ADMIN_LOGIN_PATH
-                    | sarmg_contracts::ADMIN_SESSION_PATH
-                    | sarmg_contracts::ADMIN_LOGOUT_PATH
-            )
+            || path == "/api/v2/auth"
+            || path.starts_with("/api/v2/auth/")
     }
 
     pub async fn handle_incoming(

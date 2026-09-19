@@ -282,6 +282,21 @@ where
     assert_eq!(response.status(), StatusCode::OK);
     let bytes = to_bytes(response.into_body(), 8192).await.unwrap();
     let session: AdministratorSession = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(session.csrf_token, login_session.csrf_token);
+    let restore_request = || {
+        let mut value = request(Method::GET, ADMIN_SESSION_PATH, Body::empty());
+        value
+            .headers_mut()
+            .insert(header::COOKIE, HeaderValue::from_str(cookie).unwrap());
+        value
+    };
+    let (left, right) = tokio::join!(send(restore_request()), send(restore_request()));
+    for response in [left, right] {
+        assert_eq!(response.status(), StatusCode::OK);
+        let restored: AdministratorSession =
+            serde_json::from_slice(&to_bytes(response.into_body(), 8192).await.unwrap()).unwrap();
+        assert_eq!(restored.csrf_token, session.csrf_token);
+    }
     let mut logout = request(Method::POST, ADMIN_LOGOUT_PATH, Body::empty());
     logout
         .headers_mut()

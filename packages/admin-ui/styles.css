@@ -46,3 +46,5 @@
 @media(max-width: 48rem) { .sarmg-shell-layout { grid-template-columns: minmax(0,1fr); } .sarmg-navigation { display: flex; flex-wrap: wrap; border-inline-end: 0; border-bottom: 1px solid currentColor; gap: .25rem; } }
 @media(forced-colors:active) { :where(button,[href],input,select,textarea,[tabindex]):focus-visible { outline-color: Highlight; } .sarmg-button:disabled { color: GrayText; opacity: 1; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important; } }
+
+.sarmg-auth-content { display: grid; justify-items: center; gap: 1rem; width: min(28rem,100%); }

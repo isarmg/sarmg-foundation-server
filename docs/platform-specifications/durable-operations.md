@@ -7,7 +7,7 @@
 
 - `enqueue_in`：产品 desired state 和持久意图同事务。
 - `claim_next_in`：产品 leader/admission 检查和操作领取同事务；独立 `claim_next` 使用 BEGIN IMMEDIATE。
-- `apply_transition_owned_in`：业务结果、当前未过期 owner 的状态转换、outbox 同事务。
+- `apply_transition_owned_in`：接收捕获的 `claim: &Operation`；校验 ID、Running、owner、attempt、expiry 和租约未过期，业务结果和 outbox 同事务。
   产品必须在任何错误时放弃整个业务事务；平台接口的 savepoint 还保证调用者误提交时不会留下半个状态转换。
 - `abandon_claim`：只能把捕获到的 owner/attempt/expiry 对应 Running 标成 Unknown，允许该租约已过期；
   不允许发布成功、恢复 Pending 或影响新一次领取。远端可能成功但本地提交失败时使用此接口。
@@ -16,6 +16,9 @@
 - `resolve_in`：明确人工确认成功/失败得到 Resolved；无法确认只允许 Unknown → DeadLetter。
   产品操作者审计与人工处理同事务，不提供“重试 Unknown”接口。
 - `mark_audit_delivered_in`：产品以 event ID 幂等物化审计，和 outbox 确认同事务。确认失败时审计插入也回滚。
+
+同一个 owner 再次领取也不能使用上次 attempt 的快照发布完成。无领取验证的转换入口仅供 crate 内启动恢复。
+独立 enqueue、完成、abandon 使用 BEGIN IMMEDIATE；`_in()` 保留 savepoint，调用者先读后写时须在外层取得写事务，并在错误时回滚整个外层事务。
 
 独立转换提交接口返回事务内读取的快照，不在提交后重新读取可能已经变化的状态。
 所有产品故障分类应使用固定安全 code，不写入远端响应、凭据、URL 或内部异常详情。

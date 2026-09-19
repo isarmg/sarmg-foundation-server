@@ -8,7 +8,9 @@
 
 @sarmg/admin-web
 ├─ createAdministratorApiClient：auth路径、内存Session、竞态、业务guard
-├─ /react：useAdministratorSession
+└─ /react：useAdministratorSession
+
+@sarmg/web-toolchain
 └─ /vite：React/Vite配置
 
 产品clients/web
@@ -131,13 +133,15 @@ sessionStorage.setItem("csrf", session.csrf_token);
 
 ### Restore
 
-并发调用共享一个Promise，并等待之前的login/logout mutation完成。成功响应只在generation未变化时发布。
+并发调用共享一个Promise，restore 与 login/logout/updateAccount 共用认证队列。成功响应只在generation未变化时发布。
 401表示anonymous；Session shape/content/json/size错误会清理当前状态；普通网络错误留给UI error phase。
 
 ### Logout
 
 调用时立即终止本地授权并递增generation，随后排队POST logout。若紧接刚完成但已被UI supersede的login，
-private transport snapshot让logout仍能携带正确CSRF撤销Cookie。无论请求成功失败，finally都会清理snapshot。
+private transport snapshot让logout仍能携带正确CSRF撤销Cookie。仅正常确认或明确会话已失效才清理 snapshot。网络、超时、500 或 CSRF 拒绝保留内存上下文供主动重试，公开 Session 仍为 null。
+React 显示 `anonymous_logout_unconfirmed`，Shell 提供“重试退出”；新登录会替换内部传输快照，旧异步失败不得覆盖新界面。
+同一会话恢复使用稳定派生 CSRF，不会因另一个标签页刷新而轮换；旧随机 CSRF 会话须重新登录。
 
 ## 5.12 认证竞态实例
 

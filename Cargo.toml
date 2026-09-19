@@ -25,7 +25,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.8.1"
+version = "0.8.2"
 edition = "2024"
 rust-version = "1.98"
 authors = ["sarmg <isarmg@163.com>"]
@@ -42,6 +42,7 @@ base64 = "0.22"
 bytes = "1"
 aes-gcm = "0.10"
 hkdf = "0.12"
+hmac = "0.12"
 getrandom = "0.4"
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 http = "1"

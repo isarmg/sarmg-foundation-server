@@ -1,7 +1,7 @@
 //! Static administrator configuration and bounded process-local sessions.
 //!
-//! Configuration mutation is intentionally unsupported. Restarting the
-//! process drops every browser session by construction.
+//! Pure static configuration is immutable; an optional protected account file
+//! supports self-service updates. Restarting always drops browser sessions.
 
 mod account_file;
 
@@ -112,16 +112,8 @@ impl StaticAdministratorStore {
 impl AdministratorStore for StaticAdministratorStore {
     type StoreError = Error;
 
-    fn supports_management(&self) -> bool {
-        false
-    }
-
     fn supports_account_updates(&self) -> bool {
         self.account_file.is_some()
-    }
-
-    async fn list_administrators(&self, _: u32, _: u64) -> Result<Vec<AdministratorRecord>, Error> {
-        Err(Error::ConfigurationMutationUnsupported)
     }
 
     async fn manage_administrator(
@@ -137,10 +129,7 @@ impl AdministratorStore for StaticAdministratorStore {
             username,
             expected_password_hash,
             password_hash,
-        } = mutation
-        else {
-            return Err(ManagementError::Unsupported);
-        };
+        } = mutation;
         context
             .validate()
             .map_err(|_| ManagementError::InvalidInput)?;
@@ -321,15 +310,15 @@ impl AdministratorStore for StaticAdministratorStore {
         Ok(())
     }
 
-    async fn rotate_session_csrf(
+    async fn touch_session(
         &self,
         session_id: &Identifier,
         expected_csrf_hash: [u8; DIGEST_BYTES],
-        csrf_hash: [u8; DIGEST_BYTES],
         now_micros: u64,
         idle_expires_at_micros: u64,
     ) -> Result<bool, Error> {
         let mut state = self.lock()?;
+        let administrators = state.administrators.clone();
         let Some(session) = state
             .sessions
             .values_mut()
@@ -337,7 +326,11 @@ impl AdministratorStore for StaticAdministratorStore {
         else {
             return Ok(false);
         };
-        if session.revoked_at_micros.is_some()
+        if !administrators.values().any(|account| {
+            account.active
+                && account.administrator_id == session.administrator_id
+                && account.session_version == session.administrator_session_version
+        }) || session.revoked_at_micros.is_some()
             || session.csrf_hash != expected_csrf_hash
             || now_micros < session.created_at_micros
             || idle_expires_at_micros <= now_micros
@@ -347,7 +340,6 @@ impl AdministratorStore for StaticAdministratorStore {
         {
             return Ok(false);
         }
-        session.csrf_hash = csrf_hash;
         session.last_seen_at_micros = session.last_seen_at_micros.max(now_micros);
         session.idle_expires_at_micros = session.idle_expires_at_micros.max(idle_expires_at_micros);
         Ok(true)
@@ -601,46 +593,22 @@ mod tests {
         );
         assert!(
             store
-                .rotate_session_csrf(
-                    &session.session_id,
-                    [6; 32],
-                    [7; 32],
-                    now + 1,
-                    now + 100_000_000,
-                )
+                .touch_session(&session.session_id, [6; 32], now + 1, now + 100_000_000,)
                 .await?
         );
         assert!(
             !store
-                .rotate_session_csrf(
-                    &session.session_id,
-                    [6; 32],
-                    [6; 32],
-                    now + 2,
-                    now + 100_000_000,
-                )
+                .touch_session(&session.session_id, [7; 32], now + 2, now + 100_000_000,)
                 .await?
         );
         assert!(
             !store
-                .rotate_session_csrf(
-                    &session.session_id,
-                    [6; 32],
-                    [8; 32],
-                    now + 2,
-                    now + 100_000_000,
-                )
+                .touch_session(&session.session_id, [8; 32], now + 2, now + 100_000_000,)
                 .await?
         );
         assert!(
             store
-                .rotate_session_csrf(
-                    &session.session_id,
-                    [7; 32],
-                    [7; 32],
-                    now,
-                    now + 100_000_000,
-                )
+                .touch_session(&session.session_id, [6; 32], now, now + 100_000_000,)
                 .await?
         );
         assert_eq!(
@@ -650,13 +618,9 @@ mod tests {
                 .unwrap()
                 .session
                 .csrf_hash,
-            [7; 32]
+            [6; 32]
         );
-        assert!(!store.supports_management());
-        assert!(matches!(
-            store.list_administrators(10, 0).await,
-            Err(Error::ConfigurationMutationUnsupported)
-        ));
+        assert!(!store.supports_account_updates());
         assert!(matches!(
             store
                 .manage_administrator(
@@ -670,7 +634,11 @@ mod tests {
                         request_id: None,
                         now_micros: 3,
                     },
-                    sarmg_admin_core::AdministratorMutation::Disable { administrator_id },
+                    sarmg_admin_core::AdministratorMutation::UpdateOwnAccount {
+                        username: "admin".into(),
+                        expected_password_hash: String::new(),
+                        password_hash: None
+                    },
                 )
                 .await,
             Err(sarmg_admin_core::ManagementError::Unsupported)

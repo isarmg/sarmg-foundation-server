@@ -21,7 +21,7 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 ├─ 是否属于产品业务语义？
 │  └─ 是：产品通过 Adapter/Trait 实现
 └─ 是否属于历史持久格式？
-   └─ 是：只在 sarmg-upgrade 中建立离线转换边
+   └─ 是：按当前状态合同处理，不要求历史转换
 
 确定所有权
 ├─ 收集实际调用点、最强安全约束和删除后果
@@ -286,7 +286,7 @@ binary，同时采用统一 Admin Client、设计令牌和字体资产。这是�
 ├─ 检查 manifest / exports / files / peers
 ├─ pnpm pack 生成 4 个真实 tgz
 ├─ 检查 tar canonical path、duplicate、link、special file、意外源码
-└─ 临时空目录 npm --offline --ignore-scripts 安装并解析所有 export
+└─ 临时空目录 npm --ignore-scripts 安装并解析所有 export
 ```
 
 `contracts` 是 `http-client` 的精确 peer；`admin-web` 精确依赖 contracts/http-client 并以可选 peer 声明
@@ -362,7 +362,7 @@ fixture、Schema、lockfile、package smoke、release inventory、consumer matri
 ├─ 当前仍是开发期、无受支持发布状态
 │  └─ 直接定义新当前 Schema；测试数据重建，不写兼容代码
 └─ 已有明确受支持的稳定 source/target
-   └─ 在线产品仍只读 target current；sarmg-upgrade 新建精确离线 edge
+   └─ 在线产品仍只读 target current；不要求新增历史离线转换边
 ```
 
 密码 policy 改变也遵循相同原则：在线 Server 不尝试多个参数集；启动/登录只接受当前 hash，转换必须在

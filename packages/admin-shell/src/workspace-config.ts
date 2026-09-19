@@ -13,7 +13,7 @@ export type WorkspaceConfig = Readonly<{
 export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = Object.freeze({
   appearance: "content-blocks",
   selection: "underline" as "underline" | "custom",
-  fontFamily: '"Sarmg Maple",ui-monospace,monospace',
+  fontFamily: '"Sarmg Maple Bootstrap","Sarmg Maple",ui-monospace,monospace',
   instanceNameMaxCharacters: 32,
   headerControls: "icons" as "icons" | "text",
   diagnostics: false,

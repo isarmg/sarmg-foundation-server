@@ -37,11 +37,63 @@ fn preflight(input: &str, budget: XmlBudget, started: Instant) -> Result<(), Err
     let mut depth = 1_usize;
     let mut nodes = 1_usize;
     let mut text = 0_usize;
+    let mut text_run: Option<usize> = None;
     loop {
         if started.elapsed() > budget.max_parse_time {
             return Err(Error::Budget("time"));
         }
-        match reader.read_event().map_err(Error::Streaming)? {
+        let event = reader.read_event().map_err(Error::Streaming)?;
+        if !matches!(
+            event,
+            Event::Text(_) | Event::CData(_) | Event::GeneralRef(_)
+        ) {
+            text_run = None;
+        }
+        let text_len = match &event {
+            Event::Text(value) => Some(
+                value
+                    .xml_content()
+                    .map_err(|e| Error::Streaming(e.into()))?
+                    .len(),
+            ),
+            Event::CData(value) => Some(
+                value
+                    .xml_content()
+                    .map_err(|e| Error::Streaming(e.into()))?
+                    .len(),
+            ),
+            Event::GeneralRef(value) => {
+                Some(match value.resolve_char_ref().map_err(Error::Streaming)? {
+                    Some(character) => character.len_utf8(),
+                    None => {
+                        let name = value.decode().map_err(|e| Error::Streaming(e.into()))?;
+                        quick_xml::escape::resolve_predefined_entity(&name)
+                            .ok_or(Error::ForbiddenDeclaration)?
+                            .len()
+                    }
+                })
+            }
+            _ => None,
+        };
+        if let Some(length) = text_len {
+            if text_run.is_none() {
+                add_node(
+                    &mut nodes,
+                    depth.checked_add(1).ok_or(Error::Budget("depth"))?,
+                    budget,
+                )?;
+            }
+            let run = text_run.get_or_insert(0);
+            *run = run.checked_add(length).ok_or(Error::Budget("text node"))?;
+            if *run > budget.max_text_node_bytes {
+                return Err(Error::Budget("text node"));
+            }
+            text = text.checked_add(length).ok_or(Error::Budget("text"))?;
+            if text > budget.max_text_bytes {
+                return Err(Error::Budget("text"));
+            }
+        }
+        match event {
             Event::Start(_) => {
                 depth = depth.checked_add(1).ok_or(Error::Budget("depth"))?;
                 add_node(&mut nodes, depth, budget)?;
@@ -54,34 +106,6 @@ fn preflight(input: &str, budget: XmlBudget, started: Instant) -> Result<(), Err
             Event::End(_) => {
                 depth = depth.checked_sub(1).ok_or(Error::Budget("depth"))?;
             }
-            Event::Text(value) => {
-                add_node(
-                    &mut nodes,
-                    depth.checked_add(1).ok_or(Error::Budget("depth"))?,
-                    budget,
-                )?;
-                if value.len() > budget.max_text_node_bytes {
-                    return Err(Error::Budget("text node"));
-                }
-                text = text.checked_add(value.len()).ok_or(Error::Budget("text"))?;
-                if text > budget.max_text_bytes {
-                    return Err(Error::Budget("text"));
-                }
-            }
-            Event::CData(value) => {
-                add_node(
-                    &mut nodes,
-                    depth.checked_add(1).ok_or(Error::Budget("depth"))?,
-                    budget,
-                )?;
-                if value.len() > budget.max_text_node_bytes {
-                    return Err(Error::Budget("text node"));
-                }
-                text = text.checked_add(value.len()).ok_or(Error::Budget("text"))?;
-                if text > budget.max_text_bytes {
-                    return Err(Error::Budget("text"));
-                }
-            }
             Event::Comment(_) | Event::PI(_) => add_node(
                 &mut nodes,
                 depth.checked_add(1).ok_or(Error::Budget("depth"))?,
@@ -89,7 +113,7 @@ fn preflight(input: &str, budget: XmlBudget, started: Instant) -> Result<(), Err
             )?,
             Event::DocType(_) => return Err(Error::ForbiddenDeclaration),
             Event::Eof => break,
-            Event::Decl(_) | Event::GeneralRef(_) => {}
+            Event::Decl(_) | Event::GeneralRef(_) | Event::Text(_) | Event::CData(_) => {}
         }
     }
     Ok(())
@@ -142,6 +166,38 @@ mod tests {
             Err(Error::Budget("depth"))
         ));
     }
+    #[test]
+    fn decoded_adjacent_text_shares_one_budget() {
+        let mut limits = budget();
+        limits.max_nodes = 3;
+        limits.max_text_bytes = 4;
+        limits.max_text_node_bytes = 4;
+        for text in [
+            "abcd",
+            "&#97;&#98;&#99;&#100;",
+            "a&#98;<![CDATA[cd]]>",
+            "<![CDATA[ab]]><![CDATA[cd]]>",
+            "&amp;&lt;&gt;&quot;",
+            "&#x4e2d;a",
+        ] {
+            let input = format!("<a>{text}</a>");
+            assert!(parse_bounded(&input, limits).is_ok(), "{text}");
+            limits.max_text_node_bytes = 3;
+            assert!(
+                matches!(
+                    parse_bounded(&input, limits),
+                    Err(Error::Budget("text node"))
+                ),
+                "{text}"
+            );
+            limits.max_text_node_bytes = 4;
+        }
+        assert!(matches!(
+            parse_bounded("<a>&custom;</a>", limits),
+            Err(Error::ForbiddenDeclaration)
+        ));
+    }
+
     #[test]
     fn accepts_bounded_document() {
         assert_eq!(

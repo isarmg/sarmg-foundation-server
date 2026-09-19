@@ -41,35 +41,6 @@ export function isAdministratorAccountRequest(value: unknown): value is Administ
     && (value.new_password === undefined || isBoundedCredentialText(value.new_password, 1_024));
 }
 
-export type AdministratorCreateRequest = { username: string; password: string };
-export type AdministratorPasswordRequest = { password: string };
-export type AdministratorSummary = {
-  administrator_id: string;
-  username: string;
-  active: boolean;
-  created_at_micros: number;
-  updated_at_micros: number;
-  last_login_at_micros: number | null;
-};
-
-export function isAdministratorCreateRequest(value: unknown): value is AdministratorCreateRequest {
-  return isAdministratorLoginRequest(value);
-}
-export function isAdministratorPasswordRequest(value: unknown): value is AdministratorPasswordRequest {
-  return isRecord(value) && hasExactKeys(value, ["password"]) && isBoundedCredentialText(value.password, 1_024);
-}
-export function isAdministratorSummary(value: unknown): value is AdministratorSummary {
-  return isRecord(value) && hasExactKeys(value, ["administrator_id", "username", "active", "created_at_micros", "updated_at_micros", "last_login_at_micros"])
-    && isIdentifier(value.administrator_id) && isCanonicalAdministratorUsername(value.username)
-    && typeof value.active === "boolean" && isNonNegativeInteger(value.created_at_micros)
-    && isNonNegativeInteger(value.updated_at_micros)
-    && (value.last_login_at_micros === null || isNonNegativeInteger(value.last_login_at_micros));
-}
-export function isAdministratorList(value: unknown): value is AdministratorSummary[] {
-  return Array.isArray(value) && value.length <= 100 && value.every(isAdministratorSummary)
-    && new Set(value.map(item => item.administrator_id)).size === value.length;
-}
-
 export type ErrorEnvelope = {
   code: ErrorCode;
   message: string;

@@ -12,7 +12,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 二进制；消费者锁定 Foundation 的精确版本和不可变 Git revision，并将需要的实现带入自身制品。生产环境
 不连接 Foundation，也不依赖本仓库、GitHub、包注册表或中央认证服务在线可用。
 
-当前工作区以 `0.8.1` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
+当前工作区以 `0.8.2` 为版本基线，仅提供服务端及其管理 Web 的平台实现；P11/P12 客户端实现归 Client 仓库。
 产品 Server 与 Client 使用独立后缀仓库，原不可变标签保持不变。产品采用状态由消费者矩阵记录，
 这不是 Foundation 1.0 完成声明。
 
@@ -27,7 +27,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 
 | 组件 | 当前职责 | 明确不负责 |
 |---|---|---|
-| `sarmg-admin-auth` | 迁移前管理员 username、密码/Argon2id、Session/CSRF token、Cookie 与同源检查 primitive | 目标能力由 Admin Core、Store 和 HTTP Adapter 取代；产品不得据此永久保留本地控制面 |
+| `sarmg-admin-auth` | 管理员 username、密码/Argon2id、Session/CSRF token、Cookie 与同源检查 primitive | 不编排会话和路由；由 Admin Core、Store 和 HTTP Adapter 组合使用 |
 | `sarmg-contracts` | 管理员登录/Session、State、Release、Backup、Error 的严格 Rust wire 类型与共享 fixture | 产品业务 DTO、HTTP router、历史 manifest reader、物理路径检查 |
 | `sarmg-error` | 有界 `ErrorCode`、`RequestId`、严格 `ErrorEnvelope`、常用 HTTP status/retry 默认值 | 产品错误码全集、日志脱敏、Axum rejection 和响应 middleware |
 | `sarmg-schema-identity` | 驱动无关的五列 `product_metadata`、Schema fingerprint v1、精确 current identity 校验 | 打开数据库、执行 DDL/migration、路径安全、业务 Schema |
@@ -73,6 +73,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 
 ## 2. 统一后的硬边界
 
+- 管理面只有一个活动管理员；唯一浏览器账户修改入口为 `POST /api/v2/platform/administrators/self`，始终验证当前密码。
 - 管理面只有 `admin` 一种角色。数据库不需要角色列；wire 中固定 `role: "admin"`，不存在 viewer、operator
   或产品自定义管理角色。
 - 管理员认证路径固定为 `/api/v2/auth/login`、`/api/v2/auth/session`、`/api/v2/auth/logout`。
@@ -81,7 +82,7 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
   `[a-z0-9._-]`。管理身份不是邮箱；`@`、Unicode、控制字符等候选会在 canonical admission 被拒绝。
 - 密码散列只接受当前 Argon2id v19 参数：`m=19456,t=2,p=1`、16-byte salt、32-byte output；参数不同的
   合法 PHC 也会被拒绝。
-- Session/CSRF token 是 32-byte 随机值的 URL-safe Base64 无填充编码，必须恰好 43 个字符；持久化摘要
+- Session 是 32-byte 随机值，CSRF 是用解码后的 Session 秘密作密钥、固定用途 `sarmg/admin-csrf/v1` 的 HMAC-SHA256 派生值；两者使用 URL-safe Base64 无填充编码，必须恰好 43 个字符；持久化摘要
   为 SHA-256，比较使用 constant time。
 - 浏览器 mutation 必须提供唯一、规范且相互一致的 `Origin`、有效 `Host`/HTTP2 authority、
   `Sec-Fetch-Site: same-origin` 与当前 CSRF；生产只允许 HTTPS，本地 HTTP 只允许真实 loopback。
@@ -137,14 +138,14 @@ sarmg-foundation-server/
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI |
 | pnpm | `10.12.1` | 根 `packageManager`、CI |
 | TypeScript | `5.8.3` | package manifest、lockfile |
-| Foundation 版本 | `0.8.1` | Cargo/npm/package/release policy |
+| Foundation 版本 | `0.8.2` | Cargo/npm/package/release policy |
 
 这些值是发布输入，不是“最低能运行即可”的建议范围。升级任一工具链都要同步 policy、lock、CI、package
 smoke 和所有消费者验证。
 
 ## 5. 统一验证入口
 
-用户要求先完成全部代码，再统一运行。代码冻结后从仓库根执行：
+开发时运行受影响组件的定向检查；完成后从仓库根执行完整门禁：
 
 ```bash
 python3 scripts/check-foundation.py
@@ -168,7 +169,8 @@ git diff --check
 验收；维护报告时再显式运行 `verify-consumers` 与 `generate-consumer-matrix --check`。
 
 `package-artifacts.py smoke` 会安全清理旧 `dist`、构建 8 个 package、检查所有 export、生成真实 `.tgz`、
-审计 tar member，再在临时空目录离线安装并解析每个公开入口。workspace 中能 import 但 tarball 不能安装，
+审计 tar member，再在隔离临时消费者中按正常 npm peer 规则安装真实 tgz、检查公开类型并构建 Vite JS/CSS。
+依赖准备允许联网，外部 peers 的精确版本来自 package manifest，不借用仓库 node_modules。workspace 中能 import 但 tarball 不能安装，
 不算通过。
 
 `check-rust-package-licenses.py` 会调用 Cargo 查看二十二个真实 crate 的 package 清单，并要求每个包根恰好包含
@@ -179,12 +181,12 @@ Apache-2.0 文本完全一致；因此 Git dependency 经 `cargo vendor` 展平�
 ## 6. 发布与消费
 
 1. Rust 消费者在联调阶段可暂用本地 `path`；正式提交必须使用 Foundation tag 对应的完整 40 位 commit，
-   并同时声明 `version = "=0.8.1"`。
+   并同时声明 `version = "=0.8.2"`。
 2. Web 消费者在联调阶段可暂用 `file:`；正式提交必须改成 GitHub Release 中经过校验的 `.tgz` URL并重建
    `package-lock.json`。消费者继续使用 npm，不因 Foundation 内部使用 pnpm 而改变。
 3. `@sarmg/admin-web` 的产品通常还要显式锁定 `contracts`、`http-client`、`design-tokens` 和其 React/Vite
    peers；不能依赖 sibling workspace 偶然解析。
-4. 普通 CI 只有 `contents: read`。只有精确 `v0.8.1` tag 的专用 release job 可获得 `contents: write`。
+4. 普通 CI 只有 `contents: read`。只有精确 `v0.8.2` tag 的专用 release job 可获得 `contents: write`。
 5. 发布资产包含 8 个 npm tarball、确定性 release-tool tarball、state contract、release identity、build
    inventory、`SHA256SUMS` 和 exact release-tree manifest。
 6. Foundation verifier 只给最低共同边界。产品仍须验证自身目录 allowlist、mode、binary self-binding、

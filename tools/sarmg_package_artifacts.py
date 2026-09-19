@@ -266,6 +266,7 @@ def _run(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env={key: value for key, value in os.environ.items() if key not in {"NODE_PATH", "NODE_OPTIONS"}},
         )
     except subprocess.CalledProcessError as error:
         detail = (error.stderr or error.stdout or "").strip()
@@ -358,33 +359,34 @@ def _inspect_tarball(package: Package, tarball: Path, expected_files: tuple[Path
 
 
 def _install_smoke(packages: tuple[Package, ...], tarballs: tuple[Path, ...], consumer: Path) -> None:
+    # Read exact peer and compiler versions from the packages we are publishing.
+    dependencies: dict[str, str] = {}
+    for package in packages:
+        peers = package.manifest.get("peerDependencies", {})
+        development = package.manifest.get("devDependencies", {})
+        for name in set(peers) | {name for name in development if name == "typescript" or name.startswith("@types/")}:
+            if name.startswith("@sarmg/"):
+                continue
+            version = development.get(name, peers.get(name))
+            if not isinstance(version, str) or SEMVER.fullmatch(version) is None:
+                raise PackagePolicyError(f"smoke dependency {name} requires an exact manifest version")
+            if name in dependencies and dependencies[name] != version:
+                raise PackagePolicyError(f"smoke dependency {name} has conflicting versions")
+            dependencies[name] = version
     (consumer / "package.json").write_text(
-        json.dumps({"name": "sarmg-package-smoke", "private": True, "type": "module"}) + "\n",
+        json.dumps({"name": "sarmg-package-smoke", "private": True, "type": "module", "dependencies": dependencies}) + "\n",
         encoding="utf-8",
     )
-    _run(
-        [
-            "npm",
-            "install",
-            "--cache",
-            str(consumer / ".npm-cache"),
-            "--offline",
-            "--ignore-scripts",
-            "--no-audit",
-            "--no-fund",
-            "--package-lock=false",
-            "--legacy-peer-deps",
-            *(str(path) for path in tarballs),
-        ],
-        consumer,
-    )
+    _run([
+        "npm", "install", "--cache", str(consumer / ".npm-cache"),
+        "--ignore-scripts", "--no-audit", "--no-fund", "--package-lock=false",
+        "--strict-peer-deps", "--legacy-peer-deps=false",
+        *(str(path) for path in tarballs),
+    ], consumer)
     imports = [
-        package.name
-        for package in packages
-        if not any(
-            not name.startswith("@sarmg/")
-            for name in package.manifest.get("peerDependencies", {})
-        )
+        package.name + ("" if specifier == "." else specifier[1:])
+        for package in packages for specifier, targets in package.exports.items()
+        if any(target.endswith(".js") for target in targets)
     ]
     resolutions = [
         package.name + ("" if specifier == "." else specifier[1:])
@@ -406,6 +408,26 @@ def _install_smoke(packages: tuple[Package, ...], tarballs: tuple[Path, ...], co
         encoding="utf-8",
     )
     _run(["node", str(smoke)], consumer)
+    # Type declarations and browser JS/CSS have different consumers.
+    typed = [f"import * as entry{index} from {json.dumps(specifier)};\nvoid entry{index};" for index, specifier in enumerate(imports)]
+    (consumer / "main.ts").write_text("\n".join(typed), encoding="utf-8")
+    (consumer / "tsconfig.json").write_text(json.dumps({"compilerOptions": {
+        "strict": True, "noEmit": True, "target": "ES2022", "module": "ESNext",
+        # Consumer declarations are checked through their public imports. Vite
+        # and the pinned Node types currently overlap on DOM globals, so the
+        # smoke follows the workspace policy and does not re-check dependency
+        # declaration internals.
+        "moduleResolution": "Bundler", "jsx": "react-jsx", "skipLibCheck": True,
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    }, "include": ["main.ts"]}), encoding="utf-8")
+    _run(["node", "node_modules/typescript/bin/tsc", "-p", "tsconfig.json"], consumer)
+    browser_imports = [specifier for specifier in imports if not specifier.startswith("@sarmg/web-toolchain")]
+    styles = [package.name + specifier[1:] for package in packages for specifier, targets in package.exports.items() if any(target.endswith(".css") for target in targets)]
+    source = [f"import * as entry{index} from {json.dumps(specifier)};\nconsole.log(entry{index});" for index, specifier in enumerate(browser_imports)]
+    source.extend(f"import {json.dumps(specifier)};" for specifier in styles)
+    (consumer / "app.js").write_text("\n".join(source), encoding="utf-8")
+    (consumer / "index.html").write_text('<!doctype html><html><body><script type="module" src="/app.js"></script></body></html>', encoding="utf-8")
+    _run(["node", "node_modules/vite/bin/vite.js", "build"], consumer)
     print(f"package install smoke: passed {len(packages)} packages and {len(resolutions)} exports")
 
 

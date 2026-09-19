@@ -94,3 +94,22 @@ test("shell has no WCAG AA violations or horizontal overflow at mobile width and
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
 });
+
+test("failed logout closes protected UI and retries revocation without restoring it", async ({ page }) => {
+  await mockApi(page, true);
+  let attempts = 0;
+  await page.route("**/api/v2/auth/logout", route => {
+    expect(route.request().headers()["x-csrf-token"]).toBe(session.csrf_token);
+    if (++attempts === 1) return route.abort("failed");
+    return route.fulfill({ status: 204 });
+  });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Product overview" })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("Signed out locally");
+  await expect(page.getByRole("heading", { name: "Product overview" })).not.toBeVisible();
+  await page.getByRole("button", { name: "Retry sign out", exact: true }).click();
+  await expect(page.getByRole("alert")).not.toBeVisible();
+  await expect(page.getByRole("heading", { name: "Administrator sign in" })).toBeVisible();
+  expect(attempts).toBe(2);
+});

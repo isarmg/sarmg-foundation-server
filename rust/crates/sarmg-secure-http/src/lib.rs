@@ -73,10 +73,14 @@ impl SecureHttpClient {
             }
             _ => {}
         }
-        let addresses = tokio::net::lookup_host((host.as_str(), port))
-            .await
-            .map_err(Error::Resolve)?
-            .collect::<Vec<_>>();
+        let addresses = tokio::time::timeout(
+            self.total_timeout,
+            tokio::net::lookup_host((host.as_str(), port)),
+        )
+        .await
+        .map_err(|_| Error::Timeout)?
+        .map_err(Error::Resolve)?
+        .collect::<Vec<_>>();
         if addresses.is_empty() {
             return Err(Error::ResolveEmpty);
         }
@@ -86,19 +90,24 @@ impl SecureHttpClient {
         Ok(addresses)
     }
     pub async fn get_bytes(&self, url: Url) -> Result<Vec<u8>, Error> {
-        let addresses = self.validate_url(&url).await?;
-        let request = Request::new(reqwest::Method::GET, url);
-        let response = self.execute_bound(request, &addresses).await?;
-        bounded_response(response, self.budget).await
+        tokio::time::timeout(self.total_timeout, async {
+            let addresses = self.validate_url(&url).await?;
+            let request = Request::new(reqwest::Method::GET, url);
+            let response = self.execute_bound(request, &addresses).await?;
+            bounded_response(response, self.budget).await
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
     }
 
     /// Executes a fully constructed request while pinning the connection to the
     /// caller-supplied, already selected addresses. The request URL is validated
     /// again here so mutation between validation and execution cannot bypass the
-    /// closed network policy.
+    /// closed network policy. This low-level API returns headers; the caller
+    /// owns bounded body consumption. Use execute_bounded for a full budget.
     pub async fn execute_bound(
         &self,
-        request: Request,
+        mut request: Request,
         addresses: &[SocketAddr],
     ) -> Result<Response, Error> {
         validate_url_structure(self.policy, request.url())?;
@@ -107,6 +116,20 @@ impl SecureHttpClient {
         }
         for address in addresses {
             validate_address(self.policy, address.ip())?;
+        }
+        let literal = match request.url().host().ok_or(Error::UnsafeUrl)? {
+            Host::Ipv4(ip) => Some(IpAddr::V4(ip)),
+            Host::Ipv6(ip) => Some(IpAddr::V6(ip)),
+            Host::Domain(_) => None,
+        };
+        if let Some(ip) = literal {
+            validate_address(self.policy, ip)?;
+            if addresses
+                .iter()
+                .any(|address| canonical_ip(address.ip()) != canonical_ip(ip))
+            {
+                return Err(Error::AddressHostMismatch);
+            }
         }
         let host = normalized_host(request.url())?;
         let expected_port = request
@@ -119,8 +142,16 @@ impl SecureHttpClient {
         {
             return Err(Error::AddressPortMismatch);
         }
+        let limit = request
+            .timeout()
+            .copied()
+            .unwrap_or(self.total_timeout)
+            .min(self.total_timeout);
+        *request.timeout_mut() = Some(limit);
         let client = self.bound_client(&host, addresses)?;
-        Ok(client.execute(request).await?)
+        Ok(tokio::time::timeout(limit, client.execute(request))
+            .await
+            .map_err(|_| Error::Timeout)??)
     }
 
     pub async fn execute_bounded(
@@ -128,10 +159,19 @@ impl SecureHttpClient {
         request: Request,
         addresses: &[SocketAddr],
     ) -> Result<BoundedResponse, Error> {
-        let response = self.execute_bound(request, addresses).await?;
-        let status = response.status();
-        let body = bounded_response(response, self.budget).await?;
-        Ok(BoundedResponse { status, body })
+        let limit = request
+            .timeout()
+            .copied()
+            .unwrap_or(self.total_timeout)
+            .min(self.total_timeout);
+        tokio::time::timeout(limit, async {
+            let response = self.execute_bound(request, addresses).await?;
+            let status = response.status();
+            let body = bounded_response(response, self.budget).await?;
+            Ok(BoundedResponse { status, body })
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
     }
 
     fn bound_client(&self, host: &str, addresses: &[SocketAddr]) -> Result<Client, Error> {
@@ -167,7 +207,7 @@ pub fn validate_url_structure(policy: NetworkPolicy, url: &Url) -> Result<(), Er
         NetworkPolicy::LoopbackDevelopment if url.scheme() != "http" => Err(Error::UnsafeScheme),
         NetworkPolicy::LoopbackDevelopment => match host {
             Host::Ipv4(address) if address.is_loopback() => Ok(()),
-            Host::Ipv6(address) if address.is_loopback() => Ok(()),
+            Host::Ipv6(address) if canonical_ip(IpAddr::V6(address)).is_loopback() => Ok(()),
             Host::Domain(domain) if domain.eq_ignore_ascii_case("localhost") => Ok(()),
             _ => Err(Error::UnsafeUrl),
         },
@@ -219,11 +259,15 @@ pub async fn bounded_response(
     Ok(bytes)
 }
 
-fn validate_address(policy: NetworkPolicy, address: IpAddr) -> Result<(), Error> {
-    let address = match address {
+fn canonical_ip(address: IpAddr) -> IpAddr {
+    match address {
         IpAddr::V6(v6) => v6.to_ipv4_mapped().map(IpAddr::V4).unwrap_or(address),
         _ => address,
-    };
+    }
+}
+
+fn validate_address(policy: NetworkPolicy, address: IpAddr) -> Result<(), Error> {
+    let address = canonical_ip(address);
     if is_metadata(address) || address.is_unspecified() || address.is_multicast() {
         return Err(Error::ForbiddenAddress(address));
     }
@@ -270,7 +314,7 @@ fn is_public_address(ip: IpAddr) -> bool {
             !(v.is_loopback()
                 || v.is_unicast_link_local()
                 || (segments[0] & 0xfe00) == 0xfc00
-                || segments == [0x100, 0, 0, 0, 0, 0, 0, 0]
+                || segments[..4] == [0x100, 0, 0, 0]
                 || (segments[0] == 0x2001 && segments[1] == 0x0db8)
                 || (segments[0] == 0x2001 && segments[1] == 0x0002))
         }
@@ -291,6 +335,10 @@ fn is_metadata(ip: IpAddr) -> bool {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("network operation exceeded its total deadline")]
+    Timeout,
+    #[error("bound address does not match the request IP literal")]
+    AddressHostMismatch,
     #[error("HTTPS is required by this network policy")]
     HttpsRequired,
     #[error("URL scheme is not allowed by this network policy")]
@@ -316,6 +364,137 @@ pub enum Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn invalid_bindings_fail_before_connecting() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        for (policy, host, binding) in [
+            (NetworkPolicy::PublicHttps, "127.0.0.1", "8.8.8.8"),
+            (NetworkPolicy::PublicHttps, "[::ffff:127.0.0.1]", "8.8.8.8"),
+            (NetworkPolicy::LoopbackDevelopment, "127.0.0.1", "127.0.0.2"),
+            (
+                NetworkPolicy::LoopbackDevelopment,
+                "[::ffff:127.0.0.1]",
+                "127.0.0.2",
+            ),
+        ] {
+            let client = SecureHttpClient::new(
+                policy,
+                Duration::from_secs(1),
+                Duration::from_secs(1),
+                ResponseBudget::default(),
+            )
+            .unwrap();
+            let scheme = if policy == NetworkPolicy::PublicHttps {
+                "https"
+            } else {
+                "http"
+            };
+            let url = Url::parse(&format!("{scheme}://{host}:{port}/")).unwrap();
+            let error = client
+                .execute_bound(
+                    Request::new(reqwest::Method::GET, url),
+                    &[SocketAddr::new(binding.parse().unwrap(), port)],
+                )
+                .await
+                .unwrap_err();
+            assert!(matches!(
+                error,
+                Error::ForbiddenAddress(_) | Error::AddressHostMismatch
+            ));
+        }
+        let client = SecureHttpClient::new(
+            NetworkPolicy::LoopbackDevelopment,
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            ResponseBudget::default(),
+        )
+        .unwrap();
+        let url = Url::parse(&format!("http://127.0.0.1:{port}/")).unwrap();
+        assert!(matches!(
+            client
+                .execute_bound(
+                    Request::new(reqwest::Method::GET, url),
+                    &[SocketAddr::from(([127, 0, 0, 1], 0))]
+                )
+                .await,
+            Err(Error::AddressPortMismatch)
+        ));
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+        for address in [
+            "100::",
+            "100::1",
+            "100::ffff:ffff:ffff:ffff",
+            "::ffff:10.0.0.1",
+        ] {
+            assert!(
+                validate_address(NetworkPolicy::PublicHttps, address.parse().unwrap()).is_err(),
+                "{address}"
+            );
+        }
+        for address in ["100:0:0:1::", "ff::ffff", "::ffff:8.8.8.8"] {
+            assert!(
+                validate_address(NetworkPolicy::PublicHttps, address.parse().unwrap()).is_ok(),
+                "{address}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn total_deadline_includes_body_and_caps_request_override() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            loop {
+                let (mut stream, _) = listener.accept().await.unwrap();
+                tokio::spawn(async move {
+                    let mut buffer = [0; 4096];
+                    assert!(stream.read(&mut buffer).await.unwrap() > 0);
+                    stream
+                        .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\na")
+                        .await
+                        .unwrap();
+                    // Wait for client closure; never provide the final byte.
+                    let _ = stream.read(&mut buffer).await;
+                });
+            }
+        });
+        let client = SecureHttpClient::new(
+            NetworkPolicy::LoopbackDevelopment,
+            Duration::from_millis(50),
+            Duration::from_secs(1),
+            ResponseBudget::default(),
+        )
+        .unwrap();
+        let url = Url::parse(&format!("http://{address}/")).unwrap();
+        for bounded_request in [false, true] {
+            let result = tokio::time::timeout(Duration::from_secs(1), async {
+                if bounded_request {
+                    let mut request = Request::new(reqwest::Method::GET, url.clone());
+                    *request.timeout_mut() = Some(Duration::from_secs(60));
+                    client
+                        .execute_bounded(request, &[address])
+                        .await
+                        .map(|value| value.body)
+                } else {
+                    client.get_bytes(url.clone()).await
+                }
+            })
+            .await
+            .expect("platform timeout must beat the caller's 60s override");
+            assert!(
+                matches!(result, Err(Error::Timeout))
+                    || matches!(result, Err(Error::Http(ref error)) if error.is_timeout())
+            );
+        }
+        server.abort();
+    }
+
     #[test]
     fn rejects_remote_http_and_metadata() {
         assert!(

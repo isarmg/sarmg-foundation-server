@@ -12,7 +12,7 @@ Foundation 的产物会进入多个产品。Rust、Node、TypeScript、React或V
 | edition/MSRV | 2024 / `1.98` | 根 `Cargo.toml` |
 | Node | `26.7.0` | `.node-version` |
 | pnpm | `10.12.1` | 根 `package.json#packageManager` |
-| TypeScript | `5.8.3` | package manifest |
+| TypeScript / Node types | `5.8.3` / `26.6.2` | package manifest |
 | React/DOM | `19.2.8` | `packages/admin-web/package.json` |
 | Vite/plugin | `7.3.6` / `4.7.0` | `packages/admin-web/package.json` |
 
@@ -74,7 +74,7 @@ git diff --stat
 ├─ clean dist
 ├─ real tgz
 ├─ tar member检查
-└─ empty-directory offline install
+└─ isolated npm install + TypeScript + Vite
 
 消费者层
 ├─ 本地path/file联调
@@ -92,7 +92,7 @@ Foundation单测通过，也不能证明Sunshine仍强制上游TLS或Media relea
 python3 scripts/check-foundation.py
 ```
 
-它会检查版本、22个crate、8个package、精确内部依赖、工具链、consumer matrix和取消名称。常见失败：
+它会检查版本、工作区组件、精确内部依赖、工具链、consumer matrix和取消名称。常见失败：
 
 | 失败 | 不要做 | 正确做法 |
 |---|---|---|
@@ -123,7 +123,7 @@ RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-dep
 ```
 
 - `fmt`只检查格式；
-- `check`覆盖所有target类型和feature组合的编译；
+- `check`覆盖当前编译平台的全部 Cargo target 类型，并同时启用全部 feature；不代表所有 CPU/OS 或每种 feature 组合；
 - `clippy`把warning当错误；
 - `test`执行认证、合同、Schema、SQLite等正反例；
 - `doc`保证公开API链接和示例不会腐烂。
@@ -139,8 +139,8 @@ pnpm test
 python3 scripts/package-artifacts.py smoke
 ```
 
-`pnpm test`会先构建需要的dist并从dist测试。package smoke还会生成8个tgz、审查tar，再用npm在临时空目录
-离线安装全部包。为什么使用npm做最终安装？因为真实消费者使用npm，这能发现pnpm workspace未暴露的问题。
+`pnpm test`会先构建需要的dist并从dist测试。package smoke还会生成各包真实tgz、审查tar，再用npm在临时空目录
+按正常 peer 规则安装全部包并执行类型消费和 Vite 构建，精确外部依赖准备允许联网。为什么使用npm做最终安装？因为真实消费者使用npm，这能发现pnpm workspace未暴露的问题。
 
 ## 2.10 Python工具测试
 
@@ -154,8 +154,7 @@ python3 -m unittest discover -s tools/tests -p 'test_*.py'
 
 ## 2.11 统一执行顺序
 
-当前项目约定是先完成代码和文档，再一起运行、反馈、修复。统一阶段按运维文档完整顺序跑；任何修复后
-先跑定向层，最终再跑全套。测试输出、临时DB、coverage和tgz不提交，除非某文件本来就是受审fixture。
+开发时随每组代码和文档运行定向检查；最终按运维文档执行一次完整门禁。测试输出、临时DB、coverage和tgz不提交，除非某文件本来就是受审fixture。
 
 ## 2.12 本章练习
 

@@ -1,8 +1,8 @@
 //! Framework- and database-independent administrator authentication primitives.
 //!
-//! This crate deliberately defines one current policy only. Products still own
-//! login admission, persistence, cookie names/attributes, session expiry and
-//! auditing; they must not maintain a second username/password/token algorithm.
+//! This crate defines the current primitive policy. Foundation Core, Stores and
+//! HTTP adapters own admission, persistence, cookies, expiry and security audit;
+//! products compose those capabilities without a second credential algorithm.
 
 use argon2::{
     Algorithm, Argon2, Params, Version,
@@ -220,6 +220,21 @@ pub fn is_token_shape(value: &str) -> bool {
         return false;
     };
     decoded.len() == SESSION_TOKEN_BYTES && URL_SAFE_NO_PAD.encode(decoded) == value
+}
+
+/// Derive the stable CSRF token for one canonical session secret. The fixed
+/// purpose separates CSRF from every other use of the session key.
+pub fn derive_csrf_token(session_token: &str) -> Result<String, Error> {
+    use hmac::{Hmac, Mac};
+    if !is_token_shape(session_token) {
+        return Err(Error::InvalidCsrfToken);
+    }
+    let key = URL_SAFE_NO_PAD
+        .decode(session_token)
+        .map_err(|_| Error::InvalidCsrfToken)?;
+    let mut mac = Hmac::<Sha256>::new_from_slice(&key).map_err(|_| Error::InvalidCsrfToken)?;
+    mac.update(b"sarmg/admin-csrf/v1");
+    Ok(URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes()))
 }
 
 pub fn token_hash(value: &str) -> [u8; 32] {
@@ -619,6 +634,27 @@ mod tests {
         ));
         assert!(!verify_password("correct horse battery staple", &weak));
         assert!(require_current_password_hash("not-a-password-hash").is_err());
+    }
+
+    #[test]
+    fn csrf_derivation_is_canonical_stable_and_domain_separated() {
+        let token = "A".repeat(43);
+        let derived = derive_csrf_token(&token).unwrap();
+        assert_eq!(derived, "cgd77bpFzX3z5MkDfTj0qRCjl-YlXOY-3ltPXb3IHMQ");
+        assert_eq!(derive_csrf_token(&token).unwrap(), derived);
+        assert_ne!(token, derived);
+        assert_ne!(
+            derive_csrf_token(&random_token().unwrap()).unwrap(),
+            derived
+        );
+        for value in [
+            "".to_owned(),
+            "B".repeat(43),
+            format!("{token}="),
+            "A".repeat(42),
+        ] {
+            assert!(derive_csrf_token(&value).is_err());
+        }
     }
 
     #[test]

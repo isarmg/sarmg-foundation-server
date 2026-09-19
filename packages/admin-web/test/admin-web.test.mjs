@@ -132,11 +132,12 @@ test("logout prevents an older session restore from republishing authentication"
 
   const restoring = client.restore();
   await Promise.resolve();
-  await client.logout();
+  const loggingOut = client.logout();
   completeRestore();
   await assert.rejects(restoring, (error) => {
     return error.code === "auth_operation_superseded";
   });
+  await loggingOut;
   assert.equal(client.currentSession(), null);
 });
 
@@ -271,4 +272,44 @@ test("overlapping login then logout is serialized and ends anonymous", async () 
   ]);
   assert.equal(requests[1].headers.get("x-csrf-token"), SESSION.csrf_token);
   assert.equal(client.currentSession(), null);
+});
+
+test("logout retry retains only its failed target and never borrows a subsequent login", async () => {
+  const csrf = [];
+  let fail = true, current = SESSION;
+  const client = createAdministratorApiClient({ baseUrl: BASE_URL, fetchImpl: async (url, init) => {
+    if (new URL(url).pathname.endsWith("/logout")) {
+      csrf.push(new Headers(init.headers).get("x-csrf-token"));
+      if (fail) throw new TypeError("offline");
+      return new Response(null, { status: 204 });
+    }
+    return json(current);
+  } });
+  await client.restore();
+  await assert.rejects(client.logout());
+  assert.equal(client.currentSession(), null);
+  fail = false;
+  await client.logout();
+  assert.deepEqual(csrf, [TOKEN_A, TOKEN_A]);
+  current = { ...SESSION, csrf_token: TOKEN_B };
+  await client.login("admin", "correct horse battery");
+  await client.logout();
+  assert.equal(csrf.at(-1), TOKEN_B);
+});
+
+test("logout accepts only invalid-session confirmation and preserves CSRF failures for retry", async () => {
+  for (const [status, code, confirms] of [[401, "auth.session_required", true], [403, "auth.csrf_rejected", false], [500, "platform.internal", false]]) {
+    let calls = 0;
+    const client = createAdministratorApiClient({ baseUrl: BASE_URL, fetchImpl: async (url, init) => {
+      if (!new URL(url).pathname.endsWith("/logout")) return json(SESSION);
+      calls++;
+      assert.equal(new Headers(init.headers).get("x-csrf-token"), TOKEN_A);
+      if (calls === 1) return json({ code, message: "Rejected", retryable: false }, status);
+      return new Response(null, { status: 204 });
+    } });
+    await client.restore();
+    if (confirms) await client.logout();
+    else { await assert.rejects(client.logout()); await client.logout(); }
+    assert.equal(client.currentSession(), null);
+  }
 });

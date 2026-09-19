@@ -98,16 +98,18 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     ? "ui-monospace,monospace" : workspace.fontFamily;
   useEffect(() => {
     const root = document.documentElement;
-    const previous = { appearance: root.dataset.sarmgAppearance, selection: root.dataset.sarmgSelection, font: root.style.getPropertyValue("--sarmg-font-ui") };
+    const previous = { appearance: root.dataset.sarmgAppearance, selection: root.dataset.sarmgSelection, font: root.style.getPropertyValue("--sarmg-font-ui"), mono: root.style.getPropertyValue("--sarmg-font-mono") };
     root.dataset.sarmgAppearance = workspace.appearance;
     root.dataset.sarmgSelection = workspace.selection;
     root.style.setProperty("--sarmg-font-ui", activeFontFamily);
+    if (workspace.fontFamily.includes("Sarmg Maple")) root.style.setProperty("--sarmg-font-mono", activeFontFamily);
     return () => {
       if (previous.appearance === undefined) delete root.dataset.sarmgAppearance; else root.dataset.sarmgAppearance = previous.appearance;
       if (previous.selection === undefined) delete root.dataset.sarmgSelection; else root.dataset.sarmgSelection = previous.selection;
+      if (previous.mono) root.style.setProperty("--sarmg-font-mono", previous.mono); else root.style.removeProperty("--sarmg-font-mono");
       if (previous.font) root.style.setProperty("--sarmg-font-ui", previous.font); else root.style.removeProperty("--sarmg-font-ui");
     };
-  }, [workspace.appearance, workspace.selection, activeFontFamily]);
+  }, [workspace.appearance, workspace.selection, workspace.fontFamily, activeFontFamily]);
   const notify = useCallback((message: string) => {
     const id = ++sequence.current;
     setToasts(current => [...current.slice(-4), { id, message: message.slice(0, 512) }]);
@@ -126,15 +128,16 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
   if (session.phase === "loading" || fontState === "loading") return <ApplicationBootScreen />;
   if (session.phase !== "authenticated") {
-    return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-card">{identity}
+    return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-content">
       {accountUpdated && <p role="status">{t("账号已更新，请使用新账号信息登录。", "Account updated. Sign in with your updated credentials.")}</p>}
-      {session.phase === "anonymous_logout_unconfirmed" && <ErrorState requestId={errorRequestId(session.error)}>
-        {t("本地已退出，但无法确认服务器会话已注销。请重试登录或关闭浏览器。", "Signed out locally, but the server session could not be confirmed as revoked. Sign in again or close the browser.")}
+      {session.phase === "anonymous_logout_unconfirmed" && <ErrorState requestId={errorRequestId(session.error)} onRetry={() => void session.logout().catch(() => {})} retryLabel={t("重试退出", "Retry sign out")}>
+        {t("本地已退出，但无法确认服务器会话已注销。请重试退出以确认注销。", "Signed out locally, but the server session could not be confirmed as revoked. Retry sign out to confirm revocation.")}
       </ErrorState>}
+      <div className="sarmg-auth-card">{identity}
       {session.phase === "error" ? <ErrorState requestId={errorRequestId(session.error)} onRetry={() => void session.restore()}>
           {t("无法恢复管理员会话。", "Unable to restore administrator session.")}</ErrorState>
         : <LoginPage login={session.login} />}
-    </div></div>;
+    </div></div></div>;
   }
   async function logout() {
     setLogoutPending(true);
@@ -186,11 +189,14 @@ function useApplicationFontsReady(fontFamily: string): ApplicationFontState {
     const timeout = window.setTimeout(() => {
       if (active) { active = false; setState("fallback"); }
     }, FONT_BOOT_TIMEOUT_MS);
-    void document.fonts.load('400 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE).then(faces => {
+    void Promise.all([
+      document.fonts.load('400 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE),
+      document.fonts.load('700 16px "Sarmg Maple Bootstrap"', CORE_FONT_SAMPLE),
+    ]).then(faces => {
       if (!active) return;
       active = false;
       window.clearTimeout(timeout);
-      setState(faces.length > 0 ? "ready" : "fallback");
+      setState(faces.every(group => group.length > 0) ? "ready" : "fallback");
     }, () => {
       if (!active) return;
       active = false;

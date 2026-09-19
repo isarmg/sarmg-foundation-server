@@ -25,6 +25,19 @@ impl SqliteAdministratorStore {
         &self.pool
     }
 
+    /// Scan at most `limit` oldest rows and delete only revoked/expired sessions.
+    /// Repeated login maintenance eventually advances past still-active rows;
+    /// security audit retention is independently owned by the product.
+    pub async fn prune_inactive_sessions(&self, now_micros: u64, limit: u32) -> Result<u64, Error> {
+        if !(1..=128).contains(&limit) {
+            return Err(Error::IntegerRange);
+        }
+        let now = to_i64(now_micros)?;
+        let deleted = sqlx::query("DELETE FROM _sarmg_admin_sessions WHERE rowid IN (SELECT rowid FROM _sarmg_admin_sessions ORDER BY rowid LIMIT ?) AND (revoked_at_micros IS NOT NULL OR idle_expires_at_micros<=? OR absolute_expires_at_micros<=?)")
+            .bind(i64::from(limit)).bind(now).bind(now).execute(&self.pool).await?;
+        Ok(deleted.rows_affected())
+    }
+
     /// Validates every stored administrator against the current Foundation
     /// identity and password-hash contract before a server starts accepting
     /// requests.
@@ -32,21 +45,16 @@ impl SqliteAdministratorStore {
         let rows = sqlx::query(
             "SELECT administrator_id, username, password_hash, active, session_version, \
                     created_at_micros, updated_at_micros, last_login_at_micros \
-             FROM _sarmg_administrators ORDER BY administrator_id",
+             FROM _sarmg_administrators ORDER BY administrator_id LIMIT 2",
         )
         .fetch_all(&self.pool)
         .await?;
-        for row in rows {
-            administrator_from_row(&row)?;
+        if rows.len() != 1 {
+            return Err(Error::ExpectedSingleActiveAdministrator);
         }
-        // Retain the first active administrator from legacy installations.
-        // Keep historical rows for audit references, but revoke their access.
-        let mut transaction = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        sqlx::query("UPDATE _sarmg_administrators SET active=0, session_version=session_version+1 WHERE active=1 AND administrator_id<>(SELECT administrator_id FROM _sarmg_administrators WHERE active=1 ORDER BY created_at_micros, administrator_id LIMIT 1)")
-            .execute(&mut *transaction).await?;
-        sqlx::query("UPDATE _sarmg_admin_sessions SET revoked_at_micros=last_seen_at_micros WHERE revoked_at_micros IS NULL AND administrator_id IN (SELECT administrator_id FROM _sarmg_administrators WHERE active=0)")
-            .execute(&mut *transaction).await?;
-        transaction.commit().await?;
+        if !administrator_from_row(&rows[0])?.active {
+            return Err(Error::ExpectedSingleActiveAdministrator);
+        }
         Ok(())
     }
 }
@@ -55,21 +63,8 @@ impl SqliteAdministratorStore {
 impl AdministratorStore for SqliteAdministratorStore {
     type StoreError = Error;
 
-    fn supports_management(&self) -> bool {
+    fn supports_account_updates(&self) -> bool {
         true
-    }
-
-    async fn list_administrators(
-        &self,
-        limit: u32,
-        offset: u64,
-    ) -> Result<Vec<AdministratorRecord>, Error> {
-        if !(1..=100).contains(&limit) {
-            return Err(Error::IntegerRange);
-        }
-        sqlx::query("SELECT administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros, last_login_at_micros FROM _sarmg_administrators WHERE active=1 ORDER BY username, administrator_id LIMIT ? OFFSET ?")
-            .bind(i64::from(limit)).bind(to_i64(offset)?).fetch_all(&self.pool).await?
-            .iter().map(administrator_from_row).collect()
     }
 
     async fn manage_administrator(
@@ -195,7 +190,9 @@ impl AdministratorStore for SqliteAdministratorStore {
         login.session.validate()?;
         require_action(&login.session_created_event, SecurityAction::SessionCreated)?;
         require_action(&login.login_succeeded_event, SecurityAction::LoginSucceeded)?;
-        let mut transaction = self.pool.begin().await?;
+        self.prune_inactive_sessions(login.session.created_at_micros, 128)
+            .await?;
+        let mut transaction = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let current: Option<(i64, i64)> = sqlx::query_as(
             "SELECT active, session_version FROM _sarmg_administrators WHERE administrator_id=?",
         )
@@ -230,11 +227,10 @@ impl AdministratorStore for SqliteAdministratorStore {
         Ok(())
     }
 
-    async fn rotate_session_csrf(
+    async fn touch_session(
         &self,
         session_id: &Identifier,
         expected_csrf_hash: [u8; DIGEST_BYTES],
-        csrf_hash: [u8; DIGEST_BYTES],
         now_micros: u64,
         idle_expires_at_micros: u64,
     ) -> Result<bool, Error> {
@@ -242,10 +238,9 @@ impl AdministratorStore for SqliteAdministratorStore {
             return Ok(false);
         }
         let changed = sqlx::query(
-            "UPDATE _sarmg_admin_sessions SET csrf_hash=?, last_seen_at_micros=MAX(last_seen_at_micros,?), idle_expires_at_micros=MAX(idle_expires_at_micros,?) \
-             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND created_at_micros<=? AND absolute_expires_at_micros>=?",
+            "UPDATE _sarmg_admin_sessions SET last_seen_at_micros=MAX(last_seen_at_micros,?), idle_expires_at_micros=MAX(idle_expires_at_micros,?) \
+             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND created_at_micros<=? AND absolute_expires_at_micros>=? AND EXISTS (SELECT 1 FROM _sarmg_administrators a WHERE a.administrator_id=_sarmg_admin_sessions.administrator_id AND a.active=1 AND a.session_version=_sarmg_admin_sessions.administrator_session_version)",
         )
-        .bind(csrf_hash.as_slice())
         .bind(to_i64(now_micros)?)
         .bind(to_i64(idle_expires_at_micros)?)
         .bind(session_id.as_str())
@@ -404,6 +399,10 @@ fn optional_u64(value: Option<i64>) -> Result<Option<u64>, Error> {
 
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error(
+        "expected exactly one valid active administrator; initialize an empty store before validation"
+    )]
+    ExpectedSingleActiveAdministrator,
     #[error("only one administrator is allowed")]
     AdministratorAlreadyExists,
     #[error(transparent)]

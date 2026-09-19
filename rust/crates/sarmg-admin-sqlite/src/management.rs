@@ -25,7 +25,7 @@ pub(super) async fn execute(
     context
         .validate()
         .map_err(|_| ManagementError::InvalidInput)?;
-    // Serialize authorization, last-administrator checks, data and audit writes.
+    // Serialize authorization, account checks, data and audit writes.
     // Read the clock AFTER waiting for the writer lock and password hashing.
     let mut transaction = store
         .pool
@@ -73,39 +73,6 @@ pub(super) async fn execute(
                 .map_err(ManagementError::Store)?;
             (username, SecurityAction::AdministratorAccountUpdated, true)
         }
-        AdministratorMutation::Create(_) => return Err(ManagementError::Conflict),
-        AdministratorMutation::ChangePassword {
-            administrator_id,
-            password_hash,
-        } => {
-            sarmg_admin_auth::require_current_password_hash(&password_hash)
-                .map_err(|_| ManagementError::InvalidInput)?;
-            let subject = subject(&mut transaction, &administrator_id).await?;
-            sqlx::query("UPDATE _sarmg_administrators SET password_hash=?, session_version=session_version+1, updated_at_micros=? WHERE administrator_id=?")
-                .bind(password_hash).bind(timestamp).bind(administrator_id.as_str())
-                .execute(&mut *transaction).await.map_err(storage_error)?;
-            revoke_administrator_sessions(&mut transaction, &administrator_id, now)
-                .await
-                .map_err(ManagementError::Store)?;
-            (subject, SecurityAction::AdministratorPasswordChanged, true)
-        }
-        AdministratorMutation::Disable { administrator_id } => {
-            let subject = subject(&mut transaction, &administrator_id).await?;
-            let count: i64 =
-                sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_administrators WHERE active=1")
-                    .fetch_one(&mut *transaction)
-                    .await
-                    .map_err(storage_error)?;
-            if count <= 1 {
-                return Err(ManagementError::LastAdministrator);
-            }
-            sqlx::query("UPDATE _sarmg_administrators SET active=0, session_version=session_version+1, updated_at_micros=? WHERE administrator_id=?")
-                .bind(timestamp).bind(administrator_id.as_str()).execute(&mut *transaction).await.map_err(storage_error)?;
-            revoke_administrator_sessions(&mut transaction, &administrator_id, now)
-                .await
-                .map_err(ManagementError::Store)?;
-            (subject, SecurityAction::AdministratorDisabled, true)
-        }
     };
     let primary_event = event(context, &subject, action, now)?;
     insert_audit(&mut transaction, &primary_event)
@@ -123,24 +90,6 @@ pub(super) async fn execute(
             .map_err(ManagementError::Store)?;
     }
     transaction.commit().await.map_err(storage_error)
-}
-
-async fn subject(
-    transaction: &mut Transaction<'_, Sqlite>,
-    id: &Identifier,
-) -> Result<String, Failure> {
-    let row: Option<(String, bool)> = sqlx::query_as(
-        "SELECT username, active FROM _sarmg_administrators WHERE administrator_id=?",
-    )
-    .bind(id.as_str())
-    .fetch_optional(&mut **transaction)
-    .await
-    .map_err(storage_error)?;
-    match row {
-        Some((username, true)) => Ok(username),
-        Some((_, false)) => Err(ManagementError::Conflict),
-        None => Err(ManagementError::NotFound),
-    }
 }
 
 fn event(
@@ -240,6 +189,202 @@ mod tests {
             .unwrap()
     }
 
+    async fn logical_snapshot(pool: &SqlitePool) -> Vec<Vec<Vec<String>>> {
+        let mut snapshot = Vec::new();
+        for table in [
+            "_sarmg_administrators",
+            "_sarmg_admin_sessions",
+            "_sarmg_security_audit_events",
+        ] {
+            let columns: Vec<String> = sqlx::query_scalar(&format!(
+                "SELECT name FROM pragma_table_info('{table}') ORDER BY cid"
+            ))
+            .fetch_all(pool)
+            .await
+            .unwrap();
+            let sql = format!(
+                "SELECT {} FROM {table} ORDER BY 1",
+                columns
+                    .iter()
+                    .map(|name| format!("quote({name})"))
+                    .collect::<Vec<_>>()
+                    .join(",")
+            );
+            let rows = sqlx::query(&sql).fetch_all(pool).await.unwrap();
+            snapshot.push(
+                rows.iter()
+                    .map(|row| {
+                        (0..columns.len())
+                            .map(|index| row.get::<String, _>(index))
+                            .collect()
+                    })
+                    .collect(),
+            );
+        }
+        snapshot
+    }
+
+    #[tokio::test]
+    async fn validation_rejects_noncurrent_accounts_without_writes() {
+        let f = fixture().await;
+        let store = f.service.store();
+        let before = logical_snapshot(store.pool()).await;
+        store.validate_all_administrators().await.unwrap();
+        assert_eq!(before, logical_snapshot(store.pool()).await);
+        for statement in [
+            "UPDATE _sarmg_administrators SET active=0",
+            "UPDATE _sarmg_administrators SET active=1, password_hash='invalid-phc'",
+        ] {
+            sqlx::query(statement).execute(store.pool()).await.unwrap();
+            let before = logical_snapshot(store.pool()).await;
+            assert!(store.validate_all_administrators().await.is_err());
+            assert_eq!(before, logical_snapshot(store.pool()).await);
+        }
+        let f = fixture().await;
+        create(&f, "secondary").await;
+        let before = logical_snapshot(f.service.store().pool()).await;
+        assert!(matches!(
+            f.service.store().validate_all_administrators().await,
+            Err(Error::ExpectedSingleActiveAdministrator)
+        ));
+        assert_eq!(before, logical_snapshot(f.service.store().pool()).await);
+        let empty = sarmg_sqlite::create_if_missing(
+            f._directory.path().join("empty.sqlite3"),
+            sarmg_sqlite::PoolOptions::new(2),
+        )
+        .await
+        .unwrap();
+        sqlx::raw_sql(ADMIN_PERSISTENT_DDL)
+            .execute(&empty)
+            .await
+            .unwrap();
+        let service = AdministratorService::new(SqliteAdministratorStore::new(empty));
+        let before = logical_snapshot(service.store().pool()).await;
+        assert!(service.store().validate_all_administrators().await.is_err());
+        assert_eq!(before, logical_snapshot(service.store().pool()).await);
+        assert!(
+            service
+                .bootstrap_administrator("admin", "correct horse battery", now())
+                .await
+                .unwrap()
+        );
+        service.store().validate_all_administrators().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn random_csrf_sessions_are_rejected_by_every_authentication_entry() {
+        let f = fixture().await;
+        let login = f
+            .service
+            .login(
+                "admin",
+                "correct horse battery",
+                &LoginContext {
+                    source: "127.0.0.1".into(),
+                    request_id: None,
+                    now_micros: now(),
+                },
+            )
+            .await
+            .unwrap();
+        let random = sarmg_admin_auth::random_token().unwrap();
+        sqlx::query("UPDATE _sarmg_admin_sessions SET csrf_hash=? WHERE token_hash=?")
+            .bind(sarmg_admin_auth::token_hash(&random).as_slice())
+            .bind(sarmg_admin_auth::token_hash(&login.session_token).as_slice())
+            .execute(f.service.store().pool())
+            .await
+            .unwrap();
+        let before = logical_snapshot(f.service.store().pool()).await;
+        assert!(matches!(
+            f.service.restore_session(&login.session_token, now()).await,
+            Err(sarmg_admin_core::ServiceError::InvalidSession)
+        ));
+        assert!(matches!(
+            f.service
+                .authenticate_session(&login.session_token, now())
+                .await,
+            Err(sarmg_admin_core::ServiceError::InvalidSession)
+        ));
+        assert!(matches!(
+            f.service
+                .require_csrf(&login.session_token, &[random.into_bytes()], now())
+                .await,
+            Err(sarmg_admin_core::ServiceError::InvalidSession)
+        ));
+        assert!(matches!(
+            f.service.logout(&login.session_token, now(), None).await,
+            Err(sarmg_admin_core::ServiceError::InvalidSession)
+        ));
+        assert_eq!(before, logical_snapshot(f.service.store().pool()).await);
+    }
+
+    #[tokio::test]
+    async fn login_waits_for_writer_then_revalidates_account() {
+        let f = fixture().await;
+        let store = f.service.store();
+        let row = sqlx::query("SELECT session_id, administrator_id, token_hash, csrf_hash, administrator_session_version, created_at_micros, last_seen_at_micros, idle_expires_at_micros, absolute_expires_at_micros, revoked_at_micros FROM _sarmg_admin_sessions LIMIT 1")
+            .fetch_one(store.pool()).await.unwrap();
+        let mut session = session_from_row(&row, 0).unwrap();
+        session.session_id = Identifier::new("queued-login").unwrap();
+        session.token_hash = [93; 32];
+        let login = sarmg_admin_core::LoginSuccess {
+            session,
+            session_created_event: event(
+                &f.context,
+                "admin",
+                SecurityAction::SessionCreated,
+                now(),
+            )
+            .unwrap(),
+            login_succeeded_event: event(
+                &f.context,
+                "admin",
+                SecurityAction::LoginSucceeded,
+                now(),
+            )
+            .unwrap(),
+        };
+        let mut writer = store.pool().begin_with("BEGIN IMMEDIATE").await.unwrap();
+        sqlx::query("UPDATE _sarmg_administrators SET session_version=session_version+1")
+            .execute(&mut *writer)
+            .await
+            .unwrap();
+        let mut pending = std::pin::pin!(store.commit_login_success(login));
+        assert!(
+            tokio::time::timeout(std::time::Duration::from_millis(50), &mut pending)
+                .await
+                .is_err()
+        );
+        writer.commit().await.unwrap();
+        assert!(matches!(
+            pending.await,
+            Err(Error::AdministratorNotEligible)
+        ));
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_admin_sessions")
+            .fetch_one(store.pool())
+            .await
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn session_cleanup_is_bounded_and_preserves_active_sessions_and_audit() {
+        let f = fixture().await;
+        let store = f.service.store();
+        for index in 0..3 {
+            sqlx::query("INSERT INTO _sarmg_admin_sessions SELECT ?,administrator_id,?,csrf_hash,administrator_session_version,created_at_micros,last_seen_at_micros,idle_expires_at_micros,absolute_expires_at_micros,last_seen_at_micros FROM _sarmg_admin_sessions LIMIT 1")
+                .bind(format!("expired-{index}")).bind(vec![index; 32]).execute(store.pool()).await.unwrap();
+        }
+        let audits = logical_snapshot(store.pool()).await.pop().unwrap();
+        // The scan includes the first, active row, so at most one row is deleted.
+        assert_eq!(store.prune_inactive_sessions(now(), 2).await.unwrap(), 1);
+        assert_eq!(store.prune_inactive_sessions(now(), 128).await.unwrap(), 2);
+        assert_eq!(store.prune_inactive_sessions(now(), 128).await.unwrap(), 0);
+        assert!(store.prune_inactive_sessions(now(), 129).await.is_err());
+        assert_eq!(logical_snapshot(store.pool()).await.pop().unwrap(), audits);
+        assert_eq!(logical_snapshot(store.pool()).await[1].len(), 1);
+    }
+
     #[tokio::test]
     async fn own_account_update_is_atomic_and_keeps_identity() {
         let f = fixture().await;
@@ -337,34 +482,34 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stale_touch_or_restore_cannot_resurrect_a_rotated_csrf_hash() {
+    async fn stale_touch_cannot_overwrite_a_changed_csrf_hash() {
         let f = fixture().await;
         let store = f.service.store();
         let id = &f.context.identity.session_id;
         let old = f.context.identity.csrf_hash;
         let current = [42; 32];
         let timestamp = now();
+        sqlx::query("UPDATE _sarmg_admin_sessions SET csrf_hash=? WHERE session_id=?")
+            .bind(current.as_slice())
+            .bind(id.as_str())
+            .execute(store.pool())
+            .await
+            .unwrap();
         assert!(
-            store
-                .rotate_session_csrf(id, old, current, timestamp, timestamp + 1_000_000)
+            !store
+                .touch_session(id, old, timestamp + 1, timestamp + 1_000_000)
                 .await
                 .unwrap()
         );
         assert!(
             !store
-                .rotate_session_csrf(id, old, old, timestamp + 1, timestamp + 1_000_000)
-                .await
-                .unwrap()
-        );
-        assert!(
-            !store
-                .rotate_session_csrf(id, old, [43; 32], timestamp + 2, timestamp + 1_000_000)
+                .touch_session(id, old, timestamp + 2, timestamp + 1_000_000)
                 .await
                 .unwrap()
         );
         assert!(
             store
-                .rotate_session_csrf(id, current, current, timestamp - 1, timestamp + 1_000_000)
+                .touch_session(id, current, timestamp - 1, timestamp + 1_000_000)
                 .await
                 .unwrap()
         );
@@ -377,53 +522,9 @@ mod tests {
         assert_eq!(stored, current);
         assert!(matches!(
             f.service
-                .disable_administrator(&f.context, f.context.identity.administrator_id.as_str())
+                .update_own_account(&f.context, "admin", "correct horse battery", None)
                 .await,
             Err(ManagementError::Unauthorized)
-        ));
-    }
-
-    #[tokio::test]
-    async fn only_one_administrator_can_be_created_and_legacy_access_is_revoked() {
-        let f = fixture().await;
-        assert!(matches!(
-            f.service
-                .create_administrator(&f.context, "other", "another correct password")
-                .await,
-            Err(ManagementError::Conflict)
-        ));
-        assert!(
-            !f.service
-                .bootstrap_administrator("other", "another correct password", now())
-                .await
-                .unwrap()
-        );
-        let legacy = create(&f, "legacy").await;
-        f.service
-            .store()
-            .validate_all_administrators()
-            .await
-            .unwrap();
-        let count: i64 =
-            sqlx::query_scalar("SELECT COUNT(*) FROM _sarmg_administrators WHERE active=1")
-                .fetch_one(f.service.store().pool())
-                .await
-                .unwrap();
-        assert_eq!(count, 1);
-        assert!(
-            !f.service
-                .store()
-                .administrator_by_username(&legacy.username)
-                .await
-                .unwrap()
-                .unwrap()
-                .active
-        );
-        assert!(matches!(
-            f.service
-                .disable_administrator(&f.context, f.context.identity.administrator_id.as_str())
-                .await,
-            Err(ManagementError::LastAdministrator)
         ));
     }
 
@@ -474,13 +575,13 @@ mod tests {
         let deadline = timestamp + sarmg_admin_core::SESSION_IDLE_MICROS;
         assert!(
             store
-                .rotate_session_csrf(id, hash, hash, timestamp + 100, deadline + 100)
+                .touch_session(id, hash, timestamp + 100, deadline + 100)
                 .await
                 .unwrap()
         );
         assert!(
             store
-                .rotate_session_csrf(id, hash, hash, timestamp, deadline)
+                .touch_session(id, hash, timestamp, deadline)
                 .await
                 .unwrap()
         );

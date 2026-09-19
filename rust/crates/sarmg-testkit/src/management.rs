@@ -1,5 +1,5 @@
 use super::*;
-use sarmg_contracts::{ADMINISTRATORS_PATH, AdministratorSummary};
+use sarmg_contracts::{ADMIN_ACCOUNT_PATH, ADMINISTRATORS_PATH};
 
 /// Run on a fresh persistent store containing only the standard test account.
 pub async fn assert_administrator_management_http_contract<F, Fut>(send: F)
@@ -8,7 +8,7 @@ where
     Fut: Future<Output = Response>,
 {
     assert_error(
-        send(request(Method::GET, ADMINISTRATORS_PATH, "")).await,
+        send(request(Method::POST, ADMIN_ACCOUNT_PATH, "{}")).await,
         StatusCode::UNAUTHORIZED,
         "auth.session_required",
     )
@@ -35,8 +35,8 @@ where
         );
         request
     };
-    let create = r#"{"username":"secondary","password":"another correct password"}"#;
-    let mut no_csrf = authorized(Method::POST, ADMINISTRATORS_PATH, create);
+    let create = r#"{"username":"secondary","current_password":"another correct password"}"#;
+    let mut no_csrf = authorized(Method::POST, ADMIN_ACCOUNT_PATH, create);
     no_csrf.headers_mut().remove("x-csrf-token");
     assert_error(
         send(no_csrf).await,
@@ -50,7 +50,7 @@ where
         header::COOKIE,
         header::HeaderName::from_static("x-csrf-token"),
     ] {
-        let mut duplicate = authorized(Method::POST, ADMINISTRATORS_PATH, create);
+        let mut duplicate = authorized(Method::POST, ADMIN_ACCOUNT_PATH, create);
         let value = duplicate.headers()[&name].clone();
         duplicate.headers_mut().append(name.clone(), value);
         let (status, code) = if name == header::COOKIE {
@@ -67,7 +67,7 @@ where
         r#"{"username":"secondary","username":"other","password":"another correct password"}"#,
     ] {
         assert_error(
-            send(authorized(Method::POST, ADMINISTRATORS_PATH, body)).await,
+            send(authorized(Method::POST, ADMIN_ACCOUNT_PATH, body)).await,
             StatusCode::BAD_REQUEST,
             "admin.invalid_request",
         )
@@ -76,7 +76,7 @@ where
     assert_error(
         send(authorized(
             Method::POST,
-            ADMINISTRATORS_PATH,
+            ADMIN_ACCOUNT_PATH,
             &"x".repeat(16385),
         ))
         .await,
@@ -84,7 +84,7 @@ where
         "admin.body_too_large",
     )
     .await;
-    let mut wrong_type = authorized(Method::POST, ADMINISTRATORS_PATH, create);
+    let mut wrong_type = authorized(Method::POST, ADMIN_ACCOUNT_PATH, create);
     wrong_type
         .headers_mut()
         .insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
@@ -94,25 +94,23 @@ where
         "admin.content_type_required",
     )
     .await;
-    assert_error(
-        send(authorized(Method::POST, ADMINISTRATORS_PATH, create)).await,
-        StatusCode::CONFLICT,
-        "admin.conflict",
-    )
-    .await;
-    let root_disable = format!("{ADMINISTRATORS_PATH}/{}/disable", session.user_id);
-    assert_error(
-        send(authorized(Method::POST, &root_disable, "")).await,
-        StatusCode::CONFLICT,
-        "admin.last_administrator",
-    )
-    .await;
-    let listed = send(authorized(Method::GET, ADMINISTRATORS_PATH, "")).await;
-    assert_eq!(listed.status(), StatusCode::OK);
-    let records: Vec<AdministratorSummary> =
-        serde_json::from_slice(&to_bytes(listed.into_body(), 8192).await.unwrap()).unwrap();
-    assert_eq!(records.len(), 1);
-    assert_eq!(records[0].username, "admin");
+    for (method, path) in [
+        (Method::GET, ADMINISTRATORS_PATH.to_owned()),
+        (Method::POST, ADMINISTRATORS_PATH.to_owned()),
+        (
+            Method::POST,
+            format!("{ADMINISTRATORS_PATH}/{}/password", session.user_id),
+        ),
+        (
+            Method::POST,
+            format!("{ADMINISTRATORS_PATH}/{}/disable", session.user_id),
+        ),
+    ] {
+        assert_eq!(
+            send(authorized(method, &path, create)).await.status(),
+            StatusCode::NOT_FOUND
+        );
+    }
     // The self-service endpoint uses the same transport guards on both adapters.
     let login = send(request(
         Method::POST,
