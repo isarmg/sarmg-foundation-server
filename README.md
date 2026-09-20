@@ -64,11 +64,12 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 
 ### 1.3 管理 Web 默认外观
 
-当前源码的 `@sarmg/admin-ui/styles.css` 默认提供 Union 内容块外观（3:2 六行卡片、
-旧版色板及圆角），当前默认西文字体为 Maple Mono Normal NL 正体，中文/日文资源保持不变。
+当前源码的 `@sarmg/admin-ui/styles.css` 默认提供通用内容块外观（源自 Union 设计，包含 3:2 六行卡片、
+色板及圆角），当前默认西文字体为 Maple Mono Normal NL 正体，中文/日文资源保持不变。
 消费者可设置 `html[data-sarmg-appearance="custom"]` 或其他自定义名称并加载自己的 CSS。
 默认外观不是强制品牌规范，自定义外观不能改变认证、会话、权限及无障碍要求。
 详见 [默认外观与消费者自定义](packages/admin-ui/CONTENT-BLOCKS.md)。
+Foundation 只拥有展示原语；实例、授权码、硬件、摄像头及其他业务内容始终留在产品 Web。消费者从发布包导入样式，不复制 Foundation CSS。
 0.7.5 在 0.7.3 的无闪烁启动表面基础上加入首屏 Maple 子集，将静态管理 UI 的中西文字体压缩为每个字重一个请求。外壳只等待首屏字体，并在 1.2 秒内稳定选择 Maple 或系统回退，不再等待整个 `FontFaceSet`。
 
 ## 2. 统一后的硬边界
