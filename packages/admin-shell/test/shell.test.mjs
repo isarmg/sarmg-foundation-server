@@ -15,6 +15,8 @@ test("navigation rejects external targets, ambiguous paths and duplicate entries
   }
   assert.throws(() => createSarmgAdminApplication({ ...base, navigation: [{ label: "A", href: "/a" }, { label: "B", href: "/a" }] }), /Navigation/);
   assert.equal(typeof createSarmgAdminApplication({ ...base, navigation: [{ label: "Good", href: "#overview" }] }), "function");
+  assert.equal(typeof createSarmgAdminApplication({ ...base, navigation: [], loginLandingHref: "#instances" }), "function");
+  assert.throws(() => createSarmgAdminApplication({ ...base, navigation: [], loginLandingHref: "https://example.com" }), /Login landing/);
 });
 test("shared login renders labels and current credential bounds", () => {
   const html = renderToStaticMarkup(h(LoginPage, { async login() {} }));

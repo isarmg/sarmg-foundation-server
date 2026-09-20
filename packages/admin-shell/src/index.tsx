@@ -28,6 +28,8 @@ export type AdminApplicationOptions = {
   product: ProductIdentity;
   client?: AdministratorApiClient;
   navigation: readonly NavigationItem[];
+  /** Local route selected once an administrator session becomes available. */
+  loginLandingHref?: string;
   routes: ReactNode;
   workspace?: Partial<WorkspaceConfig>;
 };
@@ -78,6 +80,11 @@ export function createSarmgAdminApplication(options: AdminApplicationOptions) {
     }
     seen.add(item.href);
   }
+  if (options.loginLandingHref !== undefined
+    && (!/^(?:\/(?!\/)|#)/.test(options.loginLandingHref)
+      || /[\\\u0000-\u0020\u007f]/.test(options.loginLandingHref))) {
+    throw new TypeError("Login landing route must be a local link");
+  }
   options = { ...options, workspace: resolveWorkspaceConfig(options.workspace) };
   const client = options.client ?? createAdministratorApiClient();
   return function SarmgAdminApplication() {
@@ -96,8 +103,20 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
   const toastTimers = useRef(new Map<number, number>());
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const [headerNavigation, setHeaderNavigation] = useState<HTMLDivElement | null>(null);
+  const [landingComplete, setLandingComplete] = useState(options.loginLandingHref === undefined);
   const activeFontFamily = fontState === "fallback" && workspace.fontFamily.includes("Sarmg Maple")
     ? "ui-monospace,monospace" : workspace.fontFamily;
+  useEffect(() => {
+    if (session.phase === "authenticated") {
+      if (!landingComplete) {
+        window.history.replaceState(null, "", options.loginLandingHref);
+        setLocation(window.location.pathname + window.location.hash);
+        setLandingComplete(true);
+      }
+    } else if (options.loginLandingHref !== undefined && landingComplete) {
+      setLandingComplete(false);
+    }
+  }, [session.phase, landingComplete, options.loginLandingHref]);
   useEffect(() => {
     const root = document.documentElement;
     const previous = { appearance: root.dataset.sarmgAppearance, selection: root.dataset.sarmgSelection, font: root.style.getPropertyValue("--sarmg-font-ui"), mono: root.style.getPropertyValue("--sarmg-font-mono") };
@@ -146,7 +165,8 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     if (session.phase === "authenticated" && accountUpdated) setAccountUpdated(false);
   }, [session.phase, accountUpdated]);
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
-  if (session.phase === "loading" || fontState === "loading") return <ApplicationBootScreen />;
+  if (session.phase === "loading" || fontState === "loading"
+    || (session.phase === "authenticated" && !landingComplete)) return <ApplicationBootScreen />;
   if (session.phase !== "authenticated") {
     return <div className="sarmg-auth-shell"><div className="sarmg-auth-language" style={{ position: "absolute", insetBlockStart: "1rem", insetInlineEnd: "1rem" }}><LanguageToggle /></div><div className="sarmg-auth-content">
       {accountUpdated && <p role="status">{t("账号已更新，请使用新账号信息登录。", "Account updated. Sign in with your updated credentials.")}</p>}
