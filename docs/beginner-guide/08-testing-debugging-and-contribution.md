@@ -21,7 +21,7 @@ primitive单元测试
 
 产品集成测试
 ├─ 真实router/DB/Cookie/proxy
-├─ 真实clients/web bundle
+├─ 真实web bundle
 ├─ release/install/start
 └─ 产品specific安全规则
 ```

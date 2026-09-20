@@ -81,7 +81,7 @@ Windows、macOS 和32位目标。这个限制不能误加到 Host Monitor Client
 
 ### 4.3 Web 统一但 Dufs 例外
 
-Host、Media、Sentinel、Sunshine 的管理 Web 位于 `clients/web`，使用精确 React/Vite/TypeScript/Node基线。
+Host、Media、Sentinel、Sunshine 的管理 Web 位于 `web`，使用精确 React/Vite/TypeScript/Node基线。
 Dufs 保留原生 ES modules 和嵌入 binary 的交付模型，但仍使用相同管理员 wire、username/密码/token和Server端
 同源/CSRF规则。
 

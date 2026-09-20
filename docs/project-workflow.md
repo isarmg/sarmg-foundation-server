@@ -258,7 +258,7 @@ Foundation 发布 identity 使用 `source-any`，Upgrade 的 CLI 发行目标由
 
 ### 9.1 产品 Web
 
-除 Dufs 外，每个产品 Web 位于 `clients/web` 并执行：
+除 Dufs 外，每个产品 Web 位于 `web` 并执行：
 
 ```text
 package.json + .node-version

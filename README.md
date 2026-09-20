@@ -126,7 +126,7 @@ sarmg-foundation-server/
 └─ docs/                      # 中文学习、流程、功能边界和运维文档
 ```
 
-`packages/` 是发布依赖，不是可运行客户端；因此不放入其他产品统一使用的 `clients/web`。本仓没有运行时
+`packages/` 是发布依赖，不是可运行客户端；因此不放入其他产品统一使用的 `web`。本仓没有运行时
 `config/`、`deploy/` 或 `clients/`，因为它没有需要部署的 Server、配置文件或产品 UI。目录只在对应纵向
 切片进入实现阶段时创建，不预建空 crate。
 

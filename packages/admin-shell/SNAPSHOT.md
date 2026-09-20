@@ -7,7 +7,7 @@
 公共默认值、消费者覆盖和产品对象映射见 [工作区配置](../../docs/admin-workspace.md)。
 
 消费者从不可变 Release tarball 安装 `@sarmg/admin-shell`、`@sarmg/admin-ui` 等包并固定 lockfile integrity，
-只使用一套 Shell Context；不再生成 `clients/web/shell/` 快照，也不需要同级 Foundation checkout。
+只使用一套 Shell Context；不再生成 `web/shell/` 快照，也不需要同级 Foundation checkout。
 通用原生 Web 入口仍供选择 `web-embedded-native` 的其他消费者使用，不表示 Dufs 仍是原生页面。
 
 本文件保留原文档路径以便查阅；旧快照分发方式不是当前构建流程。

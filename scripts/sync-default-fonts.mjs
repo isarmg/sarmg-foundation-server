@@ -15,8 +15,8 @@ for (const name of names) {
 if (process.argv.length < 3) throw new Error("Pass explicit product repository roots");
 for (const argument of process.argv.slice(2)) {
   const product = resolve(argument);
-  await readFile(join(product, "clients/web/package.json"));
-  const destination = join(product, "clients/web/fonts");
+  await readFile(join(product, "web/package.json"));
+  const destination = join(product, "web/fonts");
   await mkdir(destination, { recursive: true });
   // Remove only the verified, previously distributed Western faces, never user files.
   for (const name of ["MapleMono.woff2", "MapleMono-Italic.woff2"]) {

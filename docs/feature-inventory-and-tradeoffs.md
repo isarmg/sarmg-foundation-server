@@ -35,7 +35,7 @@
 | FND-012 | Web workspace Node 26.7.0、pnpm 10.12.1、TS 5.8.3 | `.node-version`、root/package manifest、lock | 开发运维 | 中 | 本地/CI/package 构建结果不一致 | policy + frozen install + package smoke |
 | FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，22 个 crate 各携带普通单链接 byte-exact LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | workspace/package manifests、`LICENSE`、各 crate `LICENSE`、`foundation_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、22/22 `cargo package --list`、npm tar inventory、Dufs notices E2E |
 | FND-014 | Foundation 无 `config/`、`deploy/`、`clients/` | 仓库布局 | 核心 | 低 | 容易误认为存在在线服务或产品 UI | 目录与 state contract 审查 |
-| FND-015 | 发布 package 放 `packages/` 而非产品 `clients/web` | monorepo 布局 | 核心 | 低 | 发布依赖与可运行客户端职责混淆 | package exports 与消费者 import 验证 |
+| FND-015 | 发布 package 放 `packages/` 而非产品 `web` | monorepo 布局 | 核心 | 低 | 发布依赖与可运行客户端职责混淆 | package exports 与消费者 import 验证 |
 
 ## 2. 管理员身份与密码：`sarmg-admin-auth`
 
@@ -412,7 +412,7 @@
 | FND-390 | backup/restore journal与crash recovery | 升级工具/产品adapter | 核心 | 高 | 资源组合/Secret/原子替换语义被错误泛化 | 共享只提供manifest contract |
 | FND-391 | 自动HTTP retry和mutation幂等 | 每个业务调用方 | 核心 | 高 | 通用层重复未知副作用 | http-client fetch一次；产品operation测试 |
 | FND-392 | 文件/媒体stream transport | 产品client | 核心 | 高 | JSON body预算/parse不适用且占内存 | http-client只处理有界JSON |
-| FND-393 | Web路由、页面、品牌、业务store | 各`clients/web` | 核心 | 高 | 产品被同一UI发布周期和信息架构耦合 | admin-web只提供auth/request/build primitive |
+| FND-393 | Web路由、页面、品牌、业务store | 各`web` | 核心 | 高 | 产品被同一UI发布周期和信息架构耦合 | admin-web只提供auth/request/build primitive |
 | FND-394 | 浏览器Session持久化 | 明确不实现 | 保障 | 高 | token长期暴露并改变重载/跨tab安全语义 | 无local/sessionStorage/IndexedDB源码 |
 | FND-395 | UI组件库与字体 | 各产品 | 核心 | 中 | 表面统一扩大bundle和视觉耦合 | design package只含primitive CSS/TS |
 | FND-396 | Dufs React/Vite迁移 | Dufs原生ES modules | 核心 | 高 | 重写成熟嵌入前端而无业务收益 | Dufs只共享管理员后端/wire合同 |

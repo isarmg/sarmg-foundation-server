@@ -5,9 +5,9 @@ import { resolve, extname, join } from "node:path";
 import { chromium, firefox } from "@playwright/test";
 
 for (const argument of process.argv.slice(2)) {
-  const provenance = JSON.parse(await readFile(resolve(argument, "clients/web/fonts/provenance.json"), "utf8"));
+  const provenance = JSON.parse(await readFile(resolve(argument, "web/fonts/provenance.json"), "utf8"));
   const latinName = provenance.latin?.variant === "Normal NL" ? "MapleMonoNormalNL-Regular" : "MapleMono-Italic";
-  const root = resolve(argument, "clients/web/dist");
+  const root = resolve(argument, "web/dist");
   const styles = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
     if (entry.isFile() && entry.name.endsWith(".css")) styles.push(entry.name);

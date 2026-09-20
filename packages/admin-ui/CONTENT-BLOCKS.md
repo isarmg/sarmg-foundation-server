@@ -25,7 +25,7 @@
 ## 当前发行接入
 
 五个管理 Web 的本轮目标基线均为正式 Foundation 0.8.2 包。
-直接导入 `@sarmg/admin-ui/styles.css`；包已包含默认内容块 CSS，不再复制到产品 `clients/web/appearance/`，
+直接导入 `@sarmg/admin-ui/styles.css`；包已包含默认内容块 CSS，不再复制到产品 `web/appearance/`，
 也不执行旧的源码快照同步命令。消费者固定 Release tarball URL 与 lockfile integrity，独立构建不需要同级 Foundation 源码。
 
 Foundation 只拥有这些展示类、默认 token 和无障碍行为。卡片里出现哪些字段、统计规则、实例操作、图表数据和业务事件由产品拥有；不得向本包加入产品 DTO、端点、错误码或产品名称分支。

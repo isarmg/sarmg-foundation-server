@@ -13,7 +13,7 @@
 @sarmg/web-toolchain
 └─ /vite：React/Vite配置
 
-产品clients/web
+产品web
 └─ 页面、路由、业务API guard、品牌、错误文案、媒体/文件transport
 ```
 
