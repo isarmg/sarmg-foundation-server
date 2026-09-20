@@ -76,6 +76,7 @@ test("diagnostics is removed; bounded notifications, theme and error boundary re
   const notifications = await page.getByRole("region", { name: "Notifications", exact: true }).boundingBox();
   const product = await page.getByRole("heading", { name: "Product overview", exact: true }).boundingBox();
   expect(notifications.y + notifications.height).toBeLessThanOrEqual(product.y);
+  await expect(page.getByRole("button", { name: "Dismiss notification" })).toHaveCount(0, { timeout: 7_000 });
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("button", { name: "Crash product route" }).click();

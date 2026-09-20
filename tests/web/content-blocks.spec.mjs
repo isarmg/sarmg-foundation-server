@@ -122,3 +122,21 @@ test("menu-to-content and content-to-subheading spacing use one Foundation defau
     expect(spacing.contentToSubheading).toBeCloseTo(16, 1);
   }
 });
+
+test("table headings, values and operation groups share left alignment", async ({ page }) => {
+  await api(page); await page.goto("/");
+  await page.getByLabel("Username", { exact: true }).fill("admin");
+  await page.getByLabel("Password", { exact: true }).fill("correct-password");
+  await page.keyboard.press("Enter");
+  await page.locator(".sarmg-shell-main").evaluate(main => {
+    const region = document.createElement("div");
+    region.className = "sarmg-table-scroll";
+    region.innerHTML = '<table class="sarmg-table"><thead><tr><th>Actions</th></tr></thead><tbody><tr><td><div class="sarmg-actions"><button>Delete</button></div></td></tr></tbody></table>';
+    main.append(region);
+  });
+  const table = page.locator(".sarmg-table");
+  expect(await table.locator("th").evaluate(element => getComputedStyle(element).textAlign)).toBe("left");
+  expect(await table.locator("td").evaluate(element => getComputedStyle(element).textAlign)).toBe("left");
+  expect(await table.locator(".sarmg-actions").evaluate(element => getComputedStyle(element).justifyContent)).toBe("flex-start");
+  expect(await table.locator(".sarmg-actions").evaluate(element => getComputedStyle(element).marginTop)).toBe("0px");
+});

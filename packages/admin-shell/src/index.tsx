@@ -36,6 +36,7 @@ type ApplicationContext = {
   session: NonNullable<AdministratorSessionController["session"]>;
   notify(message: string): void;
 };
+const TOAST_AUTO_DISMISS_MS = 5_000;
 const Context = createContext<ApplicationContext | null>(null);
 export function useAdminApplication(): ApplicationContext {
   const context = useContext(Context);
@@ -92,6 +93,7 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
   const [logoutPending, setLogoutPending] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
   const sequence = useRef(0);
+  const toastTimers = useRef(new Map<number, number>());
   const [headerActions, setHeaderActions] = useState<HTMLDivElement | null>(null);
   const [headerNavigation, setHeaderNavigation] = useState<HTMLDivElement | null>(null);
   const activeFontFamily = fontState === "fallback" && workspace.fontFamily.includes("Sarmg Maple")
@@ -110,9 +112,23 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
       if (previous.font) root.style.setProperty("--sarmg-font-ui", previous.font); else root.style.removeProperty("--sarmg-font-ui");
     };
   }, [workspace.appearance, workspace.selection, workspace.fontFamily, activeFontFamily]);
+  const dismissToast = useCallback((id: number) => {
+    const timer = toastTimers.current.get(id);
+    if (timer !== undefined) window.clearTimeout(timer);
+    toastTimers.current.delete(id);
+    setToasts(current => current.filter(item => item.id !== id));
+  }, []);
+  useEffect(() => () => {
+    for (const timer of toastTimers.current.values()) window.clearTimeout(timer);
+    toastTimers.current.clear();
+  }, []);
   const notify = useCallback((message: string) => {
     const id = ++sequence.current;
     setToasts(current => [...current.slice(-4), { id, message: message.slice(0, 512) }]);
+    toastTimers.current.set(id, window.setTimeout(() => {
+      toastTimers.current.delete(id);
+      setToasts(current => current.filter(item => item.id !== id));
+    }, TOAST_AUTO_DISMISS_MS));
   }, []);
   const [location, setLocation] = useState(() => typeof window === "undefined" ? "" : window.location.pathname + window.location.hash);
   useEffect(() => {
@@ -122,7 +138,11 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
     return () => { window.removeEventListener("popstate", changed); window.removeEventListener("hashchange", changed); };
   }, []);
   useEffect(() => {
-    if (session.phase !== "authenticated") setToasts([]);
+    if (session.phase !== "authenticated") {
+      for (const timer of toastTimers.current.values()) window.clearTimeout(timer);
+      toastTimers.current.clear();
+      setToasts([]);
+    }
     if (session.phase === "authenticated" && accountUpdated) setAccountUpdated(false);
   }, [session.phase, accountUpdated]);
   const identity = <div className="sarmg-product-identity"><strong>{options.product.name}</strong></div>;
@@ -161,7 +181,7 @@ function AdminShell({ options, client }: { options: AdminApplicationOptions; cli
       </div></PageHeader>
       {toasts.length > 0 && <div className="sarmg-toast-stack" role="region" aria-label={t("通知", "Notifications")}>{toasts.map(toast =>
         <Toast key={toast.id}><span>{toast.message}</span>
-          <IconButton aria-label={t("关闭通知", "Dismiss notification")} onClick={() => setToasts(current => current.filter(item => item.id !== toast.id))}>×</IconButton>
+          <IconButton aria-label={t("关闭通知", "Dismiss notification")} onClick={() => dismissToast(toast.id)}>×</IconButton>
         </Toast>)}</div>}
       <div className="sarmg-shell-layout sarmg-shell-layout--full"><main id="sarmg-main-content" className="sarmg-shell-main" tabIndex={-1}>
         <ApplicationErrorBoundary resetKey={location}><WorkspaceContext.Provider value={workspace}><HeaderNavigationContext.Provider value={headerNavigation}><HeaderActionsContext.Provider value={headerActions}>{options.routes}</HeaderActionsContext.Provider></HeaderNavigationContext.Provider></WorkspaceContext.Provider></ApplicationErrorBoundary>

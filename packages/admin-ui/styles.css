@@ -15,7 +15,8 @@
 .sarmg-actions { justify-content: flex-end; margin-top: 1.5rem; }
 .sarmg-table-scroll { max-width: 100%; overflow: auto; }
 .sarmg-table { width: 100%; border-collapse: collapse; }
-.sarmg-table :is(th,td) { padding: .7rem; text-align: start; border-bottom: 1px solid currentColor; }
+.sarmg-table :is(th,td) { padding: .7rem; text-align: left; border-bottom: 1px solid currentColor; }
+.sarmg-table .sarmg-actions { justify-content: flex-start; margin-top: 0; }
 .sarmg-status { display: inline-block; padding: .15rem .5rem; border: 1px solid currentColor; border-radius: 1rem; }
 .sarmg-error,.sarmg-empty,.sarmg-loading { padding: 1rem; overflow-wrap: anywhere; }
 .sarmg-error { border: 1px solid currentColor; border-radius: var(--sarmg-radius-sm,6px); }
