@@ -22,7 +22,7 @@
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
 | FND-001 | 纯 build-time 共享层，不运行中央 Foundation service | 根 README、Cargo/npm workspace、state contract 无资源 | 核心 | 高 | 引入生产网络依赖、中央故障域和所有产品锁步发布 | 消费者制品断网运行；无监听/daemon/config |
-| FND-002 | 22 个 Rust crate 与 8 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
+| FND-002 | 20 个 Rust crate 与 8 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
 | FND-003 | 全组件统一版本 `0.5.0` | workspace version、package version、`foundation_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
 | FND-004 | 只提供唯一当前 API/合同/算法 | crate/package public API、strict guard、文档 | 核心 | 高 | 兼容分支和测试矩阵持续膨胀，产品边界不可证明 | 不存在 alias、dual reader/write、deprecated export |
 | FND-005 | 历史迁移/备份/恢复归 `sarmg-upgrade` 与产品 adapter | README、合同边界、空 Foundation state | 核心 | 高 | 在线 runtime 被非当前解析器和高权限修改逻辑污染 | Foundation 不含 migration edge 或产品 DDL |
@@ -33,7 +33,7 @@
 | FND-010 | Clippy 禁止 `dbg!` 与 `todo!` | `[workspace.lints.clippy]` | 开发运维 | 低 | 临时诊断或未实现路径进入发布 crate | clippy `-D warnings` |
 | FND-011 | Rust edition 2024、MSRV/toolchain 1.98 | workspace、`rust-toolchain.toml` | 开发运维 | 中 | 各 crate 编译语义和依赖解析漂移 | fixed toolchain check/test/doc |
 | FND-012 | Web workspace Node 26.7.0、pnpm 10.12.1、TS 5.8.3 | `.node-version`、root/package manifest、lock | 开发运维 | 中 | 本地/CI/package 构建结果不一致 | policy + frozen install + package smoke |
-| FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，22 个 crate 各携带普通单链接 byte-exact LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | workspace/package manifests、`LICENSE`、各 crate `LICENSE`、`foundation_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、22/22 `cargo package --list`、npm tar inventory、Dufs notices E2E |
+| FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，20 个 crate 各携带普通单链接 byte-exact LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | workspace/package manifests、`LICENSE`、各 crate `LICENSE`、`foundation_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、20/20 `cargo package --list`、npm tar inventory、Dufs notices E2E |
 | FND-014 | Foundation 无 `config/`、`deploy/`、`clients/` | 仓库布局 | 核心 | 低 | 容易误认为存在在线服务或产品 UI | 目录与 state contract 审查 |
 | FND-015 | 发布 package 放 `packages/` 而非产品 `web` | monorepo 布局 | 核心 | 低 | 发布依赖与可运行客户端职责混淆 | package exports 与消费者 import 验证 |
 

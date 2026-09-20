@@ -1,9 +1,11 @@
-# 当前 Shell 发行与接入
+# Shell 0.7.x 消费者快照
 
 共享 Shell 提供亮/暗图标切换、顶部导航和全宽内容；诊断入口、面板和专用前端解析器已移除。
 认证 client、CSRF 和管理员合同由正式 Foundation 包提供，不在产品中复制。
 
-四个控制平面消费者固定 0.7.0，Dufs 固定 0.7.1 的 React Profile。Dufs 的登录、导航和页面结构由 React 渲染，文件/上传控制器保留独占 DOM 区域和既有协议。
+下述消费者版本是 0.7.x 阶段的历史验收快照，不代表当前 `0.8.2` 采用状态。四个控制平面消费者当时
+固定 0.7.0，Dufs 固定 0.7.1 的 React Profile。Dufs 的登录、导航和页面结构由 React 渲染，文件/上传
+控制器保留独占 DOM 区域和既有协议。
 公共默认值、消费者覆盖和产品对象映射见 [工作区配置](../../docs/admin-workspace.md)。
 
 消费者从不可变 Release tarball 安装 `@sarmg/admin-shell`、`@sarmg/admin-ui` 等包并固定 lockfile integrity，

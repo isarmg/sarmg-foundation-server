@@ -1,6 +1,6 @@
 # Filesystem handles and publication boundaries
 
-The current server filesystem primitives are being hardened and adopted in P8. This document describes the implemented Unix/Linux server boundary, not completion of every server consumer's acceptance gates. Windows/macOS Client filesystem contracts belong exclusively to sarmg-foundation-client.
+This document describes the implemented Unix/Linux server boundary, not completion of every server consumer's acceptance gates. Windows/macOS Client filesystem contracts belong exclusively to sarmg-foundation-client.
 
 ## Unix private state
 
@@ -36,4 +36,6 @@ Products may retain business-specific symlink, upload metadata, tree mutation an
 
 ## Remaining acceptance
 
-Server-side raw-path staging operations, cross-directory publication, bounded inventories at every consumer, and Upgrade adoption still require implementation and acceptance. Passing the Linux library tests is not P8 completion. Client Spool and native client acceptance are tracked only in sarmg-foundation-client, not governed by this server specification.
+Server-side product staging, cross-directory publication and bounded inventories require acceptance in each adopting consumer.
+Passing Foundation Linux library tests proves only the shared primitives exercised there. Client Spool and native client
+acceptance are tracked only in sarmg-foundation-client, not governed by this server specification.

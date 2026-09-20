@@ -258,7 +258,7 @@ YAML anchor 和 action outside steps。修改 workflow policy 时必须同时新
 - 版本与工具链事实源一致；
 - 至少一个会实际触发本次改动的真实消费者完成发布前联调；若改动跨语言 wire、认证、Schema 算法或 Web
   runtime，必须覆盖至少两个不同产品，不能用 Foundation 自测替代消费者证据；
-- 十三个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
+- 20 个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
 - GitHub 不存在同名 tag/release；
 - tag `v0.8.2` 精确指向当前 HEAD，source revision 为完整小写 SHA。
 
@@ -278,9 +278,13 @@ sarmg-foundation-server-release/
 ├─ release-tree.json
 └─ artifacts/
    ├─ sarmg-admin-web-0.8.2.tgz
+   ├─ sarmg-admin-shell-0.8.2.tgz
+   ├─ sarmg-admin-ui-0.8.2.tgz
    ├─ sarmg-contracts-0.8.2.tgz
    ├─ sarmg-design-tokens-0.8.2.tgz
    ├─ sarmg-http-client-0.8.2.tgz
+   ├─ sarmg-web-fonts-0.8.2.tgz
+   ├─ sarmg-web-toolchain-0.8.2.tgz
    ├─ sarmg-release-tool-0.8.2.tar.gz
    ├─ state-contract.json
    ├─ release-identity.json
@@ -290,7 +294,7 @@ sarmg-foundation-server-release/
 
 Foundation state contract 的 `schema=null`，lock/resource/external/companion 数组为空，因为本仓无运行时状态。
 release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool bundle 固定 mtime/owner/group/mode和
-排序；inventory 描述精确 toolchain、两个 lockfile hash、22 个 crate、8 个 package 和已生成资产。
+排序；inventory 描述精确 toolchain、两个 lockfile hash、20 个 crate、8 个 package 和已生成资产。
 
 ### 11.3 Release-tree 防护
 

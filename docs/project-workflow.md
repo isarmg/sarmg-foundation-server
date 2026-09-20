@@ -271,8 +271,9 @@ package.json + .node-version
 ```
 
 消费者目前使用 npm 与 `package-lock.json`；Foundation monorepo 使用 pnpm 与 `pnpm-lock.yaml`。共享断言不
-强制消费者改用 pnpm。Dufs 选择正式的 `web-embedded-native` Profile：原生 ES modules 被嵌入单
-binary，同时采用统一 Admin Client、设计令牌和字体资产。这是通用运行形态，不是产品特判。
+强制消费者改用 pnpm。Dufs 当前选择 `web-react-admin` Profile：React/Foundation 拥有登录、导航和页面
+骨架，原生 ES modules 的文件业务控制器保留独占 DOM 区域；两者一同嵌入单 binary。这是明确的组件
+所有权边界，不是第二套认证或前端入口。
 
 ### 9.2 Foundation package
 
@@ -329,7 +330,7 @@ React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依
 main 工作树完全干净
 ├─ 全部 Rust/Web/Python/package 门禁通过
 ├─ Cargo/npm/policy 版本一致（消费者报告独立维护）
-├─ 十三个 Cargo package 均携带审核过的根 LICENSE
+├─ 20 个 Cargo package 均携带审核过的根 LICENSE
 ├─ 创建唯一 annotated v0.5.0 tag
 ├─ push tag 触发唯一 release job
 ├─ 再次运行全部门禁

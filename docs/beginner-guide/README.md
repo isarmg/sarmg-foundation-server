@@ -79,11 +79,12 @@ React/Vite管理Web（Dufs除外）
 业务 Server 唯一 target 是 `x86_64-unknown-linux-gnu`。`sarmg-server-target` 在编译期拒绝 ARM、musl、
 Windows、macOS 和32位目标。这个限制不能误加到 Host Monitor Client、Android/iOS、移动FFI或其他客户端。
 
-### 4.3 Web 统一但 Dufs 例外
+### 4.3 Web 统一，业务模块可保留明确边界
 
 Host、Media、Sentinel、Sunshine 的管理 Web 位于 `web`，使用精确 React/Vite/TypeScript/Node基线。
-Dufs 保留原生 ES modules 和嵌入 binary 的交付模型，但仍使用相同管理员 wire、username/密码/token和Server端
-同源/CSRF规则。
+Dufs 也采用 `web-react-admin`：登录、导航和页面骨架由 React/Foundation 渲染，文件列表与上传控制器
+保留原生 ES modules，并通过独占 DOM 区域组合。它与其他产品使用相同管理员 wire、username/密码/token
+和 Server 端同源/CSRF 规则。
 
 ### 4.4 类型不等于验证
 
