@@ -131,12 +131,26 @@ test("table headings, values and operation groups share left alignment", async (
   await page.locator(".sarmg-shell-main").evaluate(main => {
     const region = document.createElement("div");
     region.className = "sarmg-table-scroll";
-    region.innerHTML = '<table class="sarmg-table"><thead><tr><th>Actions</th></tr></thead><tbody><tr><td><div class="sarmg-actions"><button>Delete</button></div></td></tr></tbody></table>';
+    region.innerHTML = '<table class="sarmg-table"><thead><tr><th>Name</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr><td><button class="sarmg-button">Instance</button></td><td><span class="sarmg-status">Online</span></td><td><div class="sarmg-actions"><button class="sarmg-button">Delete</button></div></td></tr></tbody></table>';
     main.append(region);
   });
   const table = page.locator(".sarmg-table");
-  expect(await table.locator("th").evaluate(element => getComputedStyle(element).textAlign)).toBe("left");
-  expect(await table.locator("td").evaluate(element => getComputedStyle(element).textAlign)).toBe("left");
+  expect(await table.locator("th").evaluateAll(elements => elements.map(element => getComputedStyle(element).textAlign))).toEqual(["left", "left", "left"]);
+  expect(await table.locator("td").evaluateAll(elements => elements.map(element => getComputedStyle(element).textAlign))).toEqual(["left", "left", "left"]);
   expect(await table.locator(".sarmg-actions").evaluate(element => getComputedStyle(element).justifyContent)).toBe("flex-start");
   expect(await table.locator(".sarmg-actions").evaluate(element => getComputedStyle(element).marginTop)).toBe("0px");
+  const textStarts = await table.evaluate(element => {
+    const start = cell => {
+      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+      let text;
+      while ((text = walker.nextNode()) && !text.textContent.trim()) {}
+      const range = document.createRange();
+      range.selectNodeContents(text);
+      return range.getBoundingClientRect().left;
+    };
+    const headings = [...element.querySelectorAll("thead th")].map(start);
+    const values = [...element.querySelectorAll("tbody td")].map(start);
+    return headings.map((heading, index) => Math.abs(heading - values[index]));
+  });
+  expect(textStarts).toEqual([0, 0, 0]);
 });

@@ -1,6 +1,6 @@
 # Sarmg Foundation Server
 
-Sarmg Foundation Server `0.8.3` 为 Sarmg 的 Rust/Axum 服务和管理 Web 提供共享基础能力，包括管理员认证、SQLite 状态、Schema 身份、运行时生命周期、文件系统安全、秘密封装、统一错误合同、设计令牌和 React 管理组件。
+Sarmg Foundation Server `0.8.4` 为 Sarmg 的 Rust/Axum 服务和管理 Web 提供共享基础能力，包括管理员认证、SQLite 状态、Schema 身份、运行时生命周期、文件系统安全、秘密封装、统一错误合同、设计令牌和 React 管理组件。
 
 本仓库不包含任何具体产品，也不拥有产品业务协议。产品选择需要的 crate/npm 包并在自己的仓库中组合、配置和验收；Client 侧基础能力位于独立的 [sarmg-foundation-client](https://github.com/isarmg/sarmg-foundation-client)。
 
@@ -10,7 +10,7 @@ Rust 消费者应同时固定版本和完整 Git revision：
 
 ```toml
 [dependencies]
-sarmg-admin-core = { git = "https://github.com/isarmg/sarmg-foundation-server.git", rev = "<full-commit-sha>", version = "=0.8.3" }
+sarmg-admin-core = { git = "https://github.com/isarmg/sarmg-foundation-server.git", rev = "<full-commit-sha>", version = "=0.8.4" }
 ```
 
 Web 包使用仓库生成的不可变发行 tarball，并在产品锁文件中保留完整 integrity。产品还需维护 `sarmg-product.toml`，由统一检查脚本核对 Profile、能力、Schema 和依赖身份：
@@ -26,11 +26,11 @@ python3 scripts/check-foundation.py --product-root /absolute/path/to/product
 
 | 项目 | 版本 |
 |---|---|
-| Foundation 版本 | `0.8.3` |
+| Foundation 版本 | `0.8.4` |
 | Rust | `1.98.0` |
 | Node / pnpm | `26.7.0` / `10.12.1` |
 
-正式发布对应不可变的 `v0.8.3` tag；版本更新时必须同步源码清单、锁文件和消费者验证记录。
+正式发布对应不可变的 `v0.8.4` tag；版本更新时必须同步源码清单、锁文件和消费者验证记录。
 
 ## 开发验证
 
