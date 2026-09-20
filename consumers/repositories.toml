@@ -50,8 +50,8 @@ url = "https://github.com/isarmg/sentinel-monitor-server"
 commit = "e13e167bd8696d8742a68e1de0a06f0758c02c3d"
 foundation_version = "0.7.0"
 profiles = ["server-control-plane", "web-react-admin"]
-capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secure-http", "secure-xml", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
-packages = ["@sarmg/admin-shell","@sarmg/admin-ui","@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-axum","sarmg-admin-core","sarmg-admin-sqlite","sarmg-contracts","sarmg-error","sarmg-operations","sarmg-schema-identity","sarmg-secret","sarmg-secret-envelope","sarmg-secure-http","sarmg-secure-xml","sarmg-server-runtime","sarmg-server-target","sarmg-sqlite"]
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "durable-operations", "secure-http", "secret-envelope", "admin-client", "react-shell", "admin-ui", "design-tokens", "maple-font"]
+packages = ["@sarmg/admin-shell","@sarmg/admin-ui","@sarmg/admin-web","@sarmg/contracts","@sarmg/design-tokens","@sarmg/http-client","@sarmg/web-fonts","@sarmg/web-toolchain","sarmg-admin-auth","sarmg-admin-axum","sarmg-admin-core","sarmg-admin-sqlite","sarmg-contracts","sarmg-error","sarmg-operations","sarmg-schema-identity","sarmg-secret","sarmg-secret-envelope","sarmg-secure-http","sarmg-server-runtime","sarmg-server-target","sarmg-sqlite"]
 status = "temporary-exception"
 exceptions = ["generated-schema-inspection"]
 

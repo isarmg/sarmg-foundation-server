@@ -13,7 +13,6 @@ required_capabilities = [
 optional_capabilities = [
   "durable-operations",
   "secure-http",
-  "secure-xml",
   "secret-envelope",
 ]
 

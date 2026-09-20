@@ -76,10 +76,6 @@ state = "current"
 owner = "foundation"
 state = "current"
 
-[capabilities.secure-xml]
-owner = "foundation"
-state = "current"
-
 [capabilities.secret-envelope]
 owner = "foundation"
 state = "current"

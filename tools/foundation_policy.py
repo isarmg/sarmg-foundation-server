@@ -56,7 +56,6 @@ KNOWN_PACKAGES = {
     "sarmg-secret",
     "sarmg-secret-envelope",
     "sarmg-secure-http",
-    "sarmg-secure-xml",
     "sarmg-operations",
     "sarmg-testkit",
 }

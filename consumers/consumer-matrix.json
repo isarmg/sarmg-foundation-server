@@ -2,7 +2,7 @@
   "$schema": "./consumer-matrix.schema.json",
   "format": "sarmg.consumer-matrix.v2",
   "platform_generation": 1,
-  "foundation_version": "0.8.1",
+  "foundation_version": "0.8.2",
   "consumers": [
     {
       "product": "dufs-ram",
@@ -180,7 +180,6 @@
         "react-shell",
         "secret-envelope",
         "secure-http",
-        "secure-xml",
         "server-health",
         "server-runtime"
       ],
@@ -204,7 +203,6 @@
         "sarmg-secret",
         "sarmg-secret-envelope",
         "sarmg-secure-http",
-        "sarmg-secure-xml",
         "sarmg-server-runtime",
         "sarmg-server-target",
         "sarmg-sqlite"

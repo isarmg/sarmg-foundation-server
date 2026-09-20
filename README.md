@@ -45,7 +45,6 @@ Foundation 是构建期中央平台，不是生产环境中的中央服务。每
 | `sarmg-secret` | 默认脱敏并在 drop 清零的内存秘密类型 | 密钥持久化和产品密钥轮换 |
 | `sarmg-secret-envelope` | 域与对象绑定的有界 AES-GCM envelope | 产品域、对象 ID 和业务字段 |
 | `sarmg-secure-http` | 三种固定网络策略、DNS/地址、超时与响应预算 | 产品 API DTO 和重试语义 |
-| `sarmg-secure-xml` | DTD/ENTITY 拒绝及深度、节点、文本、时间预算 | ONVIF 类型与业务解析 |
 | `sarmg-operations` | Durable Operation 状态、转移、幂等冲突和平台 DDL | 远端执行器与业务 payload |
 | `sarmg-testkit` | Adapter 与消费者共用的认证协议验收断言（仅 dev-dependency） | 生产运行逻辑和产品业务夹具 |
 
