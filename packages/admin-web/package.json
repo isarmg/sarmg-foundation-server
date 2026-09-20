@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/admin-web",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "description": "Sarmg 管理员 API Client、Session 状态机与 React Hook",
   "license": "Apache-2.0",
   "repository": {
@@ -40,8 +40,8 @@
     "test:built": "node --test test/*.test.mjs"
   },
   "peerDependencies": {
-    "@sarmg/contracts": "0.8.7",
-    "@sarmg/http-client": "0.8.7",
+    "@sarmg/contracts": "0.8.8",
+    "@sarmg/http-client": "0.8.8",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -50,8 +50,8 @@
     "react-dom": { "optional": true }
   },
   "devDependencies": {
-    "@sarmg/contracts": "workspace:0.8.7",
-    "@sarmg/http-client": "workspace:0.8.7",
+    "@sarmg/contracts": "workspace:0.8.8",
+    "@sarmg/http-client": "workspace:0.8.8",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "react": "19.2.8",

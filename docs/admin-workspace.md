@@ -69,7 +69,7 @@ CSS 隐藏方式恢复第二套实例切换入口。
 
 ## 当前不可变包分发
 
-当前控制平面消费者升级到 Foundation 0.8.7；Dufs 的独立采用状态由消费者矩阵记录。
+当前控制平面消费者升级到 Foundation 0.8.8；Dufs 的独立采用状态由消费者矩阵记录。
 Rust 使用精确版本与完整 Git revision，Web 使用正式 Release tarball URL 和 lockfile integrity。
 Shell、字体、主题及语言模块直接来自这些包，不执行旧快照同步脚本，不把平台源码复制到消费者。
 历史独立构建及发行证据见 [0.7.0 记录](../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../consumers/react-filesystem-0.7.1-evidence.md)。

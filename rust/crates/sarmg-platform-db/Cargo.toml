@@ -13,9 +13,9 @@ homepage.workspace = true
 workspace = true
 
 [dependencies]
-sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.8.7" }
-sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.8.7" }
-sarmg-state-file = { path = "../sarmg-state-file", version = "=0.8.7" }
+sarmg-schema-identity = { path = "../sarmg-schema-identity", version = "=0.8.8" }
+sarmg-sqlite = { path = "../sarmg-sqlite", version = "=0.8.8" }
+sarmg-state-file = { path = "../sarmg-state-file", version = "=0.8.8" }
 sqlx.workspace = true
 thiserror.workspace = true
 
