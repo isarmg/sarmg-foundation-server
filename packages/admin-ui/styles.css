@@ -17,6 +17,9 @@
 .sarmg-table { width: 100%; border-collapse: collapse; }
 .sarmg-table :is(th,td) { padding: .7rem; text-align: left; border-bottom: 1px solid currentColor; }
 .sarmg-table .sarmg-actions { justify-content: flex-start; margin-top: 0; }
+.sarmg-table .sarmg-actions > .sarmg-button { display: inline-flex; align-items: center; justify-content: flex-start; min-width: 44px; padding-inline: 0; text-align: left; }
+.sarmg-instance-link, .sarmg-instance-link:visited { color: inherit; text-decoration: none; }
+.sarmg-instance-link:hover, .sarmg-instance-link:focus-visible { text-decoration: underline; }
 .sarmg-status { display: inline-block; padding: .15rem .5rem; border: 1px solid currentColor; border-radius: 1rem; }
 .sarmg-error,.sarmg-empty,.sarmg-loading { padding: 1rem; overflow-wrap: anywhere; }
 .sarmg-error { border: 1px solid currentColor; border-radius: var(--sarmg-radius-sm,6px); }

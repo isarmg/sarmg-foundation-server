@@ -9,6 +9,15 @@ test("buttons are non-submitting by default and icon labels are required", () =>
   assert.throws(() => renderToStaticMarkup(h(IconButton, { "aria-label": " " }, "X")), /aria-label/);
   assert.match(renderToStaticMarkup(h(Checkbox, { type: "text" })), /type="checkbox"/);
 });
+test("table action labels share the column content edge while retaining a touch target", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.sarmg-table \.sarmg-actions > \.sarmg-button \{[^}]*justify-content: flex-start;[^}]*min-width: 44px;[^}]*padding-inline: 0;[^}]*text-align: left;/);
+});
+test("instance links do not inherit the browser visited appearance", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.sarmg-instance-link, \.sarmg-instance-link:visited \{ color: inherit; text-decoration: none; \}/);
+  assert.match(css, /\.sarmg-instance-link:hover, \.sarmg-instance-link:focus-visible \{ text-decoration: underline; \}/);
+});
 test("loading and errors have accessible visible content and bounded Request IDs", () => {
   assert.match(renderToStaticMarkup(h(LoadingState)), /role="status".*Loading/);
   assert.match(renderToStaticMarkup(h(ErrorState, { requestId: "request-123" }, "Failed")), /role="alert".*Request ID/);
