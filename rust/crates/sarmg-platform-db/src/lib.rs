@@ -7,7 +7,7 @@
 use sarmg_schema_identity::SchemaIdentity;
 use sarmg_sqlite::PoolOptions;
 use sarmg_state_file::{InstanceLock, PrivateStateDirectory, SecureStateFile};
-use sqlx::{Row, SqlitePool};
+use sqlx::{Row, SqliteConnection, SqlitePool};
 use thiserror::Error;
 
 pub const PLATFORM_GENERATION: u32 = 1;
@@ -107,8 +107,8 @@ impl PlatformDatabase {
         let pool = sarmg_sqlite::open_existing(secure_file.path(), pool_options).await?;
         secure_file.verify_identity()?;
         sarmg_sqlite::require_pool_current_schema(&pool, &expected_schema).await?;
-        let metadata = read_platform_metadata(&pool).await?;
-        require_current_platform(&metadata, &product_descriptor)?;
+        let metadata =
+            require_current_platform_metadata(&pool, product_descriptor.profile()).await?;
         secure_file.verify_identity()?;
         Ok(Self {
             pool,
@@ -180,6 +180,49 @@ pub async fn read_platform_metadata(pool: &SqlitePool) -> Result<PlatformMetadat
     })
 }
 
+/// Inserts the single current platform metadata row while a product creates
+/// its current schema. Historical migrations and product rows remain outside
+/// this crate.
+pub async fn initialize_current_platform_metadata(
+    connection: &mut SqliteConnection,
+    profile: &str,
+    created_at_micros: u64,
+) -> Result<PlatformMetadata, Error> {
+    require_supported_profile(profile)?;
+    let created_at_micros = i64::try_from(created_at_micros)
+        .map_err(|_| Error::PlatformTimestampOutOfRange { created_at_micros })?;
+    sqlx::query(
+        "INSERT INTO _sarmg_platform_metadata(\
+           singleton,platform_generation,platform_schema_revision,profile,created_at_micros\
+         ) VALUES(1,?,?,?,?)",
+    )
+    .bind(i64::from(PLATFORM_GENERATION))
+    .bind(i64::from(PLATFORM_SCHEMA_REVISION))
+    .bind(profile)
+    .bind(created_at_micros)
+    .execute(connection)
+    .await?;
+    Ok(PlatformMetadata {
+        platform_generation: PLATFORM_GENERATION,
+        platform_schema_revision: PLATFORM_SCHEMA_REVISION,
+        profile: profile.to_owned(),
+        created_at_micros: u64::try_from(created_at_micros)
+            .expect("validated platform timestamp is non-negative"),
+    })
+}
+
+/// Reads and verifies the exact current platform metadata contract expected by
+/// a product profile.
+pub async fn require_current_platform_metadata(
+    pool: &SqlitePool,
+    expected_profile: &str,
+) -> Result<PlatformMetadata, Error> {
+    require_supported_profile(expected_profile)?;
+    let metadata = read_platform_metadata(pool).await?;
+    require_current_platform(&metadata, expected_profile)?;
+    Ok(metadata)
+}
+
 async fn validate_platform_table(pool: &SqlitePool) -> Result<(), Error> {
     let ddl: Option<String> = sqlx::query_scalar(
         "SELECT sql FROM sqlite_schema WHERE type='table' AND name='_sarmg_platform_metadata'",
@@ -202,7 +245,7 @@ fn normalize_sql(sql: &str) -> String {
 
 fn require_current_platform(
     metadata: &PlatformMetadata,
-    descriptor: &ProductDescriptor,
+    expected_profile: &str,
 ) -> Result<(), Error> {
     if metadata.platform_generation != PLATFORM_GENERATION {
         return Err(Error::PlatformGenerationMismatch {
@@ -216,10 +259,19 @@ fn require_current_platform(
             actual: metadata.platform_schema_revision,
         });
     }
-    if metadata.profile != descriptor.profile {
+    if metadata.profile != expected_profile {
         return Err(Error::PlatformProfileMismatch {
-            expected: descriptor.profile.clone(),
+            expected: expected_profile.to_owned(),
             actual: metadata.profile.clone(),
+        });
+    }
+    Ok(())
+}
+
+fn require_supported_profile(profile: &str) -> Result<(), Error> {
+    if profile != "server-control-plane" {
+        return Err(Error::UnsupportedProfile {
+            actual: profile.to_owned(),
         });
     }
     Ok(())
@@ -285,6 +337,8 @@ pub enum Error {
     },
     #[error("platform metadata {field} has invalid integer {value}")]
     InvalidPlatformInteger { field: &'static str, value: i64 },
+    #[error("platform metadata timestamp {created_at_micros} exceeds SQLite INTEGER")]
+    PlatformTimestampOutOfRange { created_at_micros: u64 },
     #[error("platform generation must be {expected}, found {actual}")]
     PlatformGenerationMismatch { expected: u32, actual: u32 },
     #[error("platform schema revision must be {expected}, found {actual}")]
@@ -378,6 +432,34 @@ mod tests {
         .await
         .unwrap_err();
         assert!(matches!(error, Error::PlatformProfileMismatch { .. }));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn initializes_and_validates_current_platform_metadata()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let pool = SqlitePool::connect("sqlite::memory:").await?;
+        sqlx::raw_sql(PLATFORM_METADATA_DDL).execute(&pool).await?;
+        let mut connection = pool.acquire().await?;
+        let initialized =
+            initialize_current_platform_metadata(&mut connection, "server-control-plane", 42)
+                .await?;
+        assert_eq!(initialized.created_at_micros, 42);
+        drop(connection);
+        assert_eq!(
+            require_current_platform_metadata(&pool, "server-control-plane").await?,
+            initialized
+        );
+        let mut connection = pool.acquire().await?;
+        assert!(matches!(
+            initialize_current_platform_metadata(&mut connection, "server-control-plane", 43,)
+                .await,
+            Err(Error::Sqlx(_))
+        ));
+        assert!(matches!(
+            require_current_platform_metadata(&pool, "server-filesystem").await,
+            Err(Error::UnsupportedProfile { .. })
+        ));
         Ok(())
     }
 }

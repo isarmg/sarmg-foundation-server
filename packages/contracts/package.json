@@ -1,6 +1,6 @@
 {
   "name": "@sarmg/contracts",
-  "version": "0.8.9",
+  "version": "0.9.0",
   "description": "Sarmg 跨语言 wire contract、严格运行时守卫与 JSON Schema",
   "license": "Apache-2.0",
   "repository": {

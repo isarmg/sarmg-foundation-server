@@ -285,7 +285,7 @@ package.json + .node-version
 ├─ 复制公开 JSON/CSS/tsconfig 静态入口
 ├─ test 从 dist 导入
 ├─ 检查 manifest / exports / files / peers
-├─ pnpm pack 生成 4 个真实 tgz
+├─ pnpm pack 生成 8 个真实 tgz
 ├─ 检查 tar canonical path、duplicate、link、special file、意外源码
 └─ 临时空目录 npm --ignore-scripts 安装并解析所有 export
 ```
@@ -331,10 +331,10 @@ main 工作树完全干净
 ├─ 全部 Rust/Web/Python/package 门禁通过
 ├─ Cargo/npm/policy 版本一致（消费者报告独立维护）
 ├─ 20 个 Cargo package 均携带审核过的根 LICENSE
-├─ 创建唯一 annotated v0.5.0 tag
+├─ 创建唯一 annotated v0.9.0 tag
 ├─ push tag 触发唯一 release job
 ├─ 再次运行全部门禁
-├─ 生成 4 个 npm tgz
+├─ 生成 8 个 npm tgz
 ├─ 生成 deterministic sarmg-release-tool tar.gz
 ├─ 写 state-contract.json（Foundation 无 runtime state）
 ├─ SHA-256 绑定五字段 release-identity.json

@@ -162,7 +162,7 @@ Server binary的Cargo依赖：
 sarmg-server-target = {
   git = "https://github.com/isarmg/sarmg-foundation-server.git",
   rev = "<完整commit>",
-  version = "=0.5.0"
+  version = "=0.9.0"
 }
 ```
 

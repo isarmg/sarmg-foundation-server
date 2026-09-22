@@ -17,9 +17,9 @@ sys.path.insert(0, str(TOOLS))
 from sarmg_conformance import (  # noqa: E402
     ConformanceError,
     generate_consumer_matrix,
-    verify_baselines,
     verify_foundation,
     verify_manifest,
+    verify_release,
     verify_schema,
     verify_source,
 )
@@ -68,12 +68,12 @@ class ConformanceTests(unittest.TestCase):
             fixture = Path(directory)
             shutil.copytree(ROOT / "profiles", fixture / "profiles")
             (fixture / "Cargo.toml").write_text(
-                '[workspace]\nmembers=[]\n[workspace.package]\nversion="0.8.9"\n'
+                '[workspace]\nmembers=[]\n[workspace.package]\nversion="0.9.0"\n'
             )
             package = fixture / "rust" / "crates" / "sarmg-error"
             package.mkdir(parents=True)
             (package / "Cargo.toml").write_text(
-                '[package]\nname="sarmg-error"\nversion="0.8.9"\n'
+                '[package]\nname="sarmg-error"\nversion="0.9.0"\n'
             )
             consumers = fixture / "consumers"
             consumers.mkdir()
@@ -83,7 +83,7 @@ class ConformanceTests(unittest.TestCase):
 product = "new-product"
 url = "https://github.com/example/new-product"
 commit = "0123456789abcdef0123456789abcdef01234567"
-foundation_version = "0.8.9"
+foundation_version = "0.9.0"
 profiles = ["offline-tool"]
 capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2"]
 packages = ["sarmg-error"]
@@ -121,6 +121,28 @@ exceptions = []
             )
             with self.assertRaisesRegex(ConformanceError, "immutable-foundation-dependencies"):
                 verify_source(product, ROOT)
+
+    def test_source_check_rejects_unpinned_foundation_dependency_forms(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "sarmg-product.toml").write_text(VALID_MANIFEST)
+            (product / "Cargo.toml").write_text(
+                '[package]\nname="fixture"\nversion="0.1.0"\n'
+                '[dependencies]\nsarmg-error="0.5"\n'
+            )
+            with self.assertRaisesRegex(ConformanceError, "exact Foundation Git source"):
+                verify_source(product, ROOT)
+
+    def test_release_check_distinguishes_source_inspection_from_publication_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "sarmg-product.toml").write_text(VALID_MANIFEST)
+            self.assertEqual(verify_release(product, ROOT)["status"], "not-checked")
+            with self.assertRaisesRegex(ConformanceError, "publication gate"):
+                verify_release(product, ROOT, require_published=True)
+            (product / "release.json").write_text('{"application":"fixture-product"}')
+            with self.assertRaisesRegex(ConformanceError, "target is not canonical"):
+                verify_release(product, ROOT)
 
     def test_filesystem_profile_accepts_native_and_react_web(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

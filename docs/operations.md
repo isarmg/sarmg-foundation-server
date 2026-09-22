@@ -11,17 +11,17 @@ Foundation 没有生产 daemon、监听端口、业务数据库、用户表、Se
 
 | 项目 | 唯一当前值 | 权威位置 | 漂移时的处理 |
 |---|---|---|---|
-| Foundation 版本 | `0.8.9` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
+| Foundation 版本 | `0.9.0` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
 | Rust | `1.98.0` | `rust-toolchain.toml` | 不用其他版本代替验证 |
 | Rust edition/MSRV | 2024 / `1.98` | workspace package | 作为工具链大问题单独升级 |
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI | 切换 Node，不放宽 engine |
 | pnpm | `10.12.1` | 根 `packageManager`、CI | 安装精确版本，不使用 Corepack 浮动解析 |
-| TypeScript | `5.8.3` | 4 个 package manifest、lock | 与产品 Web 基线一起升级 |
+| TypeScript | `5.8.3` | 8 个 npm package manifest、lock | 与产品 Web 基线一起升级 |
 | React / React DOM | `19.2.8` | `admin-web` toolchain/peer/dev deps | 所有 React 管理 Web（包括 Dufs）同步验证 |
 | Vite / React plugin | `7.3.6` / `4.7.0` | `admin-web` toolchain/peer/dev deps | 所有非 Dufs Web 同步验证 |
 | Server target | `x86_64-unknown-linux-gnu` | `sarmg-server-target` | Server 其他 target 编译必须失败 |
-| License | Apache-2.0 | 根及六个 crate 的 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |
-| Release tag | `v0.8.9` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
+| License | Apache-2.0 | 根及 20 个 crate 的 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |
+| Release tag | `v0.9.0` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
 
 Foundation 自身的 source/tool release identity 默认 target 是 `source-any`；`sarmg-server-target` 是消费者
 Server 的编译门禁，不能把 Foundation 误写成 AMD64 在线服务。
@@ -85,19 +85,29 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 
 `scripts/check-foundation.py` 调用 `tools/foundation_policy.py`，当前核对：
 
-- Cargo/npm/policy 的版本均为 `0.8.9`；
+- Cargo/npm/policy 的版本均为 `0.9.0`；
 - Rust `1.98.0`、Node `26.7.0`、pnpm `10.12.1` 的事实源一致；
-- Rust workspace 恰好包含 6 个已知 crate，npm workspace 恰好包含 4 个已知 package；
-- 根 `LICENSE` 必须匹配审核过的 Apache-2.0 SHA-256；六个 crate 必须各有普通、单链接、byte-exact副本，
+- Rust workspace 恰好包含 20 个已知 crate，npm workspace 恰好包含 8 个已知 package；
+- 根 `LICENSE` 必须匹配审核过的 Apache-2.0 SHA-256；20 个 crate 必须各有普通、单链接、byte-exact副本，
   且 `cargo package --list` 必须把它作为唯一根 `LICENSE` 分发；
-- 所有 crate 启用 workspace lint，内部 Rust dependency 精确 `=0.8.9`；
-- 内部 npm build dependency 使用 `workspace:0.8.9`，peer 使用精确 `0.8.9`；
+- 所有 crate 启用 workspace lint，内部 Rust dependency 精确 `=0.9.0`；
+- 内部 npm build dependency 使用 `workspace:0.9.0`，peer 使用精确 `0.9.0`；
 - `admin-web` 的 React/Vite/TypeScript/type package 精确一致；
 - 源码和文档不存在已取消的项目/客户端名称。
 
 消费者矩阵是独立接入报告，不参与 `check-foundation.py`、Foundation CI 或 Release 门禁。维护报告时另外
 运行 `python3 scripts/sarmg-conformance.py verify-consumers` 与
 `python3 scripts/sarmg-conformance.py generate-consumer-matrix --check`；产品行为验收仍在对应产品仓库完成。
+
+产品源码接入检查使用 `python3 scripts/sarmg-conformance.py report --product-root <path> --json`。该报告会
+逐项标明 manifest、依赖、Schema、Web 与 release 状态；没有 release 清单时状态是 `not-checked` 且
+`release_verified=false`。正式产物门禁必须另行运行
+`python3 scripts/sarmg-conformance.py verify-release --product-root <path> --require-published`，并继续使用
+`sarmg-release verify` 核对实际发布树、文件模式、大小与 SHA-256。
+
+产品 Rust Foundation 依赖只接受官方 Git URL、精确版本和完整 revision，并由 `Cargo.lock` 复核实际解析
+结果；Web Foundation 依赖只接受对应版本的官方 release tarball，并由 `package-lock.json` 的 resolved 与
+SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未识别所以跳过”的成功路径。
 
 若检查报 unknown package/member，不要把未知项加入 allowlist 让测试变绿；先确认它是否经过共享准入。若
 报旧名称，修改真实产品身份，而不是用字符串拼接绕过扫描；policy 自己为了定义拒绝项而拼接是有意避免
@@ -189,8 +199,8 @@ Foundation 当前不要求 crates.io 在线依赖。正式消费者使用 releas
 ```toml
 sarmg-admin-auth = {
   git = "https://github.com/isarmg/sarmg-foundation-server.git",
-  rev = "<v0.8.9 对应的 40 位 commit>",
-  version = "=0.8.9"
+  rev = "<v0.9.0 对应的 40 位 commit>",
+  version = "=0.9.0"
 }
 ```
 
@@ -260,7 +270,7 @@ YAML anchor 和 action outside steps。修改 workflow policy 时必须同时新
   runtime，必须覆盖至少两个不同产品，不能用 Foundation 自测替代消费者证据；
 - 20 个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
 - GitHub 不存在同名 tag/release；
-- tag `v0.8.9` 精确指向当前 HEAD，source revision 为完整小写 SHA。
+- tag `v0.9.0` 精确指向当前 HEAD，source revision 为完整小写 SHA。
 
 ### 11.2 构建命令与输出
 
@@ -277,15 +287,15 @@ python3 scripts/build-release-assets.py \
 sarmg-foundation-server-release/
 ├─ release-tree.json
 └─ artifacts/
-   ├─ sarmg-admin-web-0.8.9.tgz
-   ├─ sarmg-admin-shell-0.8.9.tgz
-   ├─ sarmg-admin-ui-0.8.9.tgz
-   ├─ sarmg-contracts-0.8.9.tgz
-   ├─ sarmg-design-tokens-0.8.9.tgz
-   ├─ sarmg-http-client-0.8.9.tgz
-   ├─ sarmg-web-fonts-0.8.9.tgz
-   ├─ sarmg-web-toolchain-0.8.9.tgz
-   ├─ sarmg-release-tool-0.8.9.tar.gz
+   ├─ sarmg-admin-web-0.9.0.tgz
+   ├─ sarmg-admin-shell-0.9.0.tgz
+   ├─ sarmg-admin-ui-0.9.0.tgz
+   ├─ sarmg-contracts-0.9.0.tgz
+   ├─ sarmg-design-tokens-0.9.0.tgz
+   ├─ sarmg-http-client-0.9.0.tgz
+   ├─ sarmg-web-fonts-0.9.0.tgz
+   ├─ sarmg-web-toolchain-0.9.0.tgz
+   ├─ sarmg-release-tool-0.9.0.tar.gz
    ├─ state-contract.json
    ├─ release-identity.json
    ├─ build-inventory.json

@@ -25,6 +25,11 @@ MATRIX_STATUSES = {
     "temporary-exception",
 }
 FOUNDATION_ROUTES = ("/api/v2/auth/", "/api/v2/platform/", "/healthz", "/readyz")
+FOUNDATION_GIT_URL = "https://github.com/isarmg/sarmg-foundation-server.git"
+FOUNDATION_RELEASE_URL = re.compile(
+    r"https://github\.com/isarmg/sarmg-foundation-server/releases/download/"
+    r"v([^/]+)/sarmg-([a-z0-9-]+)-([^/]+)\.tgz"
+)
 
 
 class ConformanceError(RuntimeError):
@@ -228,6 +233,24 @@ def _walk_dependency_tables(value: Any, key: str = "") -> Iterable[tuple[str, An
             yield from _walk_dependency_tables(nested, nested_key)
 
 
+def _used_dependency_aliases(cargo: dict[str, Any]) -> set[str]:
+    aliases: set[str] = set()
+    for section in ("dependencies", "dev-dependencies", "build-dependencies"):
+        value = cargo.get(section, {})
+        if isinstance(value, dict):
+            aliases.update(value)
+    targets = cargo.get("target", {})
+    if isinstance(targets, dict):
+        for target in targets.values():
+            if not isinstance(target, dict):
+                continue
+            for section in ("dependencies", "dev-dependencies", "build-dependencies"):
+                value = target.get(section, {})
+                if isinstance(value, dict):
+                    aliases.update(value)
+    return aliases
+
+
 def _foundation_package_names(foundation_root: Path) -> set[str]:
     names: set[str] = set()
     for path in (foundation_root / "rust" / "crates").glob("*/Cargo.toml"):
@@ -246,6 +269,91 @@ def _dependency_name(alias: str, requirement: Any) -> str:
     if isinstance(requirement, dict) and isinstance(requirement.get("package"), str):
         return requirement["package"]
     return alias
+
+
+def _workspace_dependencies(product_root: Path) -> dict[str, Any]:
+    root_manifest = product_root / "Cargo.toml"
+    if not root_manifest.is_file():
+        return {}
+    cargo = _toml(root_manifest)
+    workspace = cargo.get("workspace", {})
+    dependencies = workspace.get("dependencies", {}) if isinstance(workspace, dict) else {}
+    return dependencies if isinstance(dependencies, dict) else {}
+
+
+def _resolved_rust_requirement(
+    alias: str,
+    requirement: Any,
+    workspace_dependencies: dict[str, Any],
+    path: Path,
+) -> Any:
+    if not isinstance(requirement, dict) or requirement.get("workspace") is not True:
+        return requirement
+    inherited = workspace_dependencies.get(alias)
+    if inherited is None:
+        raise ConformanceError(
+            f"{path}: Foundation dependency {alias} is inherited but absent from workspace.dependencies"
+        )
+    return inherited
+
+
+def _verify_cargo_lock(
+    product_root: Path,
+    packages: set[str],
+    expected_version: str,
+    expected_revision: str,
+) -> None:
+    if not packages:
+        return
+    lock_path = product_root / "Cargo.lock"
+    if not lock_path.is_file():
+        raise ConformanceError(f"{lock_path}: Foundation Rust dependencies require a lock file")
+    lock = _toml(lock_path)
+    entries = lock.get("package", [])
+    if not isinstance(entries, list):
+        raise ConformanceError(f"{lock_path}: invalid package list")
+    for package in sorted(packages):
+        matching = [
+            entry
+            for entry in entries
+            if isinstance(entry, dict)
+            and entry.get("name") == package
+            and entry.get("version") == expected_version
+            and isinstance(entry.get("source"), str)
+            and entry["source"].startswith(f"git+{FOUNDATION_GIT_URL}?")
+            and entry["source"].endswith(f"#{expected_revision}")
+        ]
+        if len(matching) != 1:
+            raise ConformanceError(
+                f"{lock_path}: expected one locked {package} {expected_version} from Foundation revision {expected_revision}"
+            )
+
+
+def _verify_npm_lock(
+    package_path: Path,
+    requirements: dict[str, str],
+    expected_version: str,
+) -> None:
+    if not requirements:
+        return
+    lock_path = package_path.parent / "package-lock.json"
+    if not lock_path.is_file():
+        raise ConformanceError(f"{lock_path}: Foundation Web dependencies require a lock file")
+    packages = _json(lock_path).get("packages", {})
+    if not isinstance(packages, dict):
+        raise ConformanceError(f"{lock_path}: invalid packages object")
+    for dependency, requirement in sorted(requirements.items()):
+        locked = packages.get(f"node_modules/{dependency}")
+        if (
+            not isinstance(locked, dict)
+            or locked.get("version") != expected_version
+            or locked.get("resolved") != requirement
+            or not isinstance(locked.get("integrity"), str)
+            or not locked["integrity"].startswith("sha512-")
+        ):
+            raise ConformanceError(
+                f"{lock_path}: {dependency} is not locked to the declared Foundation asset with SHA-512 integrity"
+            )
 
 
 def _relative_layout_path(value: Any, context: str) -> Path:
@@ -347,25 +455,47 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     advisories: list[dict[str, str]] = []
     observed_versions: set[str] = set()
     observed_revisions: set[str] = set()
+    observed_rust_packages: set[str] = set()
+    observed_web_requirements: dict[Path, dict[str, str]] = {}
     foundation_packages = _foundation_package_names(foundation_root)
+    workspace_dependencies = _workspace_dependencies(product_root)
+    expected_version = manifest["foundation"]["version"]
+    expected_revision = manifest["foundation"]["git_rev"]
     for path in _source_files(product_root, {".toml"}):
         cargo = _toml(path)
+        used_aliases = _used_dependency_aliases(cargo)
         for alias, requirement in _walk_dependency_tables(cargo):
-            dependency = _dependency_name(alias, requirement)
+            try:
+                resolved = _resolved_rust_requirement(
+                    alias, requirement, workspace_dependencies, path
+                )
+            except ConformanceError as error:
+                findings.append(("immutable-foundation-dependencies", str(error)))
+                continue
+            dependency = _dependency_name(alias, resolved)
             if dependency not in foundation_packages:
                 continue
-            if isinstance(requirement, dict) and "path" in requirement:
-                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} uses a path dependency"))
-            if isinstance(requirement, dict) and "git" in requirement:
-                if REVISION.fullmatch(str(requirement.get("rev", ""))) is None:
-                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} lacks a full git rev"))
-                else:
-                    observed_revisions.add(requirement["rev"])
-                version = requirement.get("version")
-                if not isinstance(version, str) or not version.startswith("=") or SEMVER.fullmatch(version[1:]) is None:
-                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} lacks an exact version"))
-                else:
-                    observed_versions.add(version[1:])
+            if alias in used_aliases:
+                observed_rust_packages.add(dependency)
+            if not isinstance(resolved, dict):
+                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use the exact Foundation Git source"))
+                continue
+            if resolved.get("git") != FOUNDATION_GIT_URL or "path" in resolved:
+                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} does not use the canonical Foundation Git source"))
+            revision = resolved.get("rev")
+            if not isinstance(revision, str) or REVISION.fullmatch(revision) is None:
+                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} lacks a full git rev"))
+            else:
+                observed_revisions.add(revision)
+                if revision != expected_revision:
+                    findings.append(("single-foundation-release", f"{path}: {dependency} revision differs from manifest {expected_revision}"))
+            version = resolved.get("version")
+            if not isinstance(version, str) or not version.startswith("=") or SEMVER.fullmatch(version[1:]) is None:
+                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} lacks an exact version"))
+            else:
+                observed_versions.add(version[1:])
+                if version[1:] != expected_version:
+                    findings.append(("single-foundation-release", f"{path}: {dependency} version differs from manifest {expected_version}"))
     for path in _source_files(product_root, {".json"}):
         if path.name != "package.json":
             continue
@@ -375,22 +505,37 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
             if not isinstance(dependencies, dict):
                 continue
             for dependency, requirement in dependencies.items():
-                if dependency.startswith("@sarmg/") and isinstance(requirement, str) and requirement.startswith(("file:", "workspace:")):
-                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} uses {requirement!r}"))
-                if dependency.startswith("@sarmg/") and isinstance(requirement, str):
-                    match = re.search(r"/releases/download/v([^/]+)/[^/]+-([^/]+)\.tgz$", requirement)
-                    if match is not None:
-                        tag_version, asset_version = match.groups()
-                        if tag_version != asset_version or SEMVER.fullmatch(tag_version) is None:
-                            findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} release URL is inconsistent"))
-                        else:
-                            observed_versions.add(tag_version)
-    expected_version = manifest["foundation"]["version"]
-    expected_revision = manifest["foundation"]["git_rev"]
+                if dependency not in foundation_packages:
+                    continue
+                if not isinstance(requirement, str):
+                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use one immutable release asset URL"))
+                    continue
+                match = FOUNDATION_RELEASE_URL.fullmatch(requirement)
+                expected_slug = dependency.removeprefix("@sarmg/")
+                if match is None or match.groups() != (
+                    expected_version,
+                    expected_slug,
+                    expected_version,
+                ):
+                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use its v{expected_version} Foundation release asset"))
+                    continue
+                observed_versions.add(expected_version)
+                observed_web_requirements.setdefault(path, {})[dependency] = requirement
     if observed_versions and observed_versions != {expected_version}:
         findings.append(("single-foundation-release", f"observed Foundation versions {sorted(observed_versions)} differ from manifest {expected_version}"))
     if observed_revisions and observed_revisions != {expected_revision}:
         findings.append(("single-foundation-release", f"observed Foundation revisions differ from manifest {expected_revision}"))
+    try:
+        _verify_cargo_lock(
+            product_root,
+            observed_rust_packages,
+            expected_version,
+            expected_revision,
+        )
+        for package_path, requirements in observed_web_requirements.items():
+            _verify_npm_lock(package_path, requirements, expected_version)
+    except ConformanceError as error:
+        findings.append(("immutable-foundation-dependencies", str(error)))
     # Text searches are useful migration hints, but cannot prove ownership: comments,
     # fixtures, aliases and generated sources all create false positives. Keep them as
     # non-blocking advisories; executable dependency/schema checks remain the gate.
@@ -466,25 +611,53 @@ def verify_web(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     if package_path is None or not package_path.is_file():
         raise ConformanceError(f"{package_path}: Web Profile requires a package manifest")
     package = _json(package_path)
-    for section in ("dependencies", "devDependencies"):
+    expected_version = manifest["foundation"]["version"]
+    foundation_packages = _foundation_package_names(foundation_root)
+    requirements: dict[str, str] = {}
+    for section in ("dependencies", "devDependencies", "optionalDependencies"):
         dependencies = package.get(section, {})
         if isinstance(dependencies, dict):
             for dependency, requirement in dependencies.items():
-                if dependency.startswith("@sarmg/") and isinstance(requirement, str) and requirement.startswith(("file:", "workspace:")):
-                    raise ConformanceError(f"{package_path}: mutable Foundation dependency {dependency}={requirement}")
+                if dependency not in foundation_packages:
+                    continue
+                if not isinstance(requirement, str):
+                    raise ConformanceError(f"{package_path}: invalid Foundation dependency {dependency}")
+                match = FOUNDATION_RELEASE_URL.fullmatch(requirement)
+                expected_slug = dependency.removeprefix("@sarmg/")
+                if match is None or match.groups() != (
+                    expected_version,
+                    expected_slug,
+                    expected_version,
+                ):
+                    raise ConformanceError(
+                        f"{package_path}: {dependency} must use its v{expected_version} Foundation release asset"
+                    )
+                requirements[dependency] = requirement
+    _verify_npm_lock(package_path, requirements, expected_version)
     return {"product": manifest["product_id"], "profiles": expected}
 
 
-def verify_release(product_root: Path, foundation_root: Path) -> dict[str, Any]:
+def verify_release(
+    product_root: Path,
+    foundation_root: Path,
+    *,
+    require_published: bool = False,
+) -> dict[str, Any]:
     manifest = verify_manifest(product_root, foundation_root)
     release_paths = [product_root / "release.json", product_root / "release" / "release.json"]
     existing = [path for path in release_paths if path.is_file()]
     if not existing:
-        return {"product": manifest["product_id"], "status": "not-published"}
+        if require_published:
+            raise ConformanceError("release manifest is required for a publication gate")
+        return {
+            "product": manifest["product_id"],
+            "status": "not-checked",
+            "reason": "no release manifest is present in the source tree",
+        }
     release = _json(existing[0])
     target = release.get("target")
     server_profiles = [component["profile"] for component in manifest["components"] if component["profile"].startswith("server-")]
-    if server_profiles and target is not None and target != "x86_64-unknown-linux-gnu":
+    if server_profiles and target != "x86_64-unknown-linux-gnu":
         raise ConformanceError(f"{existing[0]}: formal Server target is not canonical")
     return {"product": manifest["product_id"], "status": "verified", "path": str(existing[0])}
 
@@ -583,67 +756,6 @@ def verify_consumer_registry(foundation_root: Path) -> dict[str, Any]:
     return generated
 
 
-def verify_baselines(foundation_root: Path) -> dict[str, dict[str, Any]]:
-    matrix = generate_consumer_matrix(foundation_root)
-    consumers = {entry["product"]: entry for entry in matrix["consumers"]}
-    baselines: dict[str, dict[str, Any]] = {}
-    always = {
-        "format",
-        "product",
-        "source_commit",
-        "product_version",
-        "state_kind",
-        "foundation_version",
-        "foundation_rev",
-        "fixture_status",
-    }
-    schema_keys = {"schema_revision", "schema_sha256", "fixture"}
-    for path in sorted((foundation_root / "consumers" / "baselines").glob("*.toml")):
-        value = _toml(path)
-        if value.get("state_kind") == "none":
-            _exact_keys(value, always, always, str(path))
-        else:
-            _exact_keys(value, always | schema_keys, always | schema_keys, str(path))
-            revision = value["schema_revision"]
-            if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
-                raise ConformanceError(f"{path}: schema_revision must be a positive integer")
-            digest = value["schema_sha256"]
-            if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
-                raise ConformanceError(f"{path}: schema_sha256 must be 64 lowercase hex characters")
-            fixture = value["fixture"]
-            if not isinstance(fixture, str) or not fixture.startswith("sarmg-upgrade/tests/fixtures/sources/"):
-                raise ConformanceError(f"{path}: fixture must name an immutable sarmg-upgrade source fixture")
-        product = value["product"]
-        if value["format"] != 1 or product != path.stem or product in baselines:
-            raise ConformanceError(f"{path}: invalid or duplicate baseline identity")
-        if product not in consumers:
-            raise ConformanceError(f"{path}: product is absent from the consumer registry")
-        if REVISION.fullmatch(str(value["source_commit"])) is None:
-            raise ConformanceError(f"{path}: invalid source revision")
-        if not isinstance(value["product_version"], str) or SEMVER.fullmatch(value["product_version"]) is None:
-            raise ConformanceError(f"{path}: invalid product version")
-        if (
-            not isinstance(value["foundation_version"], str)
-            or SEMVER.fullmatch(value["foundation_version"]) is None
-        ):
-            raise ConformanceError(f"{path}: invalid Foundation version")
-        if REVISION.fullmatch(str(value["foundation_rev"])) is None:
-            raise ConformanceError(f"{path}: invalid Foundation revision")
-        if value["fixture_status"] not in {
-            "pending-sanitized-fixture",
-            "schema-only",
-            "sanitized-current-state",
-            "not-applicable",
-        }:
-            raise ConformanceError(f"{path}: invalid fixture status")
-        if value["state_kind"] != "none" and value["fixture_status"] != "sanitized-current-state":
-            raise ConformanceError(f"{path}: persistent products require a sanitized current-state fixture")
-        baselines[product] = value
-    if set(baselines) != set(consumers):
-        raise ConformanceError(f"baseline product set differs: {sorted(baselines)}")
-    return baselines
-
-
 def verify_foundation(foundation_root: Path) -> dict[str, Any]:
     profiles, capabilities = load_profiles(foundation_root)
     schema = _json(foundation_root / "schemas" / "sarmg-product.schema.json")
@@ -655,12 +767,14 @@ def verify_foundation(foundation_root: Path) -> dict[str, Any]:
         cargo = _toml(path)
         for alias, requirement in _walk_dependency_tables(cargo):
             dependency = _dependency_name(alias, requirement)
-            if dependency in own_packages:
-                continue
-            if not dependency.startswith("sarmg-"):
-                continue
-            if isinstance(requirement, dict) and ("git" in requirement or "path" in requirement):
+            if isinstance(requirement, dict) and "git" in requirement:
                 raise ConformanceError(
-                    f"{path}: Foundation package {alias!r} aliases downstream dependency {dependency!r}"
+                    f"{path}: Foundation must not use Git dependency {alias!r} ({dependency!r})"
                 )
+            if isinstance(requirement, dict) and "path" in requirement:
+                dependency_root = (path.parent / requirement["path"]).resolve(strict=True)
+                if not dependency_root.is_relative_to(foundation_root.resolve()) or dependency not in own_packages:
+                    raise ConformanceError(
+                        f"{path}: path dependency {alias!r} ({dependency!r}) is outside Foundation ownership"
+                    )
     return {"profiles": sorted(profiles), "capabilities": sorted(capabilities)}

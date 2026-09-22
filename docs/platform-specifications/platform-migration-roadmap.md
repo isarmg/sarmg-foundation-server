@@ -2,7 +2,7 @@
 
 ## 状态
 
-本文件落实《Sarmg Foundation 上游平台化改造实施手册》的治理入口。Foundation `0.5.0` 是冻结基线，
+本文件落实《Sarmg Foundation 上游平台化改造实施手册》的治理入口。Foundation `0.9.0` 是冻结基线，
 提供 P5–P12 的当前平台实现，但不是 Foundation 1.0 完成声明；1.0 仍以全部消费者采用且无例外为门槛。
 
 ## 永久依赖方向
@@ -32,3 +32,6 @@ Foundation 不得依赖产品 crate，不按 `product_id` 分支，不提供产�
 
 持久格式发生变化前必须先发布对应的 `sarmg-upgrade` source fixture 和升级边。在线产品只读取唯一当前
 格式，不携带 legacy reader、双读写或兼容 fallback。
+
+具体产品的历史状态目录、脱敏 source fixture 与升级支持关系完全由 `sarmg-upgrade` 自己维护。Foundation
+不保存指向 Upgrade 私有目录的 baseline，也不根据某个下游仓库的 fixture 布局决定自身构建或发布结果。

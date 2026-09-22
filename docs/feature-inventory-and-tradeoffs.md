@@ -23,13 +23,13 @@
 |---|---|---|---|---|---|---|
 | FND-001 | 纯 build-time 共享层，不运行中央 Foundation service | 根 README、Cargo/npm workspace、state contract 无资源 | 核心 | 高 | 引入生产网络依赖、中央故障域和所有产品锁步发布 | 消费者制品断网运行；无监听/daemon/config |
 | FND-002 | 20 个 Rust crate 与 8 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
-| FND-003 | 全组件统一版本 `0.5.0` | workspace version、package version、`foundation_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
+| FND-003 | 全组件统一版本 `0.9.0` | workspace version、package version、`foundation_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
 | FND-004 | 只提供唯一当前 API/合同/算法 | crate/package public API、strict guard、文档 | 核心 | 高 | 兼容分支和测试矩阵持续膨胀，产品边界不可证明 | 不存在 alias、dual reader/write、deprecated export |
 | FND-005 | 历史迁移/备份/恢复归 `sarmg-upgrade` 与产品 adapter | README、合同边界、空 Foundation state | 核心 | 高 | 在线 runtime 被非当前解析器和高权限修改逻辑污染 | Foundation 不含 migration edge 或产品 DDL |
 | FND-006 | Foundation 不拥有用户、Session、业务 DB、文件树或进程 | 所有 crate/package API 范围 | 核心 | 高 | 共享库变成特权平台，产品无法独立运行和发布 | API/依赖审计；state contract resources 为空 |
 | FND-007 | 生产不依赖 GitHub/npm/Foundation 在线可用 | 消费者 pin、编译/打包模型 | 保障 | 高 | registry/GitHub 故障会让已部署产品不可用 | 构建后断网启动与核心功能验证 |
 | FND-008 | 最强产品规则不得被通用 helper 削弱 | 接入流程、消费者集成测试 | 保障 | 高 | Sunshine TLS、产品路径/release verifier 等边界被最低共同实现替换 | 产品先/后置加强验证保留，攻击负例不减少 |
-| FND-009 | Rust 全 workspace `unsafe_code=forbid` | `[workspace.lints.rust]` | 保障 | 中 | 新 unsafe 可绕过内存安全假设并扩大全仓审计 | all-target/all-feature check 与 lint |
+| FND-009 | Rust 全 workspace `unsafe_code=deny` | `[workspace.lints.rust]` | 保障 | 中 | 新 unsafe 可绕过内存安全假设并扩大全仓审计 | all-target/all-feature check 与 lint |
 | FND-010 | Clippy 禁止 `dbg!` 与 `todo!` | `[workspace.lints.clippy]` | 开发运维 | 低 | 临时诊断或未实现路径进入发布 crate | clippy `-D warnings` |
 | FND-011 | Rust edition 2024、MSRV/toolchain 1.98 | workspace、`rust-toolchain.toml` | 开发运维 | 中 | 各 crate 编译语义和依赖解析漂移 | fixed toolchain check/test/doc |
 | FND-012 | Web workspace Node 26.7.0、pnpm 10.12.1、TS 5.8.3 | `.node-version`、root/package manifest、lock | 开发运维 | 中 | 本地/CI/package 构建结果不一致 | policy + frozen install + package smoke |
@@ -216,6 +216,7 @@
 | FND-196 | `read_schema_identity` 先验证实际hash才返回身份 | function顺序 | 保障 | 高 | 调用方误信未绑定真实DDL的metadata | drifted DDL测试 |
 | FND-197 | pool convenience仍执行相同current验证 | `read_pool_*`/`require_pool_*` | 建议保留 | 低 | 产品为便利绕过connection级验证 | wrapper集成测试 |
 | FND-198 | 不含业务DDL、migration、路径权限、实例锁、backup | crate public API | 核心 | 高 | 通用层越权修改产品状态或给出错误安全保证 | API面审计；产品生命周期测试 |
+| FND-199 | `sarmg-platform-db` 提供当前平台元数据单例的事务内初始化、严格读取与 Profile 验证；产品仍拥有业务初始数据 | `initialize_current_platform_metadata`、`require_current_platform_metadata` | 核心 | 高 | 产品复制平台 SQL 或只建表不写记录，当前平台身份无法闭环 | 新库初始化后立即验证；空行、重复行、错误 Profile/代际拒绝 |
 
 ## 8. Server 架构门禁：`sarmg-server-target`
 
@@ -345,7 +346,7 @@
 | FND-325 | design-token复制4份CSS入口 | copy-css script | 核心 | 中 | package声明与实际CSS缺失 | source=dist/tar测试 |
 | FND-326 | build前clean且拒绝linked dist | package artifact policy | 保障 | 高 | 陈旧输出或symlink逃逸进入包 | linked/stale dist负例 |
 | FND-327 | manifest与export目标必须普通单链接文件 | artifact policy | 保障 | 高 | symlink/hardlink使审计对象与安装对象不同 | link负例 |
-| FND-328 | internal runtime peer使用精确0.5.0 | manifests/policy | 保障 | 高 | 依赖所有权隐藏或运行时解析另一代 | packed manifest检查 |
+| FND-328 | internal runtime peer使用精确0.9.0 | manifests/policy | 保障 | 高 | 依赖所有权隐藏或运行时解析另一代 | packed manifest检查 |
 | FND-329 | workspace协议仅用于内部dev/build | manifest policy + packed check | 开发运维 | 中 | 发布tar无法由外部npm安装 | tgz manifest无workspace |
 | FND-330 | tar path必须canonical且留在package根 | tar inspector | 保障 | 高 | 安装路径逃逸/跨平台解释差异 | absolute/`..`/backslash负例 |
 | FND-331 | tar拒绝duplicate member | tar inspector | 保障 | 高 | 不同解包器选择不同内容 | duplicate负例 |
@@ -362,7 +363,7 @@
 | FND-342 | tool tar固定mtime=0/uid/gid/name/mode/order | asset builder | 开发运维 | 中 | 相同源码无法复核字节一致性 | 双构建SHA相同 |
 | FND-343 | release output必须安全、空、非root目录 | `prepare_output` | 保障 | 高 | 覆盖源码/宽目录或混入陈旧资产 | broad/nonempty/link目录负例 |
 | FND-344 | release要求工作树无tracked/untracked变化 | `verify_source` | 保障 | 高 | tag资产包含未提交或本地文件 | porcelain必须空 |
-| FND-345 | tag必须精确`v0.5.0`且唯一指向HEAD | `verify_source` | 保障 | 高 | 资产版本/source/tag不能建立一一关系 | wrong/missing/multiple tag负例 |
+| FND-345 | tag必须精确`v0.9.0`且唯一指向HEAD | `verify_source` | 保障 | 高 | 资产版本/source/tag不能建立一一关系 | wrong/missing/multiple tag负例 |
 | FND-346 | state contract先生成再hash绑定release identity | asset builder顺序 | 保障 | 高 | identity引用错误状态合同 | hash与Schema验证 |
 | FND-347 | build inventory记录工具链与两个lock hash | `inventory` | 开发运维 | 中 | 事故时无法重构构建输入 | JSON内容与hash测试 |
 | FND-348 | inventory枚举6个Rust和4个npm组件 | cargo metadata + package discover | 开发运维 | 中 | 发布组件缺失/多余不易发现 | component集合检查 |
@@ -470,7 +471,7 @@ source/target状态才在独立 `sarmg-upgrade` 创建转换。
 
 ## 18. 当前版本整体交付定义
 
-`0.5.0` 只有在以下条件全部成立时才完成：22个crate和8个package身份一致；六个crate的Cargo package均
+`0.9.0` 只有在以下条件全部成立时才完成：20 个 crate 和 8 个 package 身份一致；20 个 crate 的 Cargo package 均
 自带审核过的Apache-2.0文本；Rust/TS/Schema/fixture同构；
 管理员唯一角色和认证策略被所有Server采用；非AMD64 Server编译失败而客户端平台不受误限；非Dufs Web
 使用精确React/Vite基线；Dufs例外有文档和测试；SQLite current identity严格；真实tgz离线安装；release

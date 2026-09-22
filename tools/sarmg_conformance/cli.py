@@ -55,7 +55,10 @@ def _report(arguments: argparse.Namespace) -> tuple[dict[str, Any], bool]:
         except (OSError, ConformanceError) as error:
             ok = False
             checks[name] = {"ok": False, "error": str(error)}
-    return {"ok": ok, "checks": checks}, ok
+    release_verified = (
+        checks.get("release", {}).get("result", {}).get("status") == "verified"
+    )
+    return {"ok": ok, "release_verified": release_verified, "checks": checks}, ok
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -66,6 +69,8 @@ def main(argv: list[str] | None = None) -> int:
     for name in ("verify-manifest", "verify-source", "verify-schema", "verify-web", "verify-release", "report"):
         child = subparsers.add_parser(name)
         child.add_argument("--product-root", type=Path, default=Path.cwd())
+        if name == "verify-release":
+            child.add_argument("--require-published", action="store_true")
         if name == "report":
             child.add_argument("--json", action="store_true", dest="as_json")
     subparsers.add_parser("verify-foundation")
@@ -84,13 +89,18 @@ def main(argv: list[str] | None = None) -> int:
             result, ok = _report(arguments)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if ok else 1
+        elif arguments.command == "verify-release":
+            result = verify_release(
+                arguments.product_root.resolve(strict=True),
+                arguments.foundation_root.resolve(strict=True),
+                require_published=arguments.require_published,
+            )
         else:
             checks: dict[str, Check] = {
                 "verify-manifest": verify_manifest,
                 "verify-source": verify_source,
                 "verify-schema": verify_schema,
                 "verify-web": verify_web,
-                "verify-release": verify_release,
             }
             result = _product_check(arguments, checks[arguments.command])
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
