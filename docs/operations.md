@@ -232,12 +232,12 @@ sarmg-admin-auth = {
 
 | 字段 | 运维含义 |
 |---|---|
-| `repository` | 6 个真实产品仓库之一 |
-| `commit` | 本次评估采用前/联调基线，必须完整 SHA |
-| `adopted_version` | 当前采用的 Foundation 版本；未集成为 null |
+| `product` | 6 个真实产品仓库之一的产品标识 |
+| `commit` | 本次评估采用的已提交消费者基线，必须是完整 SHA |
+| `foundation_version` | 该提交采用的 Foundation 版本；未集成为 null |
 | `packages` | 直接采用的组件，不列传递依赖 |
 | `status` | not-migrated / migration-in-progress / conforming / non-conforming / temporary-exception |
-| `last_verified_commit` | 不可变来源、独立 checkout 全部通过的最终消费者 SHA |
+| `exceptions` | 非 conforming 状态对应的显式例外编号；conforming 必须为空 |
 
 发布前本地 path/file 联调最多标 `migration-in-progress`；Foundation release 后，将消费者换成 Git rev/tgz、
 重建 lock、完整验证并提交，才能标 `conforming`。若 CI 后来失败，应真实标 `non-conforming`；存在有效迁移

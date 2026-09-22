@@ -52,8 +52,8 @@
     },
     {
       "product": "host-monitoring",
-      "commit": "ca41b7cdbdd662d2a4a5b28ace7be74cd7fded6c",
-      "foundation_version": "0.7.0",
+      "commit": "9401cae952a625eb7bcabcf5d6e5f23aeae259a7",
+      "foundation_version": "0.9.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -85,16 +85,15 @@
         "sarmg-contracts",
         "sarmg-error",
         "sarmg-fs-safety",
+        "sarmg-platform-db",
         "sarmg-schema-identity",
         "sarmg-secure-http",
         "sarmg-server-runtime",
         "sarmg-server-target",
         "sarmg-sqlite"
       ],
-      "status": "temporary-exception",
-      "exceptions": [
-        "generated-schema-inspection"
-      ]
+      "status": "conforming",
+      "exceptions": []
     },
     {
       "product": "media-backup",
@@ -142,7 +141,7 @@
     },
     {
       "product": "sarmg-upgrade",
-      "commit": "1e0efe0d25c67d83df85c72e0f633e34d6e0521c",
+      "commit": "7e5de2c562af1716817829b45801dff0c3600c0b",
       "foundation_version": "0.6.0",
       "profiles": [
         "offline-tool"
@@ -163,8 +162,8 @@
     },
     {
       "product": "sentinel-monitor",
-      "commit": "e13e167bd8696d8742a68e1de0a06f0758c02c3d",
-      "foundation_version": "0.7.0",
+      "commit": "727e4beaf061596eccb94cf4804e4f0bfcf04f3f",
+      "foundation_version": "0.9.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -207,15 +206,13 @@
         "sarmg-server-target",
         "sarmg-sqlite"
       ],
-      "status": "temporary-exception",
-      "exceptions": [
-        "generated-schema-inspection"
-      ]
+      "status": "conforming",
+      "exceptions": []
     },
     {
       "product": "sunshine-manager",
-      "commit": "d9103beec4d11d97f63fcfc866b709fad9057007",
-      "foundation_version": "0.7.0",
+      "commit": "19b792b96ae2afb045727d7c40d22048f028b541",
+      "foundation_version": "0.9.0",
       "profiles": [
         "server-control-plane",
         "web-react-admin"
@@ -257,10 +254,8 @@
         "sarmg-server-target",
         "sarmg-sqlite"
       ],
-      "status": "temporary-exception",
-      "exceptions": [
-        "generated-schema-inspection"
-      ]
+      "status": "conforming",
+      "exceptions": []
     }
   ]
 }
