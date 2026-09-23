@@ -117,6 +117,84 @@ def _exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None
         )
 
 
+def check_dependency_boundaries(root: Path) -> None:
+    """Keep package dependencies inside the Server platform or external libraries.
+
+    Consumer metadata is reporting input, never a source of runtime dependencies.
+    Inspect every dependency scope, including aliases and target-specific tables.
+    """
+    root = root.resolve()
+    cargo = _toml(root / "Cargo.toml")
+    workspace_dependencies = cargo.get("workspace", {}).get("dependencies", {})
+
+    def check_cargo_table(table: dict[str, Any], path: Path) -> None:
+        for dependency, declared in table.items():
+            requirement = declared
+            if isinstance(declared, dict) and declared.get("workspace") is True:
+                requirement = workspace_dependencies.get(dependency)
+                if requirement is None:
+                    raise FoundationPolicyError(f"{path}: unknown workspace dependency {dependency}")
+                origin = root
+            else:
+                origin = path.parent
+            package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
+            internal = package in RUST_PACKAGES
+            if package.startswith("sarmg-") and not internal:
+                raise FoundationPolicyError(f"{path}: dependency {package} is outside Foundation Server")
+            if internal:
+                expected = root / "rust" / "crates" / package
+                if (
+                    not isinstance(requirement, dict)
+                    or requirement.get("version") != f"={CURRENT_VERSION}"
+                    or not isinstance(requirement.get("path"), str)
+                    or (origin / requirement["path"]).resolve() != expected
+                    or "git" in requirement
+                ):
+                    raise FoundationPolicyError(
+                        f"{path}: internal {package} must use its workspace crate path and ={CURRENT_VERSION}"
+                    )
+            elif isinstance(requirement, dict) and "path" in requirement:
+                raise FoundationPolicyError(f"{path}: external local dependency {package} is not self-contained")
+
+    manifests = [root / "Cargo.toml", *sorted((root / "rust" / "crates").glob("*/Cargo.toml"))]
+    for path in manifests:
+        manifest = cargo if path == root / "Cargo.toml" else _toml(path)
+        scopes = [manifest, *manifest.get("target", {}).values()]
+        if path == root / "Cargo.toml":
+            scopes.append(manifest.get("workspace", {}))
+        for scope in scopes:
+            for section in ("dependencies", "dev-dependencies", "build-dependencies"):
+                check_cargo_table(scope.get(section, {}), path)
+        for patches in manifest.get("patch", {}).values():
+            check_cargo_table(patches, path)
+        # Replacements select dependencies by package ID, including a version.
+        check_cargo_table(
+            {name.split(":", 1)[0]: value for name, value in manifest.get("replace", {}).items()},
+            path,
+        )
+
+    manifests = [root / "package.json", *sorted((root / "packages").glob("*/package.json"))]
+    for path in manifests:
+        manifest = _json(path)
+        for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
+            for dependency, requirement in manifest.get(section, {}).items():
+                package = dependency
+                if isinstance(requirement, str) and requirement.startswith("npm:"):
+                    alias = re.fullmatch(r"npm:((?:@[^/]+/)?[^@]+)(?:@.*)?", requirement)
+                    if alias is not None:
+                        package = alias.group(1)
+                internal = package in KNOWN_PACKAGES and package.startswith("@sarmg/")
+                if package.startswith("@sarmg/") and not internal:
+                    raise FoundationPolicyError(f"{path}: dependency {package} is outside Foundation Server")
+                expected = CURRENT_VERSION if section == "peerDependencies" else f"workspace:{CURRENT_VERSION}"
+                if internal and (dependency != package or requirement != expected):
+                    raise FoundationPolicyError(f"{path}: internal {package} must use {expected} without an alias")
+                if not internal and isinstance(requirement, str) and (
+                    requirement.startswith(("file:", "link:", "workspace:", "./", "../", "/"))
+                ):
+                    raise FoundationPolicyError(f"{path}: external local dependency {package} is not self-contained")
+
+
 def check_versions(root: Path) -> None:
     root_license = root / "LICENSE"
     root_license_bytes = read_audited_root_license(root_license)
@@ -237,4 +315,5 @@ def check_repository(root: Path) -> None:
     root = root.resolve(strict=True)
     if root == Path(root.anchor):
         raise FoundationPolicyError("refusing to check a filesystem root")
+    check_dependency_boundaries(root)
     check_versions(root)
