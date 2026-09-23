@@ -331,7 +331,7 @@ main 工作树完全干净
 ├─ 全部 Rust/Web/Python/package 门禁通过
 ├─ Cargo/npm/policy 版本一致（消费者报告独立维护）
 ├─ 20 个 Cargo package 均携带审核过的根 LICENSE
-├─ 创建唯一 annotated v0.9.0 tag
+├─ 创建唯一 annotated v0.9.1 tag
 ├─ push tag 触发唯一 release job
 ├─ 再次运行全部门禁
 ├─ 生成 8 个 npm tgz
