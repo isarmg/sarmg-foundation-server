@@ -3,6 +3,7 @@
 产品通过 `createSarmgAdminApplication({ product, navigation, routes, client? })` 提供产品身份、同站导航和业务内容。
 可传入唯一共享管理员 client；未传时由 Shell 创建。业务通过 `useAdminApplication()` 取得 client、已认证
 Session 和有界 `notify`。认证数据仅保存在 admin-web 内存中，不放入浏览器存储。
+可选的 `loginLandingHref` 是经校验的本地链接，仅在管理员显式登录成功后替换当前地址；恢复会话和刷新页面保留当前深链接。
 
 Shell 拥有登录、Session 恢复/重试、退出、导航、跳过导航链接、主题切换、错误边界和通知，不提供诊断入口或面板。
 登录期间表单保持挂载，防止失败提示丢失；密码失败后清空并恢复焦点。对外仅显示固定安全提示及校验后的 Request ID，

@@ -35,6 +35,23 @@ test("session restore uses an opaque boot shell", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Administrator sign in" })).toBeVisible();
 });
 
+test("restored sessions preserve the current deep link", async ({ page }) => {
+  await mockApi(page, true);
+  await page.goto("/?loginLanding=1#activity");
+  await expect(page.getByRole("heading", { name: "Product overview" })).toBeVisible();
+  await expect(page).toHaveURL(/#activity$/);
+});
+
+test("explicit sign in opens the configured login landing", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/?loginLanding=1#activity");
+  await page.getByLabel("Username", { exact: true }).fill("admin");
+  await page.getByLabel("Password", { exact: true }).fill("correct-password");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/#workspace$/);
+  await expect(page.getByRole("heading", { name: "Full-width workspace" })).toBeVisible();
+});
+
 test("failed login stays mounted, clears password, and displays only safe failure and Request ID", async ({ page }) => {
   await mockApi(page); await page.goto("/");
   await page.getByLabel("Username", { exact: true }).fill("admin");

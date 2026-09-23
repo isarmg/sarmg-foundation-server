@@ -19,8 +19,10 @@ test('default workspace policy and explicit consumer customization',()=>{
 });
 test('instance names count Unicode scalar values, reject controls and blank names',()=>{
   for(const character of ['a','中','あ','😀']) { assert.equal(validInstanceName(character.repeat(32)),true); assert.equal(validInstanceName(character.repeat(33)),false); }
-  for(const name of ['','   ','name\ncontrol','name\x7f','name\x80','name\x9f','name\ud800','name\udfff'])assert.equal(validInstanceName(name),false);
+  for(const name of ['','   ','name\ncontrol','\nname','name\n','\x85name','name\x85','name\x7f','name\x80','name\x9f','name\ud800','name\udfff'])assert.equal(validInstanceName(name),false);
   assert.equal(validInstanceName('  '+ '😀'.repeat(32)+'  '),true);
+  assert.equal(validInstanceName('\ufeff'+'a'.repeat(31)),true);
+  assert.equal(validInstanceName('\ufeff'+'a'.repeat(32)),false);
   for(const maximum of [0,1.5,33,NaN,Infinity])assert.equal(validInstanceName('a',maximum),false);
 });
 test('shared instance inputs and icons remain available without a sidebar component',()=>{

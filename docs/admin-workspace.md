@@ -33,7 +33,7 @@ createSarmgAdminApplication({
 Foundation 管理页面提供全宽内容区域。页面内容、选中实例、导航状态及对象的业务含义均由产品负责。
 创建动作没有传入时不显示“+”，不虚构产品不支持的 API。
 `InstanceNameField` 与 `validInstanceName` 按 Unicode 字符计数（与 Rust `chars()` 一致），
-名称去除首尾空白后为 1–32 字符，禁止 ASCII/C1 控制字符和孤立代理项；消费者可配置 1–32 的整数上限。
+名称按 Rust `str::trim` 的 Unicode White_Space 规则去除首尾空白后为 1–32 字符；原始输入的任何位置均禁止 ASCII/C1 控制字符和孤立代理项。消费者可配置 1–32 的整数上限。
 初始值、受控值更新和用户输入使用同一校验，长度按去除首尾空白后的名称计算。
 后端仍必须校验请求，不能依赖浏览器输入限制。该规则不是文件名、用户名或路径长度规则。
 

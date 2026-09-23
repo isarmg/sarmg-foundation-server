@@ -25,10 +25,3 @@ test("shared login renders labels and current credential bounds", () => {
   assert.match(html, /autocomplete="current-password"/i);
   assert.match(html, /type="submit"/);
 });
-
-test("login landing is armed by an explicit login instead of restored sessions", async () => {
-  const source = await readFile(new URL("../src/index.tsx", import.meta.url), "utf8");
-  assert.match(source, /setLoginLandingPending\(options\.loginLandingHref !== undefined\)/);
-  assert.match(source, /await session\.login\(username, password\)/);
-  assert.doesNotMatch(source, /landingComplete/);
-});

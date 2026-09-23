@@ -33,6 +33,8 @@ test('configured admin workspace, header actions, names and consumer override',a
   for(const value of ['   ','name\x80','name\x9f']){
     await input.fill(value);expect(await input.evaluate(node=>node.checkValidity())).toBe(false);
   }
+  await input.fill('\ufeff'+'a'.repeat(32));expect(await input.evaluate(node=>node.checkValidity())).toBe(false);
+  await input.fill('\ufeff'+'a'.repeat(31));expect(await input.evaluate(node=>node.checkValidity())).toBe(true);
   await page.keyboard.press('Escape');
   await expect(actions.getByRole('button',{name:"Create instance",exact:true})).toBeFocused();
   await page.goto('/?workspace=custom#workspace');

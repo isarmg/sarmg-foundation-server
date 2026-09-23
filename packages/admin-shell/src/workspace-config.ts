@@ -36,10 +36,11 @@ export function resolveWorkspaceConfig(input: Partial<WorkspaceConfig> = {}): Wo
   return Object.freeze(result);
 }
 export function validInstanceName(value: string, maximum = DEFAULT_WORKSPACE_CONFIG.instanceNameMaxCharacters): boolean {
-  const name = value.trim();
+  // Rust str::trim uses Unicode White_Space; JavaScript trim also removes FEFF.
+  const name = value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, "");
   return Number.isInteger(maximum) && maximum >= 1 && maximum <= 32
     && name.length > 0 && [...name].length <= maximum
-    && !/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(name);
+    && !/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(value);
 }
 export const WORKSPACE_ICON_PATHS = Object.freeze({
   create: "M12 5v14M5 12h14",

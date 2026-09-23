@@ -34,6 +34,7 @@ const App = createSarmgAdminApplication({
   product: { name: "Foundation acceptance" },
   client: createAdministratorApiClient(),
   navigation: [{ label: "Overview", href: "#overview" }, { label: "Activity", href: "#activity" }],
+  loginLandingHref: new URLSearchParams(window.location.search).has("loginLanding") ? "#workspace" : undefined,
   routes: <ProductRoutes />,
   workspace: window.location.search === "?workspace=custom" ? {appearance:"custom-brand",selection:"custom"} : undefined,
 });
