@@ -2,7 +2,7 @@
 
 ## 7.1 当前版本模型
 
-20 个 crate 和 8 个 package 统一为 `0.9.1`。0.x 允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
+20 个 crate 和 8 个 package 统一为 `0.9.2`。0.x 允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
 不可变合同，一旦tag/asset公开就不移动、不覆盖、不用同版本重新打包。
 
 以下都可能是breaking change：
@@ -37,7 +37,7 @@ consumer调用；不添加deprecated wrapper、alias、dual parser、版本协�
 `@sarmg/http-client`把contracts作为精确peer；`admin-web`把contracts/http-client与React/Vite需要项作为精确
 peer。这样消费者明确拥有依赖，不会因某个包内部悄悄嵌入另一版本而出现两份合同。
 
-Foundation workspace 中的 `workspace:0.9.1` 只用于 dev/build。发布 tar manifest 不能含 workspace 协议；真实
+Foundation workspace 中的 `workspace:0.9.2` 只用于 dev/build。发布 tar manifest 不能含 workspace 协议；真实
 consumer必须同时安装所需tgz。
 
 ## 7.5 Rust消费版本
@@ -47,8 +47,8 @@ consumer必须同时安装所需tgz。
 ```toml
 sarmg-contracts = {
   git = "https://github.com/isarmg/sarmg-foundation-server.git",
-  rev = "<v0.9.1 对应完整 40 位 commit>",
-  version = "=0.9.1"
+  rev = "<v0.9.2 对应完整 40 位 commit>",
+  version = "=0.9.2"
 }
 ```
 
