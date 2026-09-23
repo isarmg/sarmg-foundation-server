@@ -44,8 +44,8 @@ python3 scripts/check-foundation.py
 cargo +1.98.0 fmt --all -- --check
 cargo +1.98.0 test --locked --workspace --all-targets --all-features
 cargo +1.98.0 clippy --locked --workspace --all-targets --all-features -- -D warnings
-corepack pnpm install --frozen-lockfile --ignore-scripts
-corepack pnpm test
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm test
 ```
 
 ## 文档
