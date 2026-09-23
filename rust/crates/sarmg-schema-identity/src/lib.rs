@@ -1,7 +1,7 @@
 //! Database-driver-independent SQLite schema identity primitives.
 //!
-//! Products own only their exact current DDL and schema identity. Historical
-//! migration, backup and restore belong to the independent `sarmg-upgrade`
+//! Products own their exact current DDL and schema identity. Offline backup
+//! and restore of current state belong to the independent `sarmg-upgrade`
 //! repository. This crate defines the current `product_metadata` contract and
 //! the byte-exact schema fingerprint shared by products and offline tooling.
 

@@ -22,8 +22,8 @@
 新当前版本只保留一个名字和行为。删除旧function、field、package export、CSS property、Schema version和
 consumer调用；不添加deprecated wrapper、alias、dual parser、版本协商或“参数不同也试一下”的fallback。
 
-若涉及已发布持久状态：在线产品只实现target current；`sarmg-upgrade`在独立高权限离线工具中实现精确
-source→target edge。开发期未发布数据可重建，不为它写升级代码。
+持久状态必须符合运行版本的当前 Schema 和身份；在线产品拒绝不匹配的状态。
+`sarmg-upgrade` 负责当前状态的离线维护，不要求实现历史版本转换。
 
 ## 7.3 Package build不是源码复制
 

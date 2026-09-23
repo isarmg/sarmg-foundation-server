@@ -21,7 +21,7 @@ for (const argument of process.argv.slice(2)) {
       const pathname = new URL(request.url, "http://localhost").pathname.replace(/^\/admin\//, "/");
       if (pathname === "/font-check") {
         response.setHeader("content-type", "text/html; charset=utf-8");
-        response.end(`<!doctype html><html data-sarmg-appearance="content-blocks"><head>${styles.map(file => `<link rel="stylesheet" href="/${file}">`).join("")}</head><body data-sarmg-scope><p id="latin">Sunshine fi fl al ul != ===</p><p id="chinese">中文管理字体測試</p><p id="japanese" lang="ja">日本語かなカナ</p><p id="bold" style="font-weight:700">中文日本語</p><input value="Sunshine 中文 日本語"></body></html>`);
+        response.end(`<!doctype html><html data-sarmg-appearance="content-blocks"><head>${styles.map(file => `<link rel="stylesheet" href="/${file}">`).join("")}</head><body data-sarmg-scope><p id="latin">Foundation fi fl al ul != ===</p><p id="chinese">中文管理字体測試</p><p id="japanese" lang="ja">日本語かなカナ</p><p id="bold" style="font-weight:700">中文日本語</p><input value="Foundation 中文 日本語"></body></html>`);
         return;
       }
       const file = resolve(root, `.${decodeURIComponent(pathname)}`);
@@ -41,7 +41,7 @@ for (const argument of process.argv.slice(2)) {
         page.on("response", response => { if (response.status() >= 400) failures.push(response.url()); });
         await page.goto(`http://127.0.0.1:${server.address().port}/font-check`);
         await page.evaluate(async () => {
-          await document.fonts.load('400 18px "Sarmg Maple"', "Sunshine 中文管理字体測試日本語かなカナ");
+          await document.fonts.load('400 18px "Sarmg Maple"', "Foundation 中文管理字体測試日本語かなカナ");
           await document.fonts.load('700 18px "Sarmg Maple"', "中文日本語");
           await document.fonts.ready;
           await new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));

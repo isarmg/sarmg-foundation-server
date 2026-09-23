@@ -179,7 +179,7 @@ mod tests {
 
     async fn create(fixture: &Fixture, name: &str) -> AdministratorRecord {
         sqlx::query("INSERT INTO _sarmg_administrators(administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros) SELECT ?, ?, password_hash, 1, 1, created_at_micros+1, updated_at_micros FROM _sarmg_administrators WHERE username='admin'")
-            .bind(format!("legacy-{name}")).bind(name).execute(fixture.service.store().pool()).await.unwrap();
+            .bind(format!("fixture-{name}")).bind(name).execute(fixture.service.store().pool()).await.unwrap();
         fixture
             .service
             .store()

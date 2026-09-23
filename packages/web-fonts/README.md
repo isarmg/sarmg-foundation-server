@@ -24,7 +24,7 @@ node packages/web-fonts/scripts/build.mjs
 ## 当前发行分发
 
 字体通过正式 `@sarmg/web-fonts` Release 包分发。消费者固定不可变 Release 包，并在构建时校验来源、摘要和许可证。
-五个管理 Web 均使用 Normal NL 正体与 CJK 资源；不再将字体源码快照同步到产品 `web/fonts/`。
+管理 Web 通过包依赖使用 Normal NL 正体与 CJK 资源。
 消费者导入包的 CSS，构建时校验来源、字体摘要和许可证，运行时只加载产品同源资源，不需要同级 Foundation 工作区或 CDN。
 
 更新字体必须发布新的不可变包、更新消费者锁图并重建资源合同，不能覆盖旧归档或伪造原生平台验收。

@@ -18,7 +18,7 @@ for (const argument of process.argv.slice(2)) {
   await readFile(join(product, "web/package.json"));
   const destination = join(product, "web/fonts");
   await mkdir(destination, { recursive: true });
-  // Remove only the verified, previously distributed Western faces, never user files.
+  // Remove only the two named faces whose bytes match the audited provenance.
   for (const name of ["MapleMono.woff2", "MapleMono-Italic.woff2"]) {
     try {
       const bytes = await readFile(join(destination, name));

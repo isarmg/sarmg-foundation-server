@@ -1071,19 +1071,22 @@ mod tests {
         let token = "A".repeat(43);
         assert_eq!(
             session_set_cookie(
-                "sunshine-manager",
+                "example-product",
                 AdministratorOriginMode::ProductionHttps,
                 &token
             )
             .unwrap(),
             format!(
-                "__Host-sarmg-sunshine-manager-session={token}; Path=/; HttpOnly; Secure; SameSite=Strict"
+                "__Host-sarmg-example-product-session={token}; Path=/; HttpOnly; Secure; SameSite=Strict"
             )
         );
         assert!(
-            !session_clear_cookie("dufs-ram", AdministratorOriginMode::LoopbackDevelopmentHttp)
-                .unwrap()
-                .contains("Secure")
+            !session_clear_cookie(
+                "example-product",
+                AdministratorOriginMode::LoopbackDevelopmentHttp
+            )
+            .unwrap()
+            .contains("Secure")
         );
     }
 }

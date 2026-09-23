@@ -1,6 +1,6 @@
 //! Current-only lifecycle and metadata checks for a Sarmg platform database.
 //!
-//! Historical DDL and migration remain the responsibility of `sarmg-upgrade`.
+//! Offline maintenance of current state belongs to `sarmg-upgrade`.
 //! This crate opens only an existing database whose complete schema identity
 //! and platform component are exactly what the running product compiled for.
 

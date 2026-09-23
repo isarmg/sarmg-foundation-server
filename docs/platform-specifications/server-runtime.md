@@ -1,9 +1,9 @@
 # Server Runtime 当前合同
 
 生产服务通过 `ServerRuntime::builder` 注册产品身份、当前 Schema identity、健康检查、数值诊断探针和
-后台任务，最后调用 `runtime.serve(HttpServer, product_service)`。这是唯一公开 HTTP 启动入口，不保留旧签名包装层。
+后台任务，最后调用 `runtime.serve(HttpServer, product_service)`。这是公开 HTTP 启动入口。
 `HttpServer` 持有 `BoundListeners`、`ProcessSignals`、`Http1Limits`、关闭预算及可选 `LifecycleParticipant`。
-产品 Service 可以在 Axum Router 之前验证原始 URI；产品不再实现另一套信号监听或公共连接关闭循环。
+产品 Service 可以在 Axum Router 之前验证原始 URI；进程信号监听与公共连接关闭循环由 Foundation 负责。
 
 ## 生命周期
 
@@ -33,7 +33,7 @@ Foundation 不认识产品路径、上传 ID、文件操作表或数据目录。
 | `/readyz` | 无 | 200 或 503；仅 `{"ready":bool}` |
 | `/api/v2/auth/*` | 由统一 Auth Adapter 决定 | 唯一当前管理员 wire 合同 |
 
-诊断 HTTP 路由及处理器已移除，`/api/v2/platform/diagnostics` 对匿名和已登录请求均为 404。
+`/api/v2/platform/diagnostics` 对匿名和已登录请求均为 404。
 运行时内部快照仅供任务监督与测试，不作为管理 Web 功能或 HTTP 数据接口。
 Schema identity 是经产品启动校验的编译期当前身份；数据库实时状态由数据库健康探针给出。
 

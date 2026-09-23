@@ -14,9 +14,9 @@ Shell 拥有登录、Session 恢复/重试、退出、导航、跳过导航链�
 Table 可键盘横向滚动；业务 loading/error 有可见文本与正确 live/alert 语义。初始会话和核心字体启动阶段使用不暴露恢复细节的不透明启动界面，准备完成后才挂载登录页或已认证工作区。
 
 React 产品统一导入 design-tokens 的 tokens.css、tokens.dark.css、reset.css、accessibility.css，
-web-fonts/fonts.css 及 admin-ui/styles.css。不再维护产品私有登录页、全局 Shell 或字体副本。
+web-fonts/fonts.css 及 admin-ui/styles.css。登录、全局 Shell 与字体通过这些包提供。
 主题初始采用系统亮暗偏好，顶部图标按钮每点击一次切换浅色/深色；按钮提供可访问名称、键盘操作和说明。
-遵守 forced-colors 和 reduced-motion；业务布局仍由产品负责。空 `navigation` 可用于产品自己的实例分栏，不输出多余导航栏。
+遵守 forced-colors 和 reduced-motion；业务布局仍由产品负责。空 `navigation` 允许产品通过 `HeaderNavigation` 提供顶部页面入口。
 
 默认视觉外观采用 Union 内容块：登录卡片宽度上限 380px、3:2、六行布局；
 业务摘要使用比例卡片，长表单、详情、表格使用可伸展面板，不能裁掉功能或错误信息。
@@ -28,9 +28,9 @@ web-fonts/fonts.css 及 admin-ui/styles.css。不再维护产品私有登录页�
 详见 [外观接入及不可变包分发说明](../../packages/admin-ui/CONTENT-BLOCKS.md)。
 
 `@sarmg/web-toolchain/vite` 和 `@sarmg/web-toolchain/tsconfig.json` 是唯一工具链入口，
-admin-web 不再导出构建配置。构建关闭 source maps，对每个产物执行硬性大小预算（默认 512 KiB），超限失败。
+admin-web 负责认证客户端。构建关闭 source maps，对每个产物执行硬性大小预算（默认 512 KiB），超限失败。
 输出目录为 dist，资源由 Vite 生成内容哈希文件名，React/React DOM 去重。
 
 验收命令：`pnpm test`、`pnpm test:web`。浏览器套件在 Chromium 和 Firefox 检查登录/退出、Request ID、
-焦点循环、错误边界、诊断入口移除、主题和通知，并对 360px 移动宽度的两种主题运行 axe WCAG AA 与横向溢出检查。
+焦点循环、错误边界、不提供诊断入口、主题和通知，并对 360px 移动宽度的两种主题运行 axe WCAG AA 与横向溢出检查。
 测试只代表共享 Profile；每个消费者仍须运行其业务和独立构建验收，不能据此宣称全产品改造完成。

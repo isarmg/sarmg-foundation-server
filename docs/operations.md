@@ -363,7 +363,7 @@ API，应同步升级消费者；不得在 Foundation 添加 alias 维持另一�
 
 ### 15.2 认证 primitive 事件
 
-若问题涉及 Argon2 policy、随机 token、same-origin/CSRF 或管理员合同，应同时审计 6 个消费者的：启动时
+若问题涉及 Argon2 policy、随机 token、same-origin/CSRF 或管理员合同，应同时审计全部消费者的：启动时
 持久凭据验证、登录限流、Cookie flags、Session TTL/撤销、全部原始 header 收集、HTTP2 authority、Web
 内存 Session 和 stale-response 竞态。Foundation 修复库并不自动修复已编译产品，必须逐产品发布。
 
@@ -382,10 +382,10 @@ Schema/fixture、consumer matrix 和文档。registry cache、`node_modules`、`
 consumer matrix 项状态复核；完整 SHA action 与权限扫描；旧名称/current-only 扫描；管理员合同/Server
 target 跨产品抽查。Foundation 无业务数据，所以不得把产品 backup 文件复制进本仓或 Release。
 
-## 当前修复版本切换
+## 当前认证与发布验收
 
 账户保持既有 DDL、ID 和 Argon2 PHC。完成 bootstrap 后必须通过单活动管理员只读校验；多账户、非活动账户或非法记录应停止启动，运维显式处理，校验不自动改写数据。
-CSRF 改为同会话稳定派生；旧随机 CSRF 会话失效，需要重新登录。Web 退出未确认时使用“重试退出”，关闭浏览器不保证服务端撤销。
+CSRF 由同会话 Token 稳定派生；不符合派生值的会话被拒绝，需要重新登录。Web 退出未确认时使用“重试退出”，关闭浏览器不保证服务端撤销。
 登录失败阈值限制新请求准入；阈值前已准入的有限请求可完成，仍受 Argon2 槽位与失败记录容器上限约束。
 Release 在同一提交构建后执行 conformance、Chromium/Firefox 浏览器验收，再构建发布树；失败必须阻止发布。
 包 smoke 的依赖准备允许联网，使用 manifest 精确 peers 与真实 tgz，在隔离目录执行 Node 导入、TypeScript 和 Vite JS/CSS 构建。运行时无注册表依赖。

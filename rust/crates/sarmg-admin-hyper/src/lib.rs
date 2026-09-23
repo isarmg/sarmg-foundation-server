@@ -163,7 +163,7 @@ mod tests {
         }])
         .unwrap();
         let router = HyperAdministratorRouter::new(
-            "dufs-ram",
+            "example-product",
             AdministratorOriginMode::LoopbackDevelopmentHttp,
             Arc::new(AdministratorService::new(store)),
         )
@@ -190,7 +190,7 @@ mod tests {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .starts_with("sarmg-dufs-ram-session=")
+                .starts_with("sarmg-example-product-session=")
         );
         assert!(HyperAdministratorRouter::owns_path(
             sarmg_contracts::ADMIN_LOGOUT_PATH

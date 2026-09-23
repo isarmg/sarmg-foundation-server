@@ -1,4 +1,4 @@
-//! Bounded HTTP/1 transport. Extracted from the audited Dufs connection layer.
+//! Bounded HTTP/1 transport with connection limits, deadlines and graceful shutdown.
 //! No filesystem, authentication, operation, or product-state semantics live here.
 
 use log::{info, warn};

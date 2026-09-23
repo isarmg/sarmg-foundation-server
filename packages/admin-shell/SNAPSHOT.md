@@ -1,16 +1,13 @@
-# Shell 0.7.x 消费者快照
+# 管理 Shell 接入与验收
 
-共享 Shell 提供亮/暗图标切换、顶部导航和全宽内容；诊断入口、面板和专用前端解析器已移除。
-认证 client、CSRF 和管理员合同由正式 Foundation 包提供，不在产品中复制。
-
-下述消费者版本是 0.7.x 阶段的历史验收快照，不代表当前 `0.9.0` 采用状态。四个控制平面消费者当时
-固定 0.7.0，Dufs 固定 0.7.1 的 React Profile。Dufs 的登录、导航和页面结构由 React 渲染，文件/上传
-控制器保留独占 DOM 区域和既有协议。
-公共默认值、消费者覆盖和产品对象映射见 [工作区配置](../../docs/admin-workspace.md)。
+共享 Shell 提供亮/暗图标切换、顶部导航和全宽内容。认证客户端、CSRF 和管理员合同由正式 Foundation 包提供。
+公共默认值与消费者覆盖方式见 [工作区配置](../../docs/admin-workspace.md)。
 
 消费者从不可变 Release tarball 安装 `@sarmg/admin-shell`、`@sarmg/admin-ui` 等包并固定 lockfile integrity，
-只使用一套 Shell Context；不再生成 `web/shell/` 快照，也不需要同级 Foundation checkout。
-通用原生 Web 入口仍供选择 `web-embedded-native` 的其他消费者使用，不表示 Dufs 仍是原生页面。
+使用一套 Shell Context；独立构建不需要同级 Foundation checkout。
+通用原生 Web 入口供选择 `web-embedded-native` 的消费者使用。
 
-本文件保留原文档路径以便查阅；旧快照分发方式不是当前构建流程。
-实际验收见 [0.7.0 记录](../../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../../consumers/react-filesystem-0.7.1-evidence.md)。
+当前采用版本和状态见消费者矩阵。以下记录只证明各自版本的验收结果：
+
+- [0.7.0 控制平面验收](../../consumers/axum-0.7.0-evidence.md)
+- [0.7.1 文件服务验收](../../consumers/react-filesystem-0.7.1-evidence.md)

@@ -1,37 +1,36 @@
-# 平台化迁移路线
+# 平台能力与接入边界
 
-## 状态
+Foundation 的当前版本见根 README；包、Profile 和 Capability 定义共同描述发布接口。
+消费者是否通过验收由清单、锁文件、独立构建和消费者矩阵决定，不能由上游测试结果代替。
 
-本文件落实《Sarmg Foundation 上游平台化改造实施手册》的治理入口。Foundation `0.9.0` 是冻结基线，
-提供 P5–P12 的当前平台实现，但不是 Foundation 1.0 完成声明；1.0 仍以全部消费者采用且无例外为门槛。
-
-## 永久依赖方向
+## 依赖方向
 
 ```text
-第三方依赖 -> sarmg-foundation-server -> 产品 Adapter -> 产品业务
-历史状态 ---------------------------------------> sarmg-upgrade
+第三方库 -> sarmg-foundation-server -> 产品 Adapter -> 产品业务
+当前状态离线维护 ---------------------------> sarmg-upgrade
 ```
 
-Foundation 不得依赖产品 crate，不按 `product_id` 分支，不提供产品名 Feature。运行形态只能通过正式 Profile
-表达；业务差异只能通过 Adapter/Trait 表达；历史格式只能由离线升级边表达。
+Foundation 不依赖产品 crate，不按 `product_id` 分支，不提供产品名 Feature。
+运行形态通过 Profile 表达，公共差异通过 Capability 和 Adapter/Trait 表达；
+产品数据结构、业务协议和业务生命周期由消费者拥有。
+`scripts/check-foundation.py` 检查 Rust/npm 内部依赖身份、各声明作用域和仓库外本地路径。
 
-## 纵向切片完成条件
+## 公共能力
 
-每项能力依次完成：平台提案、产品无关测试、唯一当前合同、Foundation 实现、一个参考产品 Adapter、删除
-参考产品旧实现、不可变 revision 独立检出验证、扩展到其他消费者、禁止回退门禁。不得用空 crate 或未被
-真实消费者采用的计划 API 代替完成证据。
+- Rust：管理员认证、当前 Schema 身份、SQLite、状态文件、运行时生命周期、文件系统安全、秘密封装、有限 HTTP 请求及操作状态机。
+- Web：管理员客户端、React Shell、原生 ESM 适配、UI、设计令牌、字体和构建工具链。
+- 工具：Schema Composer、源码与发行一致性检查、产品无关 Testkit 和消费者报告。
+- Client 和 Mobile FFI 由独立的 Foundation Client 定义，Server Foundation 不导入这些实现。
 
-## 当前顺序
+## 接入验收
 
-1. P0：冻结 commit、版本、Schema fingerprint、脱敏 fixture 和行为 Golden Test。
-2. P1：上游平台定位、ADR、Profile、Capability、临时例外。
-3. P2：产品清单、合规工具、自动消费者矩阵、Testkit。
-4. P3–P4：状态文件、平台数据库、Schema Composer、管理员控制面；Sunshine 为首个参考消费者。
-5. P5–P12：服务端 Runtime/Web、文件安全、网络/加密、操作状态机已进入 Server Foundation；Client、Mobile FFI 归独立 Client Foundation；产品迁移按消费者矩阵推进。
-6. P13：全部产品精确锁定同一不可变 release、独立构建且无临时例外后发布 1.0。
+每项公共能力需要明确规范、当前合同、产品无关测试、Foundation 实现和实际消费者 Adapter。
+消费者固定完整不可变 revision 或发行包，并独立构建和运行其业务测试；未完成接入的能力应如实记录状态。
+产品业务验证保留在产品仓库，Foundation 不以读取下游源码或私有 fixture 作为构建前提。
 
-持久格式发生变化前必须先发布对应的 `sarmg-upgrade` source fixture 和升级边。在线产品只读取唯一当前
-格式，不携带 legacy reader、双读写或兼容 fallback。
+## 状态维护
 
-具体产品的历史状态目录、脱敏 source fixture 与升级支持关系完全由 `sarmg-upgrade` 自己维护。Foundation
-不保存指向 Upgrade 私有目录的 baseline，也不根据某个下游仓库的 fixture 布局决定自身构建或发布结果。
+在线产品只定义、创建和读取唯一当前格式。持久格式变化时同步更新当前 Schema、fingerprint、fixture 和验证；
+不匹配的状态在启动时拒绝，不携带历史 reader、双读写或兼容 fallback。
+`sarmg-upgrade` 负责服务端当前状态的离线维护，不要求实现历史版本转换。
+Foundation 不保存指向其私有目录的 baseline，也不根据下游 fixture 布局决定构建或发布结果。

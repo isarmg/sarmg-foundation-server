@@ -25,7 +25,7 @@
 | FND-002 | 20 个 Rust crate 与 8 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
 | FND-003 | 全组件统一版本 `0.9.0` | workspace version、package version、`foundation_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
 | FND-004 | 只提供唯一当前 API/合同/算法 | crate/package public API、strict guard、文档 | 核心 | 高 | 兼容分支和测试矩阵持续膨胀，产品边界不可证明 | 不存在 alias、dual reader/write、deprecated export |
-| FND-005 | 历史迁移/备份/恢复归 `sarmg-upgrade` 与产品 adapter | README、合同边界、空 Foundation state | 核心 | 高 | 在线 runtime 被非当前解析器和高权限修改逻辑污染 | Foundation 不含 migration edge 或产品 DDL |
+| FND-005 | 当前状态离线备份/恢复归 `sarmg-upgrade` 与产品 adapter | README、合同边界、空 Foundation state | 核心 | 高 | 在线 runtime 被非当前解析器和高权限修改逻辑污染 | Foundation 不含 migration edge 或产品 DDL |
 | FND-006 | Foundation 不拥有用户、Session、业务 DB、文件树或进程 | 所有 crate/package API 范围 | 核心 | 高 | 共享库变成特权平台，产品无法独立运行和发布 | API/依赖审计；state contract resources 为空 |
 | FND-007 | 生产不依赖 GitHub/npm/Foundation 在线可用 | 消费者 pin、编译/打包模型 | 保障 | 高 | registry/GitHub 故障会让已部署产品不可用 | 构建后断网启动与核心功能验证 |
 | FND-008 | 最强产品规则不得被通用 helper 削弱 | 接入流程、消费者集成测试 | 保障 | 高 | Sunshine TLS、产品路径/release verifier 等边界被最低共同实现替换 | 产品先/后置加强验证保留，攻击负例不减少 |
@@ -409,14 +409,14 @@
 | FND-386 | 产品配置/Secret loader | 各Server `config/`/env | 核心 | 高 | 环境变量、权限、Secret backend和fail-closed规则混淆 | 产品启动配置负例 |
 | FND-387 | 路径no-follow/openat2/owner/mode | 各产品资源层 | 保障 | 高 | 通用弱封装引入TOCTOU/跨平台漏洞 | 产品fd相对/篡改测试 |
 | FND-388 | 业务SQLite DDL、transaction与writer | 各产品 | 核心 | 高 | 基础库了解业务状态并阻碍独立演进 | Foundation只校验identity/baseline |
-| FND-389 | migration与非当前Schema reader | `sarmg-upgrade`精确edge | 核心 | 高 | runtime携带历史分支并扩大权限面 | Foundation源码无migration SQL/reader |
+| FND-389 | migration与非当前Schema reader | 当前维护边界不提供此能力 | 核心 | 高 | runtime携带历史分支并扩大权限面 | Foundation源码无migration SQL/reader |
 | FND-390 | backup/restore journal与crash recovery | 升级工具/产品adapter | 核心 | 高 | 资源组合/Secret/原子替换语义被错误泛化 | 共享只提供manifest contract |
 | FND-391 | 自动HTTP retry和mutation幂等 | 每个业务调用方 | 核心 | 高 | 通用层重复未知副作用 | http-client fetch一次；产品operation测试 |
 | FND-392 | 文件/媒体stream transport | 产品client | 核心 | 高 | JSON body预算/parse不适用且占内存 | http-client只处理有界JSON |
 | FND-393 | Web路由、页面、品牌、业务store | 各`web` | 核心 | 高 | 产品被同一UI发布周期和信息架构耦合 | admin-web只提供auth/request/build primitive |
 | FND-394 | 浏览器Session持久化 | 明确不实现 | 保障 | 高 | token长期暴露并改变重载/跨tab安全语义 | 无local/sessionStorage/IndexedDB源码 |
 | FND-395 | UI组件库与字体 | 各产品 | 核心 | 中 | 表面统一扩大bundle和视觉耦合 | design package只含primitive CSS/TS |
-| FND-396 | Dufs React/Vite迁移 | Dufs原生ES modules | 核心 | 高 | 重写成熟嵌入前端而无业务收益 | Dufs只共享管理员后端/wire合同 |
+| FND-396 | 产品 Web Profile 选择 | 产品清单声明 React 或原生 ESM | 核心 | 高 | 重写成熟嵌入前端而无业务收益 | 消费者独立验收所选 Profile 与业务页面 |
 | FND-397 | 产品release目录/mode/self-binding规则 | 各产品release verifier | 保障 | 高 | 通用verifier成为更强产品边界的上限 | Foundation verifier后继续产品验证 |
 | FND-398 | telemetry exporter/runtime | 各产品 | 核心 | 高 | 生命周期、隐私、字段和出口策略被中央化 | Foundation仅有CI/release审计 |
 | FND-399 | Server安装、systemd、reverse proxy和运行配置 | 各产品`deploy/`/`config/` | 核心 | 高 | 无daemon仓库误拥有部署状态 | Foundation无deploy/config；消费者运维验证 |
@@ -446,9 +446,9 @@ sarmg-server-target（只由Server binary直接采用）
 | 选择 | 得到的收益 | 明确付出的成本 | 何时重新评审 |
 |---|---|---|---|
 | build-time而非中央service | 生产故障域独立、断网运行 | 每个产品都要显式升级重建 | 只有出现不可编入产品的真实共同能力 |
-| current-only exact合同 | 漂移立即失败、边界可证明 | 破坏性变更需同步所有消费者 | 不用宽松兼容替代；历史转换进升级仓库 |
+| current-only exact合同 | 漂移立即失败、边界可证明 | 破坏性变更需同步所有消费者 | 不使用宽松兼容或历史格式转换 |
 | 单一admin角色 | 授权面、Schema、UI和审计最小 | 不提供只读/操作员管理账户 | 有两个以上产品的真实分权需求和完整威胁模型时 |
-| 精确Argon2 policy | 启动/登录成本和状态唯一 | 参数升级必须离线重建/转换 | 安全基线变化时发布新current版本 |
+| 精确Argon2 policy | 启动/登录成本和状态唯一 | 参数变化需显式更新当前凭据 | 安全基线变化时发布新current版本 |
 | 严格Origin/Host/Sec-Fetch-Site | 代理歧义和CSRF fail closed | 非浏览器脚本不能伪装管理页面 | 另建明确机器API，不加header fallback |
 | 只支持AMD64 GNU/Linux Server | 部署、CI、ELF和运行假设一致 | 不提供ARM/musl Server | 补齐全产品等价构建/部署/安全矩阵后 |
 | Dufs保留原生ES modules | 避免无收益重写，维持单binary模型 | 前端框架不是字面一致 | Dufs业务重构本身证明React收益时 |

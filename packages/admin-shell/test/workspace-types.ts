@@ -3,5 +3,5 @@ const custom: Partial<WorkspaceConfig> = {appearance:"my-brand",fontFamily:"sans
 resolveWorkspaceConfig(custom);
 validInstanceName("Example",16);
 createSarmgAdminApplication({product:{name:"Custom"},navigation:[],routes:null,workspace:custom});
-// @ts-expect-error layout was removed with the instance-sidebar API.
+// @ts-expect-error WorkspaceConfig accepts only public workspace properties.
 resolveWorkspaceConfig({layout:"custom"});

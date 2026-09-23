@@ -11,8 +11,8 @@ manifest、Profile、JSON Schema、fixture、测试和发布 policy 为事实源
 | 初学者学习指南 | [十章教程](beginner-guide/README.md) | 如何阅读认证、合同、SQLite、Web、发布和测试源码 |
 | 工作流程与流程树 | [project-workflow.md](project-workflow.md) | 一个需求怎样进入 Foundation、怎样跨产品落地、如何删除或发布 |
 | 架构决策 | [architecture/README.md](architecture/README.md) | 平台所有权、Profile、升级和依赖方向为何如此定义 |
-| 平台规范 | [platform-specifications](platform-specifications/platform-migration-roadmap.md) | 平台迁移阶段与 Profile/Capability 的正式边界 |
-| Server Runtime | [server-runtime.md](platform-specifications/server-runtime.md) | 统一启停、任务监督与健康检查；诊断 HTTP 接口已移除 |
+| 平台规范 | [platform-specifications](platform-specifications/platform-migration-roadmap.md) | 当前平台能力与 Profile/Capability 的正式边界 |
+| Server Runtime | [server-runtime.md](platform-specifications/server-runtime.md) | 统一启停、任务监督与健康检查的 HTTP 边界 |
 | Durable Operations | [durable-operations.md](platform-specifications/durable-operations.md) | 事务、owner fencing、Unknown 和审计 outbox |
 | 文件句柄安全 | [filesystem-handles.md](filesystem-handles.md) | 私有目录、typed entry、有界 I/O、原子发布与原生验收边界 |
 | 管理员 Web Profile | [admin-web-shell.md](platform-specifications/admin-web-shell.md) | 共享外壳、顶部导航、可访问 UI 和浏览器验收 |

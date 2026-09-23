@@ -66,7 +66,7 @@ test("modal traps keyboard focus, supports Escape and restores the trigger", asy
   await expect(dialog).not.toBeVisible(); await expect(trigger).toBeFocused();
 });
 
-test("diagnostics is removed; bounded notifications, theme and error boundary remain", async ({ page }) => {
+test("shell excludes diagnostics and provides bounded notifications, theme and error handling", async ({ page }) => {
   const diagnosticRequests = [];
   page.on("request", request => { if (new URL(request.url()).pathname === "/api/v2/platform/diagnostics") diagnosticRequests.push(request.url()); });
   await mockApi(page, true); await page.goto("/");

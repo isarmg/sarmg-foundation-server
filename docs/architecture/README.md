@@ -8,7 +8,7 @@
 | [0001](ADR-0001-build-time-central-platform.md) | Foundation 是构建期中央平台 |
 | [0002](ADR-0002-profiles-and-capabilities.md) | Profile 与 Capability 模型 |
 | [0003](ADR-0003-single-platform-implementation.md) | 产品不实现第二套平台能力 |
-| [0004](ADR-0004-current-only-offline-upgrades.md) | current-only 与离线升级所有权 |
+| [0004](ADR-0004-current-only-offline-upgrades.md) | current-only 与离线维护所有权 |
 | [0005](ADR-0005-shared-sqlite.md) | 平台表与产品表共用 SQLite |
 | [0006](ADR-0006-static-administrator-profile.md) | 静态管理员 Profile |
 | [0007](ADR-0007-single-version-release.md) | Foundation 单版本发布 |
