@@ -475,7 +475,7 @@ mod tests {
 
     fn identity() -> Result<SchemaIdentity, Error> {
         SchemaIdentity::new(
-            "host-monitoring",
+            "sample-product",
             "0.7.0",
             1,
             "c51a04c9248c03f8637dadfa8aafad30bd3f233b474f464f807892071c010049",

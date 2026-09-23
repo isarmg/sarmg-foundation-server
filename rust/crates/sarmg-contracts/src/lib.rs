@@ -1040,7 +1040,7 @@ mod tests {
     fn required_nullable_fields_cannot_be_omitted() {
         let state = json!({
             "contract_version": 1,
-            "application": "host-monitoring",
+            "application": "sample-product",
             "application_version": "0.3.0",
             "source_revision": "a".repeat(40),
             "maintenance_locks": [],
@@ -1053,7 +1053,7 @@ mod tests {
         let backup = json!({
             "manifest_version": 2,
             "tool_version": "0.3.0",
-            "product": "host-monitoring",
+            "product": "sample-product",
             "application_version": "0.3.0",
             "created_at_epoch_seconds": 0,
             "external_requirements": [],
@@ -1072,7 +1072,7 @@ mod tests {
     #[test]
     fn semantic_boundaries_match_the_json_schemas() {
         let release = ReleaseIdentity {
-            product: "host-monitoring".to_owned(),
+            product: "sample-product".to_owned(),
             version: "0.3.0".to_owned(),
             source_revision: "a".repeat(40),
             target: "x86_64-unknown-linux-gnu".to_owned(),
@@ -1107,7 +1107,7 @@ mod tests {
         let state = format!(
             r#"{{
                 "contract_version": 1.0,
-                "application": "host-monitoring",
+                "application": "sample-product",
                 "application_version": "0.3.0",
                 "source_revision": "{}",
                 "schema": {{"revision": 3e0, "sha256": "{}"}},
@@ -1125,10 +1125,10 @@ mod tests {
             r#"{{
                 "manifest_version": 2.0,
                 "tool_version": "0.3.0",
-                "product": "host-monitoring",
+                "product": "sample-product",
                 "application_version": "0.3.0",
                 "schema_identity": {{
-                    "application": "host-monitoring",
+                    "application": "sample-product",
                     "application_version": "0.3.0",
                     "schema_revision": 4.0,
                     "schema_sha256": "{}"
@@ -1158,7 +1158,7 @@ mod tests {
         let manifest = json!({
             "manifest_version": 2,
             "tool_version": "0.3.0",
-            "product": "host-monitoring",
+            "product": "sample-product",
             "application_version": "0.3.0",
             "schema_identity": null,
             "created_at_epoch_seconds": 0,
