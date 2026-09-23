@@ -1,5 +1,5 @@
 import { t } from "@sarmg/admin-ui/i18n";
-import { createContext, useContext, type ReactNode, type InputHTMLAttributes } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, type ReactNode, type InputHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { Button, IconButton, TextField } from "@sarmg/admin-ui";
 import { DEFAULT_WORKSPACE_CONFIG, WORKSPACE_ICON_PATHS, validInstanceName, type WorkspaceConfig } from "./workspace-config.js";
@@ -42,6 +42,9 @@ export function InstanceHeaderActions({ create, refresh, refreshing = false, cre
 /** Count Unicode scalar values, matching Rust chars(); do not use UTF-16 maxLength. */
 export function InstanceNameField({ onChange, onInput, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, "maxLength">) {
   const config = useContext(WorkspaceContext);
+  const reference = useRef<HTMLInputElement>(null);
   const validate = (input: HTMLInputElement) => input.setCustomValidity(validInstanceName(input.value, config.instanceNameMaxCharacters) ? "" : t("名称须为 1–{0} 个字符，不能包含控制字符", "Use 1–{0} characters without control characters", [config.instanceNameMaxCharacters]));
-  return <TextField {...props} required pattern={`[^\\x00-\\x1f\\x7f]{1,${config.instanceNameMaxCharacters}}`} onChange={event => { validate(event.currentTarget); onChange?.(event); }} onInput={event => { validate(event.currentTarget); onInput?.(event); }} />;
+  // Controlled values and initial defaults need the same validation as typing.
+  useLayoutEffect(() => { if (reference.current) validate(reference.current); });
+  return <TextField {...props} ref={reference} required pattern={`\\s*[^\\x00-\\x1f\\x7f-\\x9f]{1,${config.instanceNameMaxCharacters}}\\s*`} onChange={event => { validate(event.currentTarget); onChange?.(event); }} onInput={event => { validate(event.currentTarget); onInput?.(event); }} />;
 }

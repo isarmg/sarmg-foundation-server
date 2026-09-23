@@ -28,6 +28,10 @@ test('configured admin workspace, header actions, names and consumer override',a
   for(const character of ['a','中','あ','😀']){
     await input.fill(character.repeat(32));expect(await input.evaluate(node=>node.checkValidity())).toBe(true);
     await input.fill(character.repeat(33));expect(await input.evaluate(node=>node.checkValidity())).toBe(false);
+    await input.fill('  '+character.repeat(32)+'  ');expect(await input.evaluate(node=>node.checkValidity())).toBe(true);
+  }
+  for(const value of ['   ','name\x80','name\x9f']){
+    await input.fill(value);expect(await input.evaluate(node=>node.checkValidity())).toBe(false);
   }
   await page.keyboard.press('Escape');
   await expect(actions.getByRole('button',{name:"Create instance",exact:true})).toBeFocused();
@@ -35,4 +39,15 @@ test('configured admin workspace, header actions, names and consumer override',a
   await expect(page.locator('html')).toHaveAttribute('data-sarmg-appearance','custom-brand');
   await expect(page.locator('.sarmg-instance-sidebar, .sarmg-instance-workspace')).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-sarmg-selection','custom');
+});
+
+test('initial instance names obey the same validation as edited values',async({page})=>{
+  const session={authenticated:true,user_id:'A'.repeat(43),username:'admin',role:'admin',csrf_token:'A'.repeat(43)};
+  await page.route('**/api/v2/auth/session',route=>route.fulfill({json:session}));
+  await page.goto('/?instanceName=%20%20%20#workspace');
+  await page.getByRole('button',{name:'Create instance',exact:true}).click();
+  const input=page.getByLabel('Instance name');
+  expect(await input.evaluate(node=>node.checkValidity())).toBe(false);
+  await input.fill('Valid instance');
+  expect(await input.evaluate(node=>node.checkValidity())).toBe(true);
 });

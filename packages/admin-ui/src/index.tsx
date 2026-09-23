@@ -2,6 +2,7 @@ import { t } from "./i18n.js";
 import { validationMessage } from "./i18n.js";
 import {
   useEffect, useId, useRef,
+  type ComponentProps,
   type ButtonHTMLAttributes, type HTMLAttributes, type InputHTMLAttributes,
   type ReactNode, type SelectHTMLAttributes, type TableHTMLAttributes,
 } from "react";
@@ -15,7 +16,7 @@ export function IconButton({ "aria-label": label, ...props }: ButtonHTMLAttribut
   if (!label?.trim()) throw new TypeError("IconButton requires aria-label");
   return <Button {...props} aria-label={label} />;
 }
-export function TextField({ className, onInvalid, onInput, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function TextField({ className, onInvalid, onInput, ...props }: ComponentProps<"input">) {
   return <input {...props} className={classes("sarmg-input", className)} onInvalid={event => {
     if (!event.currentTarget.validity.customError) event.currentTarget.setCustomValidity(validationMessage(event.currentTarget));
     onInvalid?.(event);

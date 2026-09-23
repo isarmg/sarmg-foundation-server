@@ -12,7 +12,7 @@ import "../../../packages/admin-ui/styles.css";
 
 function WorkspaceFixture() {
   const [creating,setCreating] = useState(false); const [revision,setRevision] = useState(0);
-  return <section className="sarmg-content-stack"><InstanceHeaderActions create={() => setCreating(true)} refresh={() => setRevision(value=>value+1)} /><h1>Full-width workspace</h1><p>Revision {revision}</p>{creating && <Dialog title="New instance" onClose={()=>setCreating(false)}><FormField label="Instance name"><InstanceNameField /></FormField></Dialog>}</section>;
+  return <section className="sarmg-content-stack"><InstanceHeaderActions create={() => setCreating(true)} refresh={() => setRevision(value=>value+1)} /><h1>Full-width workspace</h1><p>Revision {revision}</p>{creating && <Dialog title="New instance" onClose={()=>setCreating(false)}><FormField label="Instance name"><InstanceNameField defaultValue={new URLSearchParams(window.location.search).get('instanceName') ?? ''} /></FormField></Dialog>}</section>;
 }
 function ProductRoutes() {
   const { notify } = useAdminApplication();
