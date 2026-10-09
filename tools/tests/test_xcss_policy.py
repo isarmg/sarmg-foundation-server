@@ -14,6 +14,8 @@ from xcss_policy import (  # noqa: E402
     CURRENT_VERSION,
     XcssPolicyError,
     check_dependency_boundaries,
+    check_server_dependency_targets,
+    check_web_lockfile,
 )
 
 
@@ -90,6 +92,45 @@ class DependencyBoundaryTests(unittest.TestCase):
             self.package.write_text(json.dumps({"dependencies": {name: CURRENT_VERSION}}))
             with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
                 check_dependency_boundaries(self.root)
+
+
+class CleanBuildDependencyTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+
+    def test_current_server_dependencies_and_clean_build_lock_are_complete(self) -> None:
+        check_server_dependency_targets(TOOLS.parent)
+        check_web_lockfile(TOOLS.parent)
+
+    def test_external_rust_dependencies_cannot_run_before_the_server_gate(self) -> None:
+        canonical = (TOOLS.parent / "Cargo.toml").read_text()
+        for source in (
+            canonical.replace("[target.'cfg(all(target_os = \"linux\", target_arch = \"x86_64\", target_env = \"gnu\"))'.dependencies]", "[dependencies]"),
+            canonical + "\n[target.'cfg(unix)'.dependencies]\nlibc = '0.2'\n",
+        ):
+            (self.root / "Cargo.toml").write_text(source)
+            with self.assertRaisesRegex(XcssPolicyError, "scoped to the canonical"):
+                check_server_dependency_targets(self.root)
+
+    def test_removed_web_importers_cannot_survive_in_the_lockfile(self) -> None:
+        lock = (TOOLS.parent / "pnpm-lock.yaml").read_text()
+        (self.root / "pnpm-lock.yaml").write_text(lock.replace("\npackages:\n", "\n  packages/admin-ui: {}\n\npackages:\n", 1))
+        with self.assertRaisesRegex(XcssPolicyError, "root Web package importer"):
+            check_web_lockfile(self.root)
+
+    def test_missing_native_binary_metadata_is_rejected_without_node_modules(self) -> None:
+        lock = (TOOLS.parent / "pnpm-lock.yaml").read_text()
+        for declaration in (
+            "      '@typescript/typescript-linux-x64': 7.0.2\n",
+            "      '@rolldown/binding-linux-x64-gnu': 1.2.12\n",
+            "      lightningcss-linux-x64-gnu: 1.33.0\n",
+        ):
+            self.assertIn(declaration, lock)
+            (self.root / "pnpm-lock.yaml").write_text(lock.replace(declaration, ""))
+            with self.assertRaisesRegex(XcssPolicyError, "locked native dependencies"):
+                check_web_lockfile(self.root)
 
 
 if __name__ == "__main__":

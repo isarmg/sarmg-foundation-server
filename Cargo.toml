@@ -16,7 +16,7 @@
 "default" = ["tracing"]
 "tracing" = []
 
-[dependencies]
+[target.'cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu"))'.dependencies]
 "argon2" = { "version" = "0.5", "features" = ["std"] }
 "base64" = { "version" = "0.23.1" }
 "getrandom" = { "version" = "0.4" }
@@ -60,7 +60,7 @@
 "http" = { "version" = "1" }
 "log-api" = { "package" = "log", "version" = "0.4" }
 
-[dev-dependencies]
+[target.'cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu"))'.dev-dependencies]
 "tokio-rustls" = "0.26.5"
 
 [lints.rust]

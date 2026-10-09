@@ -31,6 +31,7 @@ WEB_TOOLCHAIN_DEV_DEPENDENCIES = {
 SOURCE_REVISION = re.compile(r"[0-9a-f]{40}")
 KNOWN_PACKAGES = {"xcss", "@xcss/web"}
 RUST_PACKAGES = ("xcss",)
+SERVER_DEPENDENCY_TARGET = 'cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu"))'
 
 class XcssPolicyError(RuntimeError):
     """The repository does not describe one internally consistent release."""
@@ -126,6 +127,57 @@ def check_dependency_boundaries(root: Path) -> None:
                     raise XcssPolicyError(f"{path}: external local dependency {name} is not self-contained")
 
 
+def check_server_dependency_targets(root: Path) -> None:
+    """Reject unsupported targets before any external C dependency can build."""
+    cargo = _toml(root / "Cargo.toml")
+    sections = ("dependencies", "dev-dependencies", "build-dependencies")
+    if any(cargo.get(section) for section in sections):
+        raise XcssPolicyError("all xcss dependencies must be scoped to the canonical server target")
+    for target, scope in cargo.get("target", {}).items():
+        if target != SERVER_DEPENDENCY_TARGET and any(scope.get(section) for section in sections):
+            raise XcssPolicyError("all xcss dependencies must be scoped to the canonical server target")
+    if not cargo.get("target", {}).get(SERVER_DEPENDENCY_TARGET, {}).get("dependencies"):
+        raise XcssPolicyError("xcss must declare its canonical server dependency graph")
+
+
+def check_web_lockfile(root: Path) -> None:
+    """Check the owned pnpm layout and binaries needed by a clean Linux build."""
+    path = root / "pnpm-lock.yaml"
+    _regular_file(path)
+    text = path.read_text(encoding="utf-8")
+
+    def entries(section: str) -> dict[str, str]:
+        match = re.search(r"^" + section + r":\n(.*?)(?=^\S|\Z)", text, re.M | re.S)
+        if match is None:
+            raise XcssPolicyError(f"{path}: missing pnpm {section} section")
+        body = match.group(1)
+        headers = list(re.finditer(r"^  (\S.*):(?:[^\n]*)\n", body, re.M))
+        return {
+            header.group(1).strip("'"): body[header.start(): headers[index + 1].start() if index + 1 < len(headers) else len(body)]
+            for index, header in enumerate(headers)
+        }
+
+    if set(entries("importers")) != {"."} or re.search(r"(?:workspace:|link:)", text):
+        raise XcssPolicyError(f"{path}: only the root Web package importer is allowed")
+    packages = entries("packages")
+    snapshots = entries("snapshots")
+    required = {
+        "typescript@7.0.2": ("@typescript/typescript-linux-x64", "7.0.2"),
+        "rolldown@1.2.12": ("@rolldown/binding-linux-x64-gnu", "1.2.12"),
+        "lightningcss@1.33.0": ("lightningcss-linux-x64-gnu", "1.33.0"),
+    }
+    for parent, (native, version) in required.items():
+        native_package = packages.get(f"{native}@{version}", "")
+        snapshot = snapshots.get(parent, "")
+        declaration = rf"^      '?{re.escape(native)}'?: {re.escape(version)}$"
+        if (
+            "integrity: sha512-" not in native_package
+            or "    optionalDependencies:\n" not in snapshot
+            or re.search(declaration, snapshot, re.M) is None
+        ):
+            raise XcssPolicyError(f"{path}: locked native dependencies are incomplete for {parent}")
+
+
 def check_versions(root: Path) -> None:
     read_audited_root_license(root / "LICENSE")
     cargo = _toml(root / "Cargo.toml")
@@ -163,4 +215,6 @@ def check_repository(root: Path) -> None:
     if root == Path(root.anchor):
         raise XcssPolicyError("refusing to check a filesystem root")
     check_dependency_boundaries(root)
+    check_server_dependency_targets(root)
+    check_web_lockfile(root)
     check_versions(root)
