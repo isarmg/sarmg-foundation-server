@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.sarmg.org/foundation/consumer-matrix.v1.schema.json",
+  "title": "Generated xcss consumer matrix",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "format",
+    "platform_generation",
+    "foundation_version",
+    "consumers"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./consumer-matrix.schema.json"
+    },
+    "format": {
+      "const": "xcss.consumer-matrix.v1"
+    },
+    "platform_generation": {
+      "const": 1
+    },
+    "foundation_version": {
+      "$ref": "#/$defs/version"
+    },
+    "consumers": {
+      "type": "array",
+      "minItems": 0,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/consumer"
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,62}$"
+    },
+    "consumer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product",
+        "commit",
+        "foundation_version",
+        "profiles",
+        "capabilities",
+        "packages",
+        "status",
+        "exceptions"
+      ],
+      "properties": {
+        "product": {
+          "$ref": "#/$defs/identifier"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "foundation_version": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/version"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profiles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "packages": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "status": {
+          "enum": [
+            "not-migrated",
+            "migration-in-progress",
+            "conforming",
+            "non-conforming",
+            "temporary-exception"
+          ]
+        },
+        "exceptions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    }
+  }
+}

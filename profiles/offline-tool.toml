@@ -1,0 +1,8 @@
+format = 1
+id = "offline-tool"
+kind = "tool"
+formal_targets = ["x86_64-unknown-linux-gnu"]
+http_adapters = []
+web_profiles = []
+required_capabilities = ["explicit-paths", "private-state", "restore-journal"]
+optional_capabilities = ["linux-openat2", "secret-envelope"]

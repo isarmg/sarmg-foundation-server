@@ -1,0 +1,23 @@
+[package]
+name = "xcss-config"
+description = "Strict current JSON configuration, explicit overrides and source tracking"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+xcss-error = { path = "../xcss-error", version = "=1.0.0" }
+xcss-state-file = { path = "../xcss-state-file", version = "=1.0.0" }
+rustix.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

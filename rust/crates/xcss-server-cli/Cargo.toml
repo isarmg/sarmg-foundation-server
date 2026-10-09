@@ -1,0 +1,31 @@
+[package]
+name = "xcss-server-cli"
+description = "Server CLI errors, identity-checked readiness and initialization guards"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+axum.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_path_to_error.workspace = true
+xcss-error = { path = "../xcss-error", version = "=1.0.0" }
+xcss-state-file = { path = "../xcss-state-file", version = "=1.0.0" }
+xcss-sqlite = { path = "../xcss-sqlite", version = "=1.0.0" }
+xcss-admin-static = { path = "../xcss-admin-static", version = "=1.0.0" }
+xcss-fs-safety = { path = "../xcss-fs-safety", version = "=1.0.0" }
+xcss-server-runtime = { path = "../xcss-server-runtime", version = "=1.0.0" }
+tokio.workspace = true
+tower.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

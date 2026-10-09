@@ -1,0 +1,14 @@
+format = 1
+id = "web-react-admin"
+kind = "web"
+formal_targets = ["browser-es2022"]
+http_adapters = []
+web_profiles = []
+required_capabilities = [
+  "admin-client",
+  "react-shell",
+  "admin-ui",
+  "design-tokens",
+  "maple-font",
+]
+optional_capabilities = []

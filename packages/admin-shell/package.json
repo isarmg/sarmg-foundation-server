@@ -1,0 +1,63 @@
+{
+  "name": "@xcss/admin-shell",
+  "version": "1.0.0",
+  "description": "Administrator login, recovery, navigation, theme and error shell",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./native": {
+      "types": "./dist/native-workspace.d.ts",
+      "import": "./dist/native-workspace.js"
+    },
+    "./workspace-config": {
+      "types": "./dist/workspace-config.d.ts",
+      "import": "./dist/workspace-config.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run build && pnpm run test:built",
+    "test:built": "pnpm run test:types && node --test test/*.test.mjs",
+    "test:types": "tsc --ignoreConfig --noEmit --strict --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck test/workspace-types.ts"
+  },
+  "dependencies": {
+    "@xcss/web-fonts": "workspace:1.0.0"
+  },
+  "peerDependencies": {
+    "@xcss/admin-ui": "1.0.0",
+    "@xcss/admin-web": "1.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@xcss/admin-ui": "workspace:1.0.0",
+    "@xcss/admin-web": "workspace:1.0.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  }
+}

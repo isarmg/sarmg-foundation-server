@@ -1,0 +1,39 @@
+{
+  "name": "xcss",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Xcss 服务端及其管理 Web 的构建期上游规范、基础实现与一致性工具工作区",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isarmg/xcss.git"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
+  "packageManager": "pnpm@10.34.6",
+  "scripts": {
+    "test:web": "pnpm -r build && playwright test",
+    "test:web:built": "playwright test",
+    "test:fonts": "node scripts/check-font-navigation.mjs packages/web-fonts",
+    "build": "pnpm -r build",
+    "package:check": "python3 scripts/package-artifacts.py check",
+    "package:release": "python3 scripts/package-artifacts.py release --output release/npm",
+    "package:smoke": "python3 scripts/package-artifacts.py smoke",
+    "typecheck": "pnpm -r build && pnpm -r typecheck",
+    "typecheck:built": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:built": "pnpm -r --if-present test:built"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "source-map-js": "1.2.2"
+    }
+  }
+}

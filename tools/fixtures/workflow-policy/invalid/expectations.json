@@ -1,0 +1,12 @@
+{
+  "action-outside-steps.yml": "allowed only in a job's block-style steps list",
+  "floating-action.yml": "full 40-character commit SHA",
+  "floating-runner.yml": "fixed runner",
+  "missing-checkout.yml": "at least one pinned actions/checkout",
+  "missing-timeout.yml": "exactly one timeout-minutes",
+  "persisted-credentials.yml": "persist-credentials: false",
+  "setup-node-check-latest.yml": "check-latest: false",
+  "setup-node-floating-version.yml": "pin node-version: 26.7.0",
+  "workflow-anchor.yml": "anchors, aliases, and merge keys are forbidden",
+  "write-permissions.yml": "only contents: read"
+}

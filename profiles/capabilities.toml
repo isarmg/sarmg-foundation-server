@@ -1,0 +1,85 @@
+format = 1
+
+[capabilities.platform-sqlite]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-persistent]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-static]
+owner = "foundation"
+state = "current"
+
+[capabilities.memory-sessions]
+owner = "foundation"
+state = "current"
+
+[capabilities.server-runtime]
+owner = "foundation"
+state = "current"
+
+[capabilities.server-health]
+owner = "foundation"
+state = "current"
+
+[capabilities.private-state]
+owner = "foundation"
+state = "current"
+
+[capabilities.explicit-paths]
+owner = "foundation"
+state = "current"
+
+[capabilities.restore-journal]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-client]
+owner = "foundation"
+state = "current"
+
+[capabilities.react-shell]
+owner = "foundation"
+state = "current"
+
+[capabilities.admin-ui]
+owner = "foundation"
+state = "current"
+
+[capabilities.design-tokens]
+owner = "foundation"
+state = "current"
+
+[capabilities.maple-font]
+owner = "foundation"
+state = "current"
+
+[capabilities.native-esm]
+owner = "foundation"
+state = "current"
+
+[capabilities.filesystem-root]
+owner = "product-adapter"
+state = "current"
+
+[capabilities.linux-openat2]
+owner = "foundation"
+state = "current"
+
+[capabilities.durable-operations]
+owner = "foundation"
+state = "current"
+
+[capabilities.secure-http]
+owner = "foundation"
+state = "current"
+
+[capabilities.secret-envelope]
+owner = "foundation"
+state = "current"
+
+[capabilities.embedded-web]
+owner = "foundation"
+state = "current"

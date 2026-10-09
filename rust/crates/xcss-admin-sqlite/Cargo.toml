@@ -1,0 +1,25 @@
+[package]
+name = "xcss-admin-sqlite"
+description = "Transactional SQLite administrator store and security audit implementation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+async-trait.workspace = true
+xcss-admin-auth = { path = "../xcss-admin-auth", version = "=1.0.0" }
+xcss-admin-core = { path = "../xcss-admin-core", version = "=1.0.0" }
+sqlx.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+xcss-sqlite = { path = "../xcss-sqlite", version = "=1.0.0" }
+tempfile.workspace = true
+tokio.workspace = true

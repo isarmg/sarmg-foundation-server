@@ -1,0 +1,65 @@
+{
+  "name": "@xcss/admin-web",
+  "version": "1.0.0",
+  "description": "Xcss 管理员 API Client、Session 状态机与 React Hook",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isarmg/xcss.git",
+    "directory": "packages/admin-web"
+  },
+  "engines": {
+    "node": ">=26.7.0 <27"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "pnpm --filter @xcss/contracts build && pnpm --filter @xcss/http-client build && pnpm run build && pnpm run test:built",
+    "test:built": "node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@xcss/contracts": "1.0.0",
+    "@xcss/http-client": "1.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@xcss/contracts": "workspace:1.0.0",
+    "@xcss/http-client": "workspace:1.0.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}

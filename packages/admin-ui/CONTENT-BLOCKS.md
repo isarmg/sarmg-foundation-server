@@ -1,0 +1,36 @@
+# 默认内容块外观与消费者自定义
+
+来源：union-rust 的 Apache-2.0 `xcss-design` 内容卡片、登录卡片及色板。
+默认 `@xcss/admin-ui/styles.css` 自动导入此文件。
+文档根没有 `data-xcss-appearance` 属性或其值为 `content-blocks` 时启用。
+消费者可以设置 `<html data-xcss-appearance="custom">`（或其他自定义名称）退出，
+再在基础样式之后加载自己的 CSS；所有内容块规则及色板都会退出作用域。
+不替换认证组件，不影响 API、会话、权限或默认字体。单独的
+`@xcss/admin-ui/content-blocks.css` 导出也可用于原生 ESM 页面。
+
+登录复用当前 AdminShell 的语义表单，呈现 380px、3:2、六行卡片、透明输入和文字操作。
+标题与产品标识仍向辅助技术提供；错误行可以滚动，完整 request ID 不会被删除。
+跟随现有 `data-theme="light|dark"` 和系统主题；保留强制色彩和键盘焦点。
+
+业务可以使用 `.xcss-content-grid`、`.xcss-content-card`、
+`.xcss-content-card__inner`、`.xcss-content-row` 构成六行 3:2 卡片。
+长表单、详情、表格使用可伸展的 `.xcss-content-panel`，不要强制塞进固定比例卡片。
+标准表格左对齐单元格内容及操作组。链接、按钮和状态标签的外边界与列标题对齐，
+控件自身保留正常内边距与点击区域；不要通过清零控件内边距来强行对齐内部文字。
+这些类仅规定展示，不包含客户端或服务器行为。
+
+菜单栏到正文首行、标准内容块各行以及上一段内容到子标题默认共用
+`--xcss-content-spacing`，其默认值是 `--xcss-space-4`（16px）。普通纵向业务容器可使用
+`.xcss-content-stack`；它会以该变量建立网格间距，并清除直接子项的块级外边距。
+产品确需不同密度时可以在自身作用域覆盖变量，不应再分别设置标题和正文的临时 margin。
+
+## 当前发行接入
+
+当前包版本见根 README，各消费者采用版本见消费者矩阵。
+直接导入 `@xcss/admin-ui/styles.css`；包包含默认内容块 CSS。消费者固定 Release tarball URL 与 lockfile integrity，独立构建不需要同级 Foundation 源码。
+
+Foundation 只拥有这些展示类、默认 token 和无障碍行为。卡片里出现哪些字段、统计规则、实例操作、图表数据和业务事件由产品拥有；不得向本包加入产品 DTO、端点、错误码或产品名称分支。
+
+默认外观可由消费者自定义，不是对外部产品的强制品牌规则。字体由 `@xcss/web-fonts` 提供。
+后续变更必须发布新不可变包并更新消费者锁文件，不覆盖已有 tarball。
+表格内容边界的版本验收记录见 [0.8.5 Release](../../docs/releases/1.0.0.md)。

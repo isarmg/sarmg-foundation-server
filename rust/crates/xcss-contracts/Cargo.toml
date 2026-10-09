@@ -1,0 +1,21 @@
+[package]
+name = "xcss-contracts"
+description = "Strict current-version wire contracts shared by Xcss Rust products"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+xcss-admin-auth = { path = "../xcss-admin-auth", version = "=1.0.0" }
+xcss-error = { path = "../xcss-error", version = "=1.0.0" }
+xcss-schema-identity = { path = "../xcss-schema-identity", version = "=1.0.0" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

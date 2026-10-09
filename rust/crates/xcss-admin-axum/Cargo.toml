@@ -1,0 +1,36 @@
+[package]
+name = "xcss-admin-axum"
+description = "Axum adapter for the current Foundation administrator routes"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+axum.workspace = true
+bytes.workspace = true
+http-body-util.workspace = true
+mime.workspace = true
+tokio.workspace = true
+xcss-admin-auth = { path = "../xcss-admin-auth", version = "=1.0.0" }
+xcss-admin-core = { path = "../xcss-admin-core", version = "=1.0.0" }
+xcss-contracts = { path = "../xcss-contracts", version = "=1.0.0" }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+xcss-admin-sqlite = { path = "../xcss-admin-sqlite", version = "=1.0.0" }
+xcss-sqlite = { path = "../xcss-sqlite", version = "=1.0.0" }
+sqlx.workspace = true
+tempfile.workspace = true
+xcss-testkit = { path = "../xcss-testkit", version = "=1.0.0" }
+xcss-admin-static = { path = "../xcss-admin-static", version = "=1.0.0" }
+tokio = { workspace = true, features = ["test-util"] }
+http-body.workspace = true
+tower.workspace = true
