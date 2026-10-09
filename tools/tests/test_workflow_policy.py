@@ -30,12 +30,12 @@ class WorkflowPolicyTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.PolicyError, "only push tags v"):
             MODULE.validate_workflow(".github/workflows/release.yml", changed)
 
-    def test_release_requires_native_windows_logging_job(self) -> None:
+    def test_release_requires_the_whole_package_linux_gate_and_native_tests(self) -> None:
         text = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
         for old, new, reason in [
-            ("needs: windows-log", "needs: []", "successful windows-log"),
-            ("runs-on: windows-2025", "runs-on: windows-latest", "fixed runner"),
-            ("cargo test --locked -p xcss-log --all-features", "cargo check --locked -p xcss-log --all-features", "locked native tests"),
+            ("runs-on: ubuntu-24.04", "runs-on: windows-2025", "fixed runner"),
+            ("cargo test --locked --all-targets --all-features", "cargo check --locked --all-targets --all-features", "locked native tests"),
+            ('if cargo check --locked -p xcss --target "$target"', 'if cargo check --locked -p xcss-server-target --target "$target"', "whole-package Linux AMD64"),
         ]:
             with self.subTest(reason=reason), self.assertRaisesRegex(MODULE.PolicyError, reason):
                 MODULE.validate_workflow(".github/workflows/release.yml", text.replace(old, new))

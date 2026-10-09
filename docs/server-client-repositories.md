@@ -17,6 +17,6 @@ xcss 与 xcsc 相互独立。Server 不依赖 `xcsc-*` 或移动 FFI；
 
 进入任一 xcss 的能力必须产品中立、能在 xcss 内独立测试、允许产品继续加强约束，并有明确的跨产品复用场景。单产品能力先留在产品；不能因为多个产品都叫“配对”就把不同 wire、状态码和恢复流程合并成公共协议。
 
-`@xcss/admin-ui` 的内容块只提供布局、色板和无障碍展示原语，因此属于 xcss。实例统计、授权码、CPU/GPU/SSD/RAM、摄像头、Sunshine 控制等内容与行为属于产品。消费者必须从锁定的发布包导入样式，不在产品仓库保存 xcss CSS 快照。
+`@xcss/web/admin-ui` 的内容块只提供布局、色板和无障碍展示原语，因此属于 xcss。实例统计、授权码、CPU/GPU/SSD/RAM、摄像头、Sunshine 控制等内容与行为属于产品。消费者必须从锁定的发布包导入样式，不在产品仓库保存 xcss CSS 快照。
 
 `xcsc-secure-xml` 只实现产品中立的输入、深度、节点、文本和时间预算，实际消费者是 Client，因此由 xcsc 提供。xcss 不为 Client 保留镜像包；ONVIF SOAP、命名空间、字段和预算值仍属于 xcos。

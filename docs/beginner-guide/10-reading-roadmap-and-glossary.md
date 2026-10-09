@@ -12,7 +12,7 @@
 
 ### 第三阶段：跨语言和Web
 
-比较`xcss-contracts/src/lib.rs`与`packages/contracts/src/index.ts`、Schema和fixture；再读http-client、
+比较`xcss::contracts/src/lib.rs`与`web/contracts/src/index.ts`、Schema和fixture；再读http-client、
 admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何时变为trusted。
 
 ### 第四阶段：发布与消费者
@@ -24,17 +24,17 @@ admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何�
 
 | 问题 | 首选源码 | 继续阅读 |
 |---|---|---|
-| 管理员 username/密码 | `rust/crates/xcss-admin-auth/src/lib.rs` | contracts auth Schema/fixture、产品 startup/login |
+| 管理员 username/密码 | `src/admin_auth/mod.rs` | contracts auth Schema/fixture、产品 startup/login |
 | Origin/Host/CSRF | admin-auth authority/header函数 | 每个Server framework adapter与integration test |
 | Cookie/token | admin-auth token/cookie函数 | 产品Session persistence/Cookie flags |
-| Error JSON | `xcss-error` | contracts fixture、http-client responseError |
-| AdministratorSession | `xcss-contracts`与`@xcss/contracts` | admin-web、产品router |
-| SQLite fingerprint | `xcss-schema-identity` | golden fixture、产品DDL |
-| SQLx连接/诊断 | `xcss-sqlite` | 产品path/lock/lifecycle |
-| AMD64 Server | `xcss-server-target` | 产品build.rs/release/start |
-| URL/timeout/body/error | `packages/http-client/src/index.ts` | package tests、产品API wrapper |
-| auth竞态 | `packages/admin-web/src/index.ts` | admin-web tests、React hook |
-| React状态 | `packages/admin-web/src/react.tsx` | 产品App/login page |
+| Error JSON | `xcss::error` | contracts fixture、http-client responseError |
+| AdministratorSession | `xcss::contracts`与`@xcss/web/contracts` | admin-web、产品router |
+| SQLite fingerprint | `xcss::schema_identity` | golden fixture、产品DDL |
+| SQLx连接/诊断 | `xcss::sqlite` | 产品path/lock/lifecycle |
+| AMD64 Server | `xcss::server_target` | 产品build.rs/release/start |
+| URL/timeout/body/error | `web/http-client/src/index.ts` | package tests、产品API wrapper |
+| auth竞态 | `web/admin-web/src/index.ts` | admin-web tests、React hook |
+| React状态 | `web/admin-web/src/react.tsx` | 产品App/login page |
 | React/Vite精确版本 | admin-web toolchain与vite.ts | 产品package/check script |
 | CSS/accessibility | design-tokens src/CSS | tests与产品视觉验证 |
 | tgz问题 | `tools/xcss_package_artifacts.py` | package tests/manifest |

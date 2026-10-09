@@ -18,6 +18,14 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ReleaseAssetTests(unittest.TestCase):
+    def test_release_rejects_other_targets_before_touching_source_or_output(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "release"
+            for target in ("source-any", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-gnu", "x86_64-pc-windows-msvc"):
+                with self.subTest(target=target), self.assertRaisesRegex(MODULE.ReleaseBuildError, "must be x86_64-unknown-linux-gnu"):
+                    MODULE.build(output, "a" * 40, "v1.0.0", target)
+                self.assertFalse(output.exists())
+
     def test_state_contract_has_one_current_exact_shape(self) -> None:
         revision = "a" * 40
         contract = MODULE.state_contract(revision)

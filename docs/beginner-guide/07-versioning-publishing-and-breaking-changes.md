@@ -2,7 +2,7 @@
 
 ## 7.1 当前版本模型
 
-21 个 crate 和 8 个 package 统一为 `0.10.0`。0.x 允许破坏性演进，但“不稳定”不等于可以静默漂移：每个版本仍是
+单个 Rust crate `xcss` 与单个 npm 包 `@xcss/web` 统一为 `1.0.0`。内部模块和子路径共同构建、测试、发布。每个版本是
 不可变合同，一旦tag/asset公开就不移动、不覆盖、不用同版本重新打包。
 
 以下都可能是breaking change：
@@ -24,32 +24,30 @@ consumer调用；不添加deprecated wrapper、alias、dual parser、版本协�
 
 ## 7.3 Package build不是源码复制
 
-每个package的流程：clean dist→tsc→复制公开静态文件→从dist测试→pack→tar审计→空目录离线安装。
+唯一 Web package 的流程：clean dist→tsc→复制公开静态文件→从dist测试→pack→tar审计→空目录离线安装。
 
 `package.json#files=["dist"]`限制发布面，exports限制公共入口。README、LICENSE和package metadata由npm
 规则随包携带；src/test/node_modules不进入。若一个export只在workspace能解析，它不算实现。
 
 ## 7.4 Peer dependency所有权
 
-`@xcss/http-client`把contracts作为精确peer；`admin-web`把contracts/http-client与React/Vite需要项作为精确
-peer。这样消费者明确拥有依赖，不会因某个包内部悄悄嵌入另一版本而出现两份合同。
-
-xcss workspace 中的 `workspace:0.10.0` 只用于 dev/build。发布 tar manifest 不能含 workspace 协议；真实
-consumer必须同时安装所需tgz。
+contracts、http-client、admin-web 等均为同一 `@xcss/web` 包的内部模块，通过公开子路径自引用。
+它们没有独立 peer、版本或 tarball。外部 React/Vite 依赖保留精确 peer，消费者在自己的锁文件中固定。
+源码与发布 manifest 均不得含内部 `workspace:`、`file:` 或独立 `@xcss/*` 包依赖。
 
 ## 7.5 Rust消费版本
 
 正式产品不依赖浮动branch或本地path：
 
 ```toml
-xcss-contracts = {
+xcss = {
   git = "https://github.com/isarmg/xcss.git",
-  rev = "<v0.10.0 对应完整 40 位 commit>",
-  version = "=0.10.0"
+  rev = "<v1.0.0 对应完整 40 位 commit>",
+  version = "=1.0.0"
 }
 ```
 
-完整rev绑定Git对象，exact version防止选错workspace package。更新xcss时明确改rev/version并重建
+完整rev绑定Git对象，exact version核对单体 package 身份。更新xcss时明确改rev/version并重建
 Cargo.lock；不要只改lock让源码看不出依赖变化。
 
 ## 7.6 Web消费版本
@@ -63,7 +61,7 @@ Cargo.lock；不要只改lock让源码看不出依赖变化。
 
 ```text
 工作树完全干净 + tag精确指向HEAD
-├─ package_release -> 8个tgz
+├─ package_release -> 1个 xcss-web-1.0.0.tgz
 ├─ deterministic tool bundle
 ├─ state-contract.json
 ├─ hash(state contract) -> release-identity.json
@@ -73,7 +71,7 @@ Cargo.lock；不要只改lock让源码看不出依赖变化。
 ```
 
 xcss无runtime状态，所以state contract的schema为null，资源/锁/外部要求/companion为空。identity target
-默认`source-any`；这不改变消费者Server只允许AMD64的规则。
+固定为 `x86_64-unknown-linux-gnu`。xcss 的 Rust crate 和 npm 构建进程均受同一服务端平台边界约束。
 
 ## 7.8 Deterministic tool bundle
 
@@ -125,7 +123,7 @@ state contract、inventory、release-tree、消费者最终commit和验证结果
 ## 7.14 本章练习
 
 1. 对“把password最小长度从12改成16”列出所有需要同步的层。
-2. 解释为什么`workspace:`可用于dev但不能出现在发布tar manifest。
+2. 解释为何合并后内部模块不再声明 package 依赖，如何从单个包的公开子路径导入。
 3. 画出state contract、release identity、SHA256SUMS和release-tree的hash关系。
 4. 为一次失败release写处理方案，要求不移动tag/覆盖asset。
 5. 说明消费者本地path通过后为何仍不能把matrix标passing。

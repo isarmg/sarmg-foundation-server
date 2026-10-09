@@ -33,33 +33,34 @@ xcss 的目标不是消灭所有重复，而是共享那些已经被至少两个
 
 | 层 | 组件 | 一句话用途 |
 |---|---|---|
-| Rust安全 | `xcss-admin-auth` | canonical 管理员 username、当前 Argon2id、token、Cookie、同源和 CSRF |
-| Rust协议 | `xcss-contracts` | strict管理员/状态/发布/备份/错误wire类型 |
-| Rust错误 | `xcss-error` | 有界machine code/request ID和Error Envelope |
-| Rust数据 | `xcss-schema-identity` | 无driver的SQLite Schema身份和fingerprint |
-| Rust平台 | `xcss-server-target` | Server编译只允许GNU/Linux AMD64 |
-| Rust连接 | `xcss-sqlite` | SQLx连接PRAGMA、诊断和identity adapter |
-| Rust Web资源 | `xcss-web-assets` | 确定性内嵌清单、SHA-256、HTTP 与开发目录提供器 |
-| Web合同 | `@xcss/contracts` | TypeScript type、runtime guard、JSON Schema、fixture |
-| Web传输 | `@xcss/http-client` | 同源、有界、可取消的JSON请求 |
-| Web认证 | `@xcss/admin-web` | 内存Session、竞态安全auth client、React hook和Vite baseline |
-| Web样式 | `@xcss/design-tokens` | scoped设计和可访问性primitive |
+| Rust安全 | `xcss::admin_auth` | canonical 管理员 username、当前 Argon2id、token、Cookie、同源和 CSRF |
+| Rust协议 | `xcss::contracts` | strict管理员/状态/发布/备份/错误wire类型 |
+| Rust错误 | `xcss::error` | 有界machine code/request ID和Error Envelope |
+| Rust数据 | `xcss::schema_identity` | 无driver的SQLite Schema身份和fingerprint |
+| Rust平台 | `xcss::server_target` | Server编译只允许GNU/Linux AMD64 |
+| Rust连接 | `xcss::sqlite` | SQLx连接PRAGMA、诊断和identity adapter |
+| Rust Web资源 | `xcss::web_assets` | 确定性内嵌清单、SHA-256、HTTP 与开发目录提供器 |
+| Web合同 | `@xcss/web/contracts` | TypeScript type、runtime guard、JSON Schema、fixture |
+| Web传输 | `@xcss/web/http-client` | 同源、有界、可取消的JSON请求 |
+| Web认证 | `@xcss/web/admin-web` | 内存Session、竞态安全auth client、React hook和Vite baseline |
+| Web样式 | `@xcss/web/design-tokens` | scoped设计和可访问性primitive |
 | 发布 | Python tools/scripts | package tar、state/release identity、release-tree和workflow policy |
 
 ## 1.4 目录逐层解释
 
 ```text
-rust/crates/<name>/
-├─ Cargo.toml        package身份与精确内部依赖
-└─ src/lib.rs        public API、实现和单元测试
+Cargo.toml           唯一 Rust package xcss 的身份、外部依赖与 lint
+src/lib.rs           全 crate Linux AMD64 GNU 编译门禁与公开模块
+src/<module>/        内部实现、fixture、单元测试（没有子 Cargo.toml）
 
-packages/<name>/
-├─ package.json      exports、peer、engine与build/test入口
-├─ src/              TypeScript源码
-├─ test/             从已构建dist导入的测试
-├─ scripts/          clean/copy等确定性步骤
-├─ schemas/fixtures/ 仅contracts所有
-└─ dist/             生成物，不是手工事实源
+package.json         唯一 @xcss/web 包的 exports、peer、engine 和 platform 约束
+web/<module>/
+├─ src/              TypeScript 源码
+├─ test/             从根 dist/<module> 导入的测试
+├─ scripts/          内部资源复制步骤
+└─ schemas/fixtures/ contracts 的公开机器合同
+
+dist/<module>/       根构建生成的统一输出，不是源码事实源
 
 consumers/
 ├─ consumer-matrix.json
@@ -106,13 +107,13 @@ docs/                仅五类中文文档
 
 ## 1.7 AMD64边界的正确理解
 
-`xcss-server-target` 应被业务Server binary直接依赖。它检查架构、OS、libc和pointer width；只接受：
+业务 Server binary 只声明 `xcss` 依赖。整个 crate 在根入口检查架构、OS 和 libc，`xcss::server_target` 还提供目标常量；只接受：
 
 ```text
 x86_64 + linux + gnu + 64-bit
 ```
 
-跨平台Client与源码库具有各自的目标矩阵；不能为了字面统一依赖Server目标约束crate。
+跨平台 Client 使用独立 `xcsc`，不能依赖 `xcss`，也不能通过只导入某个内部模块绕过门禁。
 
 ## 1.8 Xczs前端例外
 
@@ -133,7 +134,7 @@ AdministratorSession，密码/token/same-origin/CSRF仍用同一Rust primitive�
 
 ## 1.10 本章练习
 
-1. 在根 manifest 中列出24个crate 和 8 个 package，并为每个写一个“不负责”项。
+1. 在根两个 manifest 中核对单体身份，列出内部 Rust 模块与 Web 子路径，并解释它们如何共同发布。
 2. 从一个产品中找出管理员身份与数据面credential，解释为何二者不能合并。
 3. 画出产品build时与production runtime时xcss是否在线的两张图。
 4. 解释Xczs为何是前端例外、客户端多架构为何不是Server target例外。

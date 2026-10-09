@@ -56,8 +56,8 @@ POST /api/v1/auth/login
 ├─ HTTP adapter 收集全部 Origin field line
 ├─ 收集全部 Host field line，并加入 HTTP/2 URI authority
 ├─ 收集全部 Sec-Fetch-Site field line
-├─ xcss-admin-auth 严格同源校验
-├─ xcss-contracts 解析 exact {username,password}
+├─ xcss::admin_auth 严格同源校验
+├─ xcss::contracts 解析 exact {username,password}
 ├─ normalize_administrator_username
 ├─ validate_password（12..1024 bytes，无 ASCII control）
 ├─ xcss 执行 body/IP/account/global 限流
@@ -221,11 +221,11 @@ backup、restore 或业务 transaction。
 
 ## 8. Server Target 流程
 
-每个 Server binary crate 同时依赖 `xcss-server-target` 并在其 build/release/start 层声明同一 target：
+每个 Server binary crate 同时依赖 `xcss::server_target` 并在其 build/release/start 层声明同一 target：
 
 ```text
 cargo build --target x86_64-unknown-linux-gnu
-├─ xcss-server-target compile_error 拒绝其他 arch/OS/libc/pointer width
+├─ xcss::server_target compile_error 拒绝其他 arch/OS/libc/pointer width
 ├─ 产品 build.rs 可在更早阶段给出产品名错误
 ├─ release identity target = x86_64-unknown-linux-gnu
 ├─ 归档检查 ELF machine = x86-64
@@ -262,7 +262,7 @@ package.json + .node-version
 ├─ 复制公开 JSON/CSS/tsconfig 静态入口
 ├─ test 从 dist 导入
 ├─ 检查 manifest / exports / files / peers
-├─ pnpm pack 生成 8 个真实 tgz
+├─ pnpm pack 生成 1 个真实 xcss-web-1.0.0.tgz
 ├─ 检查 tar canonical path、duplicate、link、special file、意外源码
 └─ 临时空目录 npm --ignore-scripts 安装并解析所有 export
 ```
@@ -311,7 +311,7 @@ main 工作树完全干净
 ├─ 创建唯一 annotated v0.10.3 tag
 ├─ push tag 触发唯一 release job
 ├─ 再次运行全部门禁
-├─ 生成 8 个 npm tgz
+├─ 生成 1 个 npm tgz
 ├─ 生成 deterministic xcss-release-tool tar.gz
 ├─ 写 state-contract.json（xcss 无 runtime state）
 ├─ SHA-256 绑定五字段 release-identity.json

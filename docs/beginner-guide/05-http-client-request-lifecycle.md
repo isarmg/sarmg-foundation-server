@@ -3,14 +3,14 @@
 ## 5.1 三层关系
 
 ```text
-@xcss/http-client
+@xcss/web/http-client
 └─ requestJson：URL、credential、CSRF、timeout、body budget、Error Envelope
 
-@xcss/admin-web
+@xcss/web/admin-web
 ├─ createAdministratorApiClient：auth路径、内存Session、竞态、业务guard
 └─ /react：useAdministratorSession
 
-@xcss/web-toolchain
+@xcss/web/web-toolchain
 └─ /vite：React/Vite配置
 
 产品web
@@ -95,7 +95,7 @@ body优先；非法ID被忽略。
 ## 5.9 创建管理员client
 
 ```ts
-import { createAdministratorApiClient } from "@xcss/admin-web";
+import { createAdministratorApiClient } from "@xcss/web/admin-web";
 
 export const administratorApi = createAdministratorApiClient();
 ```
@@ -169,7 +169,7 @@ restore的`requireCurrentOperation`失败，不发布旧Session。
 ## 5.13 React Hook
 
 ```tsx
-import { useAdministratorSession } from "@xcss/admin-web/react";
+import { useAdministratorSession } from "@xcss/web/admin-web/react";
 import { administratorApi } from "./api";
 
 export function App() {
@@ -188,7 +188,7 @@ generation阻止组件卸载、client替换或旧Promise更新当前state。logi
 ## 5.14 Vite与工具链
 
 ```ts
-import { createXcssReactViteConfig } from "@xcss/admin-web/vite";
+import { createXcssReactViteConfig } from "@xcss/web/admin-web/vite";
 
 export default createXcssReactViteConfig();
 ```

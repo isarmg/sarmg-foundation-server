@@ -199,42 +199,23 @@ class Package:
 
 
 def discover_packages(repository: Path) -> tuple[Package, ...]:
+    if repository.is_symlink():
+        raise PackagePolicyError("linked package roots are forbidden")
     repository = repository.resolve(strict=True)
     if repository == Path(repository.anchor):
         raise PackagePolicyError("refusing to operate on a filesystem root")
-    packages_root = repository / "packages"
-    if not packages_root.is_dir() or packages_root.is_symlink():
-        raise PackagePolicyError(f"{packages_root}: packages directory is missing or linked")
-    roots: list[Path] = []
-    for path in packages_root.iterdir():
-        if path.is_symlink():
-            raise PackagePolicyError(f"{path}: linked package roots are forbidden")
-        if path.is_dir() and (path / "package.json").exists():
-            roots.append(path)
-    roots.sort()
-    if not roots:
-        raise PackagePolicyError(f"{packages_root}: no package manifests found")
-    packages = tuple(Package.load(root) for root in roots)
-    names = [package.name for package in packages]
-    if len(names) != len(set(names)):
-        raise PackagePolicyError("package names must be unique")
-    versions = {package.version for package in packages}
-    if len(versions) != 1:
-        raise PackagePolicyError(f"all publishable packages must share one version: {sorted(versions)}")
-    available = set(names)
-    for package in packages:
-        for section in (
-            "dependencies",
-            "devDependencies",
-            "optionalDependencies",
-            "peerDependencies",
-        ):
-            for dependency in package.manifest.get(section, {}):
-                if dependency.startswith("@xcss/") and dependency not in available:
-                    raise PackagePolicyError(
-                        f"{package.name}: in-repository dependency {dependency} is missing"
-                    )
-    return packages
+    if repository.is_symlink():
+        raise PackagePolicyError("linked package roots are forbidden")
+    for directory in (repository / "web", repository / "packages"):
+        if list(directory.glob("*/package.json")):
+            raise PackagePolicyError("independent npm subpackages are forbidden")
+    package = Package.load(repository)
+    if package.name != "@xcss/web":
+        raise PackagePolicyError("the sole publishable package must be @xcss/web")
+    for key, expected in {"os": ["linux"], "cpu": ["x64"], "libc": ["glibc"]}.items():
+        if package.manifest.get(key) != expected:
+            raise PackagePolicyError(f"@xcss/web {key} must enforce its server build boundary")
+    return (package,)
 
 
 def clean_dist(packages: Iterable[Package]) -> None:
@@ -421,7 +402,7 @@ def _install_smoke(packages: tuple[Package, ...], tarballs: tuple[Path, ...], co
         "lib": ["ESNext", "DOM", "DOM.Iterable"],
     }, "include": ["main.ts"]}), encoding="utf-8")
     _run(["node", "node_modules/typescript/bin/tsc", "-p", "tsconfig.json"], consumer)
-    browser_imports = [specifier for specifier in imports if not specifier.startswith("@xcss/web-toolchain")]
+    browser_imports = [specifier for specifier in imports if not specifier.startswith("@xcss/web/web-toolchain")]
     styles = [package.name + specifier[1:] for package in packages for specifier, targets in package.exports.items() if any(target.endswith(".css") for target in targets)]
     source = [f"import * as entry{index} from {json.dumps(specifier)};\nconsole.log(entry{index});" for index, specifier in enumerate(browser_imports)]
     source.extend(f"import {json.dumps(specifier)};" for specifier in styles)
@@ -433,7 +414,7 @@ def _install_smoke(packages: tuple[Package, ...], tarballs: tuple[Path, ...], co
 
 def package_smoke(repository: Path, packages: tuple[Package, ...]) -> None:
     clean_dist(packages)
-    _run(["pnpm", "-r", "build"], repository)
+    _run(["pnpm", "build"], repository)
     check_builds(packages)
     with tempfile.TemporaryDirectory(prefix="xcss-package-smoke-") as directory:
         temporary = Path(directory)
@@ -471,7 +452,7 @@ def package_release(
         destination.mkdir(parents=True)
 
     clean_dist(packages)
-    _run(["pnpm", "-r", "build"], repository)
+    _run(["pnpm", "build"], repository)
     check_builds(packages)
     tarballs: list[Path] = []
     for package in packages:

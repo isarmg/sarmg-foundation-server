@@ -6,7 +6,7 @@ import { chromium, firefox, expect } from "@playwright/test";
 
 process.env.PW_TEST_SCREENSHOT_NO_FONTS_READY = "1";
 const repository = resolve(import.meta.dirname, "..");
-const canonicalFonts = join(repository, "packages/web-fonts");
+const canonicalFonts = join(repository, "web/web-fonts");
 const expectedFaces = (await readFile(join(canonicalFonts, "fonts.css"), "utf8")).match(/@font-face\{/gu).length;
 const boot = await readFile(join(canonicalFonts, "boot.css"), "utf8");
 const text = "已加载中文管理字体 鹤龘鬱 日本語 ABC 0123456789";

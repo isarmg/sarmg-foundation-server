@@ -10,7 +10,7 @@ const sources = await readdir(new URL("../src/", root)).catch(error => { if (err
 for (const name of sources) {
   if (!/\.[jt]sx?$/.test(name)) continue;
   const source = await readFile(new URL(`../src/${name}`, root), "utf8");
-  assert.ok(!source.includes('from "@xcss/admin-shell"'), "Use one shared Shell/context implementation throughout this product");
+  assert.ok(!source.includes('from "@xcss/web/admin-shell"'), "Use one shared Shell/context implementation throughout this product");
 }
 console.log("Reviewed xcss Shell snapshot verified");
 const policy = JSON.parse(await readFile(new URL("../../../xcss/platform-router.json", root), "utf8").catch(error => { if (error.code === "ENOENT") return "null"; throw error; }));

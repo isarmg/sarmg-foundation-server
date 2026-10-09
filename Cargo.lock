@@ -2484,333 +2484,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
 
 [[package]]
-name = "xcss-admin-auth"
-version = "1.0.0"
-dependencies = [
- "argon2",
- "base64 0.23.1",
- "getrandom 0.4.3",
- "hmac",
- "sha2 0.11.0",
- "subtle",
- "thiserror",
-]
-
-[[package]]
-name = "xcss-admin-axum"
-version = "1.0.0"
-dependencies = [
- "axum",
- "bytes",
- "http-body",
- "http-body-util",
- "mime",
- "serde",
- "serde_json",
- "sqlx",
- "tempfile",
- "tokio",
- "tower",
- "xcss-admin-auth",
- "xcss-admin-core",
- "xcss-admin-sqlite",
- "xcss-admin-static",
- "xcss-contracts",
- "xcss-sqlite",
- "xcss-testkit",
-]
-
-[[package]]
-name = "xcss-admin-core"
-version = "1.0.0"
-dependencies = [
- "async-trait",
- "serde_json",
- "thiserror",
- "tokio",
- "xcss-admin-auth",
- "xcss-contracts",
-]
-
-[[package]]
-name = "xcss-admin-hyper"
-version = "1.0.0"
-dependencies = [
- "axum",
- "bytes",
- "http-body",
- "hyper",
- "sqlx",
- "tempfile",
- "tokio",
- "tower",
- "xcss-admin-auth",
- "xcss-admin-axum",
- "xcss-admin-core",
- "xcss-admin-sqlite",
- "xcss-admin-static",
- "xcss-contracts",
- "xcss-sqlite",
- "xcss-testkit",
-]
-
-[[package]]
-name = "xcss-admin-sqlite"
-version = "1.0.0"
-dependencies = [
- "async-trait",
- "sqlx",
- "tempfile",
- "thiserror",
- "tokio",
- "xcss-admin-auth",
- "xcss-admin-core",
- "xcss-sqlite",
-]
-
-[[package]]
-name = "xcss-admin-static"
-version = "1.0.0"
-dependencies = [
- "async-trait",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tokio",
- "xcss-admin-auth",
- "xcss-admin-core",
- "xcss-fs-safety",
-]
-
-[[package]]
-name = "xcss-config"
-version = "1.0.0"
-dependencies = [
- "rustix",
- "serde",
- "serde_json",
- "tempfile",
- "xcss-error",
- "xcss-state-file",
-]
-
-[[package]]
-name = "xcss-contracts"
-version = "1.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
- "xcss-admin-auth",
- "xcss-error",
- "xcss-schema-identity",
-]
-
-[[package]]
-name = "xcss-error"
-version = "1.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "xcss-fs-safety"
-version = "1.0.0"
-dependencies = [
- "getrandom 0.4.3",
- "rustix",
- "tempfile",
- "thiserror",
-]
-
-[[package]]
-name = "xcss-log"
-version = "1.0.0"
-dependencies = [
- "chrono",
- "rustix",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tracing",
- "tracing-subscriber",
- "windows-sys 0.61.2",
- "xcss-error",
-]
-
-[[package]]
-name = "xcss-operations"
-version = "1.0.0"
-dependencies = [
- "async-trait",
- "serde",
- "serde_json",
- "sqlx",
- "tempfile",
- "thiserror",
- "tokio",
- "uuid",
-]
-
-[[package]]
-name = "xcss-platform-db"
-version = "1.0.0"
-dependencies = [
- "sqlx",
- "tempfile",
- "thiserror",
- "tokio",
- "xcss-schema-identity",
- "xcss-sqlite",
- "xcss-state-file",
-]
-
-[[package]]
-name = "xcss-schema-identity"
-version = "1.0.0"
-dependencies = [
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "thiserror",
-]
-
-[[package]]
-name = "xcss-secret"
-version = "1.0.0"
-dependencies = [
- "zeroize",
-]
-
-[[package]]
-name = "xcss-secret-envelope"
+name = "xcss"
 version = "1.0.0"
 dependencies = [
  "aes-gcm",
+ "anyhow",
+ "argon2",
+ "async-trait",
+ "axum",
+ "base64 0.23.1",
+ "bytes",
+ "chrono",
+ "futures-executor",
+ "futures-util",
  "getrandom 0.4.3",
  "hkdf",
- "sha2 0.11.0",
- "thiserror",
- "xcss-secret",
- "zeroize",
-]
-
-[[package]]
-name = "xcss-secure-http"
-version = "1.0.0"
-dependencies = [
+ "hmac",
+ "http",
+ "http-body",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
  "ipnet",
+ "libc",
+ "libsqlite3-sys",
+ "log",
+ "mime",
  "reqwest",
- "thiserror",
- "tokio",
- "tokio-rustls",
- "url",
-]
-
-[[package]]
-name = "xcss-server-cli"
-version = "1.0.0"
-dependencies = [
- "axum",
- "reqwest",
+ "rustix",
  "serde",
  "serde_json",
  "serde_path_to_error",
- "tempfile",
- "tokio",
- "tower",
- "xcss-admin-static",
- "xcss-error",
- "xcss-fs-safety",
- "xcss-server-runtime",
- "xcss-sqlite",
- "xcss-state-file",
-]
-
-[[package]]
-name = "xcss-server-runtime"
-version = "1.0.0"
-dependencies = [
- "async-trait",
- "axum",
- "futures-util",
- "getrandom 0.4.3",
- "hyper",
- "hyper-util",
- "log",
- "rustix",
- "serde",
- "serde_json",
+ "sha2 0.11.0",
  "socket2",
+ "sqlx",
+ "subtle",
+ "tempfile",
  "thiserror",
  "tokio",
+ "tokio-rustls",
  "tokio-util",
  "tower",
- "xcss-admin-auth",
- "xcss-admin-axum",
- "xcss-admin-core",
- "xcss-admin-static",
- "xcss-contracts",
- "xcss-schema-identity",
-]
-
-[[package]]
-name = "xcss-server-target"
-version = "1.0.0"
-
-[[package]]
-name = "xcss-sqlite"
-version = "1.0.0"
-dependencies = [
- "futures-executor",
- "libc",
- "libsqlite3-sys",
- "rustix",
- "sha2 0.11.0",
- "sqlx",
- "tempfile",
- "thiserror",
- "tokio",
- "xcss-schema-identity",
-]
-
-[[package]]
-name = "xcss-state-file"
-version = "1.0.0"
-dependencies = [
- "rustix",
- "tempfile",
- "thiserror",
- "xcss-server-target",
-]
-
-[[package]]
-name = "xcss-testkit"
-version = "1.0.0"
-dependencies = [
- "axum",
- "http-body",
- "serde_json",
- "tokio",
- "xcss-contracts",
-]
-
-[[package]]
-name = "xcss-web-assets"
-version = "1.0.0"
-dependencies = [
- "anyhow",
- "bytes",
- "http",
- "rustix",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "tempfile",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "uuid",
+ "zeroize",
 ]
 
 [[package]]

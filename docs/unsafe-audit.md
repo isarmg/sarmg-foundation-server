@@ -10,11 +10,11 @@
 
 | 位置 | 必要性 | 安全前提与验证 |
 |---|---|---|
-| `rust/crates/xcss-sqlite/src/native_limits.rs::native_limit` | SQLx 0.9 的安全接口没有提供这四项 `sqlite3_limit` 设置和读回；SQL 文本不能等价限制值大小、VM 操作和绑定参数数量。 | 使用 SQLx 独占 `LockedSqliteHandle` 暂停 worker；固定类别与范围已验证；同一锁定 `libsqlite3-sys` 链接身份；不保存句柄。已有测试验证本连接限制、其他连接不受影响、无效输入不修改状态以及替换连接同样受限。 |
-| `rust/crates/xcss-sqlite/src/native_security.rs::set_and_verify` | `SQLITE_DBCONFIG_DEFENSIVE` 没有等效 defensive PRAGMA，也没有 SQLx 安全设置 API。 | 独占活连接；C variadic 参数使用 `c_int` 和有效输出指针；只允许设置 1 和读取 -1；两次返回码和最终状态都检查。已有测试验证拒绝 schema 写入并保留普通 SQL。 |
-| `rust/crates/xcss-sqlite/src/validation_snapshot.rs::lock_read` | SQLite 快照需要特定字节区间的 Linux OFD 读锁。Rust `File` 的整文件 flock 和 rustix 的 process-associated `fcntl_lock` 不等价，不能替换锁协议。 | File 持有 fd，flock 全字段初始化，OFD 要求 PID 为 0；非阻塞、区分 busy 与不可用；持锁文件生命周期覆盖复制。Linux 原生行为由该模块现有风险测试覆盖，本轮 macOS 不能执行这些测试。 |
-| `rust/crates/xcss-log/src/windows_rotating.rs` 中的原生函数与 `Allocation::drop` | 标准库与现有 rustix Windows 接口不能核验精确 DACL、protected 私有锚及服务继承，或实现不共享删除的目录 pin。 | 路径 NUL 检查、宽字符串保持有效；token/security descriptor 的 API 分配通过唯一 RAII 所有者释放；token buffer 按 u64 对齐、最小 TOKEN_USER 大小与 16 KiB 上限验证；ACE 类型/固定字段/SID 可变范围检查；File/OwnedHandle 各关闭一次。所有 unsafe 仅允许于实际 FFI 函数，取消整个模块豁免。 |
-| `rust/crates/xcss-log/src/windows_rotating_tests.rs` 原生 fixture、权限测试与清理函数 | 真实受限 token、DACL 变更和线程 impersonation 无安全标准库替代；模拟结果无法覆盖这些风险。 | 固定 SID、成功后接管句柄、LocalFree RAII、线程恢复 guard；测试只修改自己的临时对象。Windows 原生测试仍是正式 release 前置门，交叉检查不能冒充原生执行。 |
+| `src/sqlite/native_limits.rs::native_limit` | SQLx 0.9 的安全接口没有提供这四项 `sqlite3_limit` 设置和读回；SQL 文本不能等价限制值大小、VM 操作和绑定参数数量。 | 使用 SQLx 独占 `LockedSqliteHandle` 暂停 worker；固定类别与范围已验证；同一锁定 `libsqlite3-sys` 链接身份；不保存句柄。已有测试验证本连接限制、其他连接不受影响、无效输入不修改状态以及替换连接同样受限。 |
+| `src/sqlite/native_security.rs::set_and_verify` | `SQLITE_DBCONFIG_DEFENSIVE` 没有等效 defensive PRAGMA，也没有 SQLx 安全设置 API。 | 独占活连接；C variadic 参数使用 `c_int` 和有效输出指针；只允许设置 1 和读取 -1；两次返回码和最终状态都检查。已有测试验证拒绝 schema 写入并保留普通 SQL。 |
+| `src/sqlite/validation_snapshot.rs::lock_read` | SQLite 快照需要特定字节区间的 Linux OFD 读锁。Rust `File` 的整文件 flock 和 rustix 的 process-associated `fcntl_lock` 不等价，不能替换锁协议。 | File 持有 fd，flock 全字段初始化，OFD 要求 PID 为 0；非阻塞、区分 busy 与不可用；持锁文件生命周期覆盖复制。Linux 原生行为由该模块现有风险测试覆盖，本轮 macOS 不能执行这些测试。 |
+| `src/log/windows_rotating.rs` 中的原生函数与 `Allocation::drop` | 标准库与现有 rustix Windows 接口不能核验精确 DACL、protected 私有锚及服务继承，或实现不共享删除的目录 pin。 | 路径 NUL 检查、宽字符串保持有效；token/security descriptor 的 API 分配通过唯一 RAII 所有者释放；token buffer 按 u64 对齐、最小 TOKEN_USER 大小与 16 KiB 上限验证；ACE 类型/固定字段/SID 可变范围检查；File/OwnedHandle 各关闭一次。所有 unsafe 仅允许于实际 FFI 函数，取消整个模块豁免。 |
+| `src/log/windows_rotating_tests.rs` 原生 fixture、权限测试与清理函数 | 真实受限 token、DACL 变更和线程 impersonation 无安全标准库替代；模拟结果无法覆盖这些风险。 | 固定 SID、成功后接管句柄、LocalFree RAII、线程恢复 guard；测试只修改自己的临时对象。Windows 原生测试由独立 xcsc 承接；xcss 整个 crate 仅支持 Linux AMD64，Windows 源码不能作为跨平台消费入口。 |
 
 本轮补全 Windows 每个原生块的安全前提，并拒绝不足以包含 TOKEN_USER 的 OS 输出大小；没有删除权限、文件锁、范围校验或有效风险测试来消除 unsafe。SQLite 单元测试按职责移到同模块 `tests.rs`，公共 API 与外部包名保持不变。
 
@@ -26,7 +26,7 @@ Rust 1.99.0 macOS 已执行更新后的认证、错误、合同、秘密封装�
 
 ## 0.11.3 Windows 服务日志权限补丁
 
-`rust/crates/xcss-log/src/windows_rotating.rs` 的共享 descriptor/ACL 读取与验证增加 `WindowsLogAccess` 策略；产品仍不复制原生日志或 ACL 实现。SDDL 仅由固定 owner、固定权限和长度不超过 64 的规范 SCM SID 组成，不接受任意用户或表达式。原生 allocation、SID、ACL 和句柄继续由既有 RAII 管理，指针借用不超过 descriptor 生命周期。每个 ACE 在转为 SID 前检查 header、类型和变长大小，再逐项核对 trustee、mask 与继承标志；保留 READ_CONTROL 而不授予 owner 隐式 WRITE_DAC。
+`src/log/windows_rotating.rs` 的共享 descriptor/ACL 读取与验证增加 `WindowsLogAccess` 策略；产品仍不复制原生日志或 ACL 实现。SDDL 仅由固定 owner、固定权限和长度不超过 64 的规范 SCM SID 组成，不接受任意用户或表达式。原生 allocation、SID、ACL 和句柄继续由既有 RAII 管理，指针借用不超过 descriptor 生命周期。每个 ACE 在转为 SID 前检查 header、类型和变长大小，再逐项核对 trustee、mask 与继承标志；保留 READ_CONTROL 而不授予 owner 隐式 WRITE_DAC。
 
 服务角色与现有当前用户角色使用同一轮转和防重解析实现。LocalService owner、service SID 限定权限及 OWNER RIGHTS 是实际 xsoc MSI 合同，不通过产品发行版本推断。安全替代是消费此共享策略接口；标准文件 API 无法声明或校验上述 Windows DACL，不能通过弱化权限取得零 unsafe。
 
@@ -41,3 +41,7 @@ Rust 1.99.0 macOS 已执行更新后的认证、错误、合同、秘密封装�
 属主变异负测只将自己临时树的后代隔离为合法 protected 精确 DACL，先核验完整 namespace，再变更目标属主并复位目标 DACL；不让父权限继承传播混淆属主拒绝原因，真实继承用例保持独立覆盖。SDK 物理属主/DACL 诊断只在断言失败时读取已持有句柄，安全描述符与转换后的 SDDL 字符串分别由唯一 LocalFree RAII 管理，输出按 SDK 长度读取且不超过 16,384 个 WCHAR，不读取业务内容。
 
 正式发行要求原生 Windows 行为和真实 LocalService 生命周期由最终 CI/消费者 Source 分别实证，Linux workspace、Web 与正式制品验证也在发行门禁执行。历史发行与验证记录不代替本版继承模式的验收。
+
+## 当前单体边界
+
+xcss 目前为单个 Linux AMD64 GNU crate，Windows 日志源码在该 target 下不可达，跨平台实现及验证由独立 xcsc 拥有。上述 macOS/Windows、多个 crate 和多个 tarball 的数量记录属于合并前历史验收事实，不代表当前单体已执行相同平台验证；当前发布需按新版 CI 对整 crate 和唯一 npm tgz重新验收。

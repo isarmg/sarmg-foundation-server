@@ -16,7 +16,10 @@
     },
     "product_id": {
       "type": "string",
-      "pattern": "^[a-z][a-z0-9-]{0,62}$"
+      "pattern": "^[a-z][a-z0-9-]{0,62}$",
+      "not": {
+        "pattern": "^x[a-z]{2}c$"
+      }
     },
     "foundation": {
       "type": "object",
@@ -60,7 +63,6 @@
             "enum": [
               "server-control-plane",
               "server-filesystem",
-              "offline-tool",
               "web-react-admin",
               "web-embedded-native"
             ]

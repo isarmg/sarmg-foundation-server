@@ -1,90 +1,73 @@
-[workspace]
-resolver = "3"
-members = [
-  "rust/crates/xcss-admin-auth",
-  "rust/crates/xcss-admin-axum",
-  "rust/crates/xcss-admin-core",
-  "rust/crates/xcss-admin-hyper",
-  "rust/crates/xcss-admin-sqlite",
-  "rust/crates/xcss-admin-static",
-  "rust/crates/xcss-contracts",
-  "rust/crates/xcss-config",
-  "rust/crates/xcss-error",
-  "rust/crates/xcss-schema-identity",
-  "rust/crates/xcss-server-target",
-  "rust/crates/xcss-sqlite",
-  "rust/crates/xcss-state-file",
-  "rust/crates/xcss-platform-db",
-  "rust/crates/xcss-server-runtime",
-  "rust/crates/xcss-server-cli",
-  "rust/crates/xcss-log",
-  "rust/crates/xcss-fs-safety",
-  "rust/crates/xcss-secret",
-  "rust/crates/xcss-secret-envelope",
-  "rust/crates/xcss-secure-http",
-  "rust/crates/xcss-operations",
-  "rust/crates/xcss-testkit",
-  "rust/crates/xcss-web-assets",
-]
+[package]
+"version" = "1.0.0"
+"edition" = "2024"
+"rust-version" = "1.99"
+"authors" = ["sarmg <isarmg@163.com>"]
+"license" = "Apache-2.0"
+"repository" = "https://github.com/isarmg/xcss"
+"homepage" = "https://github.com/isarmg/xcss"
+"name" = "xcss"
+"description" = "Linux AMD64 server support monolith"
 
-[workspace.package]
-version = "1.0.0"
-edition = "2024"
-rust-version = "1.99"
-authors = ["sarmg <isarmg@163.com>"]
-license = "Apache-2.0"
-repository = "https://github.com/isarmg/xcss"
-homepage = "https://github.com/isarmg/xcss"
+[lib]
+"path" = "src/lib.rs"
 
-[workspace.dependencies]
-anyhow = "1"
-argon2 = { version = "0.5", features = ["std"] }
-async-trait = "0.1"
-axum = "0.8.9"
-base64 = "0.23.1"
-bytes = "1"
-aes-gcm = "0.11.1"
-hkdf = "0.13.0"
-hmac = "0.13.0"
-getrandom = "0.4"
-futures-executor = "0.3"
-libsqlite3-sys = { version = "=0.37.0", features = ["bundled"] }
-futures-util = { version = "0.3", default-features = false, features = ["std"] }
-http = "1"
-http-body-util = "0.1"
-mime = "0.3"
-ipnet = "2"
-rand = "0.10.3"
-reqwest = { version = "0.13.5", default-features = false, features = ["rustls"] }
-rustix = { version = "1.1.5", features = ["fs", "process"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_path_to_error = "0.1.20"
-sha2 = "0.11.0"
-subtle = "2.6"
-sqlx = { version = "=0.9.0", default-features = false, features = [
-  "sqlite-bundled",
-  "runtime-tokio",
-] }
-tempfile = "3"
-thiserror = "2"
-tokio = { version = "1.53.2", features = ["fs", "macros", "rt-multi-thread", "signal", "sync", "time"] }
-tower = { version = "0.5", features = ["util"] }
-url = "2"
-zeroize = "1.8"
-http-body = "1"
-hyper = { version = "1", features = ["http1", "server"] }
-hyper-util = { version = "0.1", features = ["tokio", "service"] }
-tokio-util = { version = "0.7", features = ["rt"] }
-socket2 = "0.6"
-log = "0.4"
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+[features]
+"default" = ["tracing"]
+"tracing" = []
 
-[workspace.lints.rust]
-unsafe_code = "deny"
-unsafe_op_in_unsafe_fn = "deny"
+[dependencies]
+"argon2" = { "version" = "0.5", "features" = ["std"] }
+"base64" = { "version" = "0.23.1" }
+"getrandom" = { "version" = "0.4" }
+"hmac" = { "version" = "0.13.0" }
+"sha2" = { "version" = "0.11.0" }
+"subtle" = { "version" = "2.6" }
+"thiserror" = { "version" = "2" }
+"axum" = { "version" = "0.8.9" }
+"bytes" = { "version" = "1" }
+"http-body-util" = { "version" = "0.1" }
+"mime" = { "version" = "0.3" }
+"tokio" = { "version" = "1.53.2", "features" = ["fs", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "test-util", "time"] }
+"serde" = { "version" = "1", "features" = ["derive"] }
+"serde_json" = { "version" = "1" }
+"async-trait" = { "version" = "0.1" }
+"http-body" = { "version" = "1" }
+"hyper" = { "version" = "1", "features" = ["http1", "server"] }
+"tower" = { "version" = "0.5", "features" = ["util"] }
+"sqlx" = { "version" = "=0.9.0", "default-features" = false, "features" = ["runtime-tokio", "sqlite-bundled"] }
+"rustix" = { "version" = "1.1.5", "features" = ["event", "fs", "process"] }
+"futures-executor" = { "version" = "0.3" }
+"libsqlite3-sys" = { "version" = "=0.37.0", "features" = ["bundled"] }
+"tempfile" = { "version" = "3" }
+"libc" = "0.2"
+"futures-util" = { "version" = "0.3", "default-features" = false, "features" = ["std"] }
+"hyper-util" = { "version" = "0.1", "features" = ["service", "tokio"] }
+"tokio-util" = { "version" = "0.7", "features" = ["rt"] }
+"socket2" = { "version" = "0.6" }
+"reqwest" = { "version" = "0.13.5", "default-features" = false, "features" = ["rustls"] }
+"serde_path_to_error" = { "version" = "0.1.20" }
+"chrono" = { "version" = "0.4", "default-features" = false, "features" = ["clock", "std"] }
+"tracing" = { "version" = "0.1" }
+"tracing-subscriber" = { "version" = "0.3", "default-features" = false, "features" = ["registry"] }
+"zeroize" = { "version" = "1.8" }
+"aes-gcm" = { "version" = "0.11.1" }
+"hkdf" = { "version" = "0.13.0" }
+"ipnet" = { "version" = "2" }
+"url" = { "version" = "2" }
+"uuid" = { "version" = "1", "features" = ["v4"] }
+"anyhow" = { "version" = "1" }
+"http" = { "version" = "1" }
+"log-api" = { "package" = "log", "version" = "0.4" }
 
-[workspace.lints.clippy]
-dbg_macro = "deny"
-todo = "deny"
-undocumented_unsafe_blocks = "deny"
+[dev-dependencies]
+"tokio-rustls" = "0.26.5"
+
+[lints.rust]
+"unsafe_code" = "deny"
+"unsafe_op_in_unsafe_fn" = "deny"
+
+[lints.clippy]
+"dbg_macro" = "deny"
+"todo" = "deny"
+"undocumented_unsafe_blocks" = "deny"

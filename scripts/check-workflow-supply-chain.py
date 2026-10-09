@@ -140,7 +140,7 @@ def is_release_workflow(source: str) -> bool:
 
 
 def validate_job(source: str, header: Line, segment: list[Line]) -> None:
-    runner = "windows-2025" if header.content == "windows-log:" else FIXED_RUNNER
+    runner = FIXED_RUNNER
     runners = matching_job_property(segment, RUNNER_KEY)
     if len(runners) != 1 or runners[0].content != f"runs-on: {runner}":
         raise fail(
@@ -199,15 +199,15 @@ def validate_job(source: str, header: Line, segment: list[Line]) -> None:
             entries[0] if entries else permissions[0],
             f"job permissions must contain only {expected_permission}",
         )
-    if header.content == "windows-log:":
-        commands = {line.content for line in segment if line.indent == 8 and line.content.startswith("run:")}
-        expected = {
-            "run: rustup toolchain install 1.99.0 --profile minimal --component clippy",
-            "run: cargo test --locked -p xcss-log --all-features",
-            "run: cargo clippy --locked -p xcss-log --all-features --all-targets -- -D warnings",
+    if header.content in {"rust:", "release:"}:
+        commands = {line.content.removeprefix("run: ") for line in segment}
+        required = {
+            'if cargo check --locked -p xcss --target "$target" 2>"$log"; then',
+            'grep -F "xcss supports only x86_64-unknown-linux-gnu server builds" "$log"',
+            "cargo test --locked --all-targets --all-features",
         }
-        if commands != expected:
-            raise fail(source, header, "windows-log must verify the exact portable logging leaf with locked native tests and clippy")
+        if not required <= commands:
+            raise fail(source, header, "server job must prove the whole-package Linux AMD64 gate and execute locked native tests")
 
 
 def validate_release_trigger(source: str, lines: list[Line]) -> None:
@@ -231,11 +231,8 @@ def validate_release_trigger(source: str, lines: list[Line]) -> None:
     if observed != expected:
         raise fail(source, lines[start], "release workflow trigger must be only push tags v*")
     jobs = job_segments(source, lines)
-    if [header.content for header, _ in jobs] != ["windows-log:", "release:"]:
-        raise fail(source, None, "release workflow must contain only windows-log and release jobs")
-    release = jobs[1][1]
-    if [line.content for line in release if line.indent == 4 and line.content.startswith("needs:")] != ["needs: windows-log"]:
-        raise fail(source, jobs[1][0], "release must require successful windows-log native verification")
+    if [header.content for header, _ in jobs] != ["release:"]:
+        raise fail(source, None, "release workflow must contain only the Linux AMD64 release job")
 
 
 def explicit_action_step(

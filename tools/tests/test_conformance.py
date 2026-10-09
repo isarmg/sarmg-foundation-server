@@ -70,11 +70,11 @@ class ConformanceTests(unittest.TestCase):
         dependency = '{git="https://github.com/isarmg/xcss.git",rev="0123456789abcdef0123456789abcdef01234567",version="=0.10.0"}'
         (product / "Cargo.toml").write_text(
             '[package]\nname="fixture"\nversion="0.1.0"\n'
-            f'[dependencies]\nxcss-web-assets={dependency}\n'
-            f'[build-dependencies]\nxcss-web-assets={dependency}\n'
+            f'[dependencies]\nxcss={dependency}\n'
+            f'[build-dependencies]\nxcss={dependency}\n'
         )
         (product / "Cargo.lock").write_text(
-            'version=4\n[[package]]\nname="xcss-web-assets"\nversion="0.10.0"\n'
+            'version=4\n[[package]]\nname="xcss"\nversion="0.10.0"\n'
             'source="git+https://github.com/isarmg/xcss.git?rev=0123456789abcdef0123456789abcdef01234567#0123456789abcdef0123456789abcdef01234567"\n'
         )
 
@@ -134,7 +134,7 @@ class ConformanceTests(unittest.TestCase):
             for section in ("dependencies", "build-dependencies"):
                 # Renaming the dependency removes only this semantic dependency table.
                 cargo.write_text(original.replace(f"[{section}]", f"[metadata.{section}]"))
-                with self.subTest(section=section), self.assertRaisesRegex(ConformanceError, f"requires xcss-web-assets in {section}"):
+                with self.subTest(section=section), self.assertRaisesRegex(ConformanceError, f"requires xcss::web_assets.* in {section}"):
                     verify_source(product, ROOT)
 
     def test_manifest_schema_accepts_the_current_version(self) -> None:
@@ -145,7 +145,7 @@ class ConformanceTests(unittest.TestCase):
 
     def test_repository_platform_definition_is_self_consistent(self) -> None:
         result = verify_foundation(ROOT)
-        self.assertEqual(len(result["profiles"]), 5)
+        self.assertEqual(len(result["profiles"]), 4)
         self.assertIn("admin-persistent", result["capabilities"])
 
     def test_consumer_registry_is_an_independent_reporting_contract(self) -> None:
@@ -153,13 +153,9 @@ class ConformanceTests(unittest.TestCase):
             fixture = Path(directory)
             shutil.copytree(ROOT / "profiles", fixture / "profiles")
             (fixture / "Cargo.toml").write_text(
-                '[workspace]\nmembers=[]\n[workspace.package]\nversion="0.9.0"\n'
+                '[package]\nname="xcss"\nversion="0.9.0"\n'
             )
-            package = fixture / "rust" / "crates" / "xcss-error"
-            package.mkdir(parents=True)
-            (package / "Cargo.toml").write_text(
-                '[package]\nname="xcss-error"\nversion="0.9.0"\n'
-            )
+            (fixture / "package.json").write_text('{"name":"@xcss/web","version":"0.9.0"}')
             consumers = fixture / "consumers"
             consumers.mkdir()
             (consumers / "repositories.toml").write_text(
@@ -169,9 +165,9 @@ product = "new-product"
 url = "https://github.com/example/new-product"
 commit = "0123456789abcdef0123456789abcdef01234567"
 xcss_version = "0.9.0"
-profiles = ["offline-tool"]
-capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2"]
-packages = ["xcss-error"]
+profiles = ["server-filesystem"]
+capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2"]
+packages = ["xcss"]
 status = "conforming"
 exceptions = []
 '''
@@ -201,7 +197,7 @@ exceptions = []
             (product / "xcss-product.toml").write_text(VALID_MANIFEST, encoding="utf-8")
             (product / "Cargo.toml").write_text(
                 '[package]\nname="fixture"\nversion="0.1.0"\n'
-                '[dependencies]\nlocal-error={package="xcss-error",path="../foundation"}\n',
+                '[dependencies]\nlocal-error={package="xcss",path="../foundation"}\n',
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ConformanceError, "immutable-foundation-dependencies"):
@@ -213,9 +209,21 @@ exceptions = []
             (product / "xcss-product.toml").write_text(VALID_MANIFEST)
             (product / "Cargo.toml").write_text(
                 '[package]\nname="fixture"\nversion="0.1.0"\n'
-                '[dependencies]\nxcss-error="0.5"\n'
+                '[dependencies]\nxcss="0.5"\n'
             )
             with self.assertRaisesRegex(ConformanceError, "exact xcss Git source"):
+                verify_source(product, ROOT)
+
+    def test_removed_independent_packages_cannot_silently_escape_source_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
+            (product / "Cargo.toml").write_text('[package]\nname="fixture"\nversion="0.1.0"\n[dependencies]\nold={package="xcss-error",version="1.0"}\n')
+            with self.assertRaisesRegex(ConformanceError, "independent xcss-error was removed"):
+                verify_source(product, ROOT)
+            (product / "Cargo.toml").unlink()
+            (product / "package.json").write_text(json.dumps({"dependencies": {"@xcss/admin-ui": "1.0.0"}}))
+            with self.assertRaisesRegex(ConformanceError, "independent @xcss/admin-ui was removed"):
                 verify_source(product, ROOT)
 
     def test_release_check_distinguishes_source_inspection_from_publication_gate(self) -> None:
@@ -241,6 +249,24 @@ exceptions = []
                 VALID_MANIFEST.replace("web-embedded-native", "offline-tool"), encoding="utf-8"
             )
             with self.assertRaisesRegex(ConformanceError, "web_profile is not allowed"):
+                verify_manifest(product, ROOT)
+
+    def test_canonical_clients_cannot_claim_server_ownership(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            for identifier in ("xssc", "xsoc", "xscc", "xszc", "xcsc", "xcoc", "xzzc"):
+                (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace("fixture-product", identifier))
+                with self.subTest(product=identifier), self.assertRaisesRegex(ConformanceError, "client products cannot consume server-only"):
+                    verify_manifest(product, ROOT)
+            # General fixture identifiers remain valid; role enforcement uses canonical project identities.
+            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
+            verify_manifest(product, ROOT)
+
+    def test_offline_client_profile_is_not_a_server_consumption_entry(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            product = Path(directory)
+            (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace("server-filesystem", "offline-tool"))
+            with self.assertRaisesRegex(ConformanceError, "unknown Profile"):
                 verify_manifest(product, ROOT)
 
     def test_client_profile_is_rejected(self) -> None:

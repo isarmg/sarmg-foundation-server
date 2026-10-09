@@ -4,7 +4,7 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 
-const source = fileURLToPath(new URL("../packages/web-fonts/", import.meta.url));
+const source = fileURLToPath(new URL("../web/web-fonts/", import.meta.url));
 const provenance = JSON.parse(await readFile(join(source, "provenance.json"), "utf8"));
 const names = [...Object.keys(provenance.assets).filter(name => !["MapleMono.woff2", "MapleMono-Italic.woff2"].includes(name)), "provenance.json"];
 for (const name of names) {
@@ -36,6 +36,6 @@ for (const argument of process.argv.slice(2)) {
   delete snapshot.assets["MapleMono-Italic.woff2"];
   snapshot.distribution = "Reviewed Server xcss font source snapshot; published npm dependencies remain unchanged";
   await writeFile(join(destination, "provenance.json"), JSON.stringify(snapshot, null, 2) + "\n");
-  await copyFile(new URL("../packages/web-fonts/scripts/verify-snapshot.mjs", import.meta.url), join(destination, "verify.mjs"));
+  await copyFile(new URL("../web/web-fonts/scripts/verify-snapshot.mjs", import.meta.url), join(destination, "verify.mjs"));
   console.log(`${product}: synchronized ${names.length} reviewed font files`);
 }

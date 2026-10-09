@@ -6,10 +6,10 @@
 
 | 位置 / 函数 | 必要性与安全前置条件 | 验证及未证明边界 |
 |---|---|---|
-| `xcss-sqlite/native_limits::native_limit` | SQLx 暂无 safe `sqlite3_limit` API。仅在 SQLx `LockedSqliteHandle` 暂停 worker 并独占有效连接时调用同一 native 库；固定四种类别，参数先校验为正有界 i32，`-1` 仅查询，设置后逐个读回。指针、借用和回调均不逃逸。保留这一窄 FFI，不自制驱动。 | 真实巨大 BLOB 读写、SQL 长度、bind 数量及其他连接不受影响；无效参数在任何修改前拒绝。不是 SQLite 总堆、排序工作区或打开 schema 的内存上限。 |
-| `xcss-sqlite/native_security::set_and_verify` | SQLx 无 safe db-config API，SQLite 无等价 defensive PRAGMA。独占 SQLx handle / 暂停 worker、同一 pinned native library；固定 SQLITE_DBCONFIG_DEFENSIVE 的 C int 1/-1 和活 int 输出指针，设置后读回1，指针不逃逸。保留这一必要窄 FFI。 | 真实 writable_schema UPDATE 被拒、指纹字节保持，正常 INSERT/SELECT 可用；另一独立未加固连接同查询真实成功，证明不是坏 SQL 假通过。 |
-| `xcss-sqlite/validation_snapshot::lock_read` | Linux `fcntl(F_OFD_SETLK)` 的 SQLite byte-range read lock；活 File 保持 FD，完整初始化 flock / zero PID。普通 POSIX lock 或整文件 flock 不具有所需相同语义，不能安全机械替换。 | WAL-only 当前代、busy、别名、输入 identity / bytes 不变、超限与坏库拒绝。实际 SQLx 打开前释放同 inode 原始 FD；副本内只读，源不打开 SQLite pool。其他 OS 未实现此 Linux 快照 API。 |
-| `xcss-log/windows_rotating::Allocation::drop` | SDK 返回的 security descriptor / SID string 只用指定 `LocalFree` 释放一次；RAII 持有至所有借用结束。 | 原生 Windows 创建/打开/拒绝失败路径；不接受调用者任意 native 指针。 |
+| `xcss::sqlite/native_limits::native_limit` | SQLx 暂无 safe `sqlite3_limit` API。仅在 SQLx `LockedSqliteHandle` 暂停 worker 并独占有效连接时调用同一 native 库；固定四种类别，参数先校验为正有界 i32，`-1` 仅查询，设置后逐个读回。指针、借用和回调均不逃逸。保留这一窄 FFI，不自制驱动。 | 真实巨大 BLOB 读写、SQL 长度、bind 数量及其他连接不受影响；无效参数在任何修改前拒绝。不是 SQLite 总堆、排序工作区或打开 schema 的内存上限。 |
+| `xcss::sqlite/native_security::set_and_verify` | SQLx 无 safe db-config API，SQLite 无等价 defensive PRAGMA。独占 SQLx handle / 暂停 worker、同一 pinned native library；固定 SQLITE_DBCONFIG_DEFENSIVE 的 C int 1/-1 和活 int 输出指针，设置后读回1，指针不逃逸。保留这一必要窄 FFI。 | 真实 writable_schema UPDATE 被拒、指纹字节保持，正常 INSERT/SELECT 可用；另一独立未加固连接同查询真实成功，证明不是坏 SQL 假通过。 |
+| `xcss::sqlite/validation_snapshot::lock_read` | Linux `fcntl(F_OFD_SETLK)` 的 SQLite byte-range read lock；活 File 保持 FD，完整初始化 flock / zero PID。普通 POSIX lock 或整文件 flock 不具有所需相同语义，不能安全机械替换。 | WAL-only 当前代、busy、别名、输入 identity / bytes 不变、超限与坏库拒绝。实际 SQLx 打开前释放同 inode 原始 FD；副本内只读，源不打开 SQLite pool。其他 OS 未实现此 Linux 快照 API。 |
+| `xcss::log/windows_rotating::Allocation::drop` | SDK 返回的 security descriptor / SID string 只用指定 `LocalFree` 释放一次；RAII 持有至所有借用结束。 | 原生 Windows 创建/打开/拒绝失败路径；不接受调用者任意 native 指针。 |
 | `windows_rotating::sid_text` | 输入只来自活 token 或 SDK security descriptor。SID 转换成功后读取 SDK 分配的 NUL 结尾 UTF-16，最多 256 单元并复制为 owned String；allocation 全程活。 | ACL / owner 测试。SDK 返回存储有效性是 Windows API 的契约，未声称通过 Miri 验证 Win32。 |
 | `windows_rotating::current_sid` | 成功的 OpenProcessToken 返回句柄一次移交 OwnedHandle；TokenUser 双调用仅接受 1..16 KiB 输出，u64 对齐缓存覆盖所需长度，读取其 SID 时 token / 缓存均活。 | 实际当前用户创建与 restricted token 拒读写。令牌 identity 不是产品字符串。 |
 | `windows_rotating::descriptor` | 生成的 SDDL 仅使用 OS-derived 当前 SID 和固定 SYSTEM / Administrators，terminated UTF-16 与有效输出指针；成功 descriptor 交 RAII。 | 创建即 protected exact DACL，无继承 ACL 暴露窗口。不能授权任意额外身份。 |

@@ -1,6 +1,6 @@
 # 管理 Web 的默认工作区配置
 
-公共默认配置位于 `packages/admin-shell/src/workspace-config.ts`，React 入口为
+公共默认配置位于 `web/admin-shell/src/workspace-config.ts`，React 入口为
 `createXcssAdminApplication({ ..., workspace })`。消费者可省略 `workspace` 使用默认值，
 也可以选择自己的 appearance、字体、选中样式和图标/文字操作区。
 认证、CSRF、管理员权限及产品任务逻辑均不受外观选择影响。

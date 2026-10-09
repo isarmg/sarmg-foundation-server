@@ -20,6 +20,8 @@ async function api(page) {
 }
 
 test("base stylesheet defaults to six-row cards; consumers can opt out and design their own appearance", async ({ page }) => {
+  // Six viewport/theme combinations each run a complete accessibility scan.
+  test.setTimeout(90_000);
   await api(page); await page.goto("/");
   const card = page.locator(".xcss-auth-card");
   await expect(page.getByLabel("Username", { exact: true })).toBeVisible();

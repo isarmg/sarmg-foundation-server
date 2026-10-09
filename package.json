@@ -1,8 +1,8 @@
 {
-  "name": "xcss",
+  "name": "@xcss/web",
   "version": "1.0.0",
-  "private": true,
-  "description": "Xcss 服务端及其管理 Web 的构建期上游规范、基础实现与一致性工具工作区",
+  "private": false,
+  "description": "Linux AMD64 xcss server administrator Web support and build inputs",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -13,27 +13,174 @@
   },
   "packageManager": "pnpm@10.34.6",
   "scripts": {
-    "test:web": "pnpm -r build && playwright test",
+    "test:web": "node scripts/build-web.mjs && playwright test",
     "test:web:built": "playwright test",
-    "test:fonts": "node scripts/check-font-navigation.mjs packages/web-fonts",
-    "build": "pnpm -r build",
+    "test:fonts": "node scripts/check-font-navigation.mjs web/web-fonts",
+    "build": "node scripts/build-web.mjs",
     "package:check": "python3 scripts/package-artifacts.py check",
     "package:release": "python3 scripts/package-artifacts.py release --output release/npm",
     "package:smoke": "python3 scripts/package-artifacts.py smoke",
-    "typecheck": "pnpm -r build && pnpm -r typecheck",
-    "typecheck:built": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "test:built": "pnpm -r --if-present test:built"
+    "typecheck": "node scripts/build-web.mjs && node scripts/check-web-types.mjs",
+    "typecheck:built": "node scripts/check-web-types.mjs",
+    "test": "node scripts/build-web.mjs && node scripts/test-web.mjs",
+    "test:built": "node scripts/test-web.mjs",
+    "test:consumer-patches": "node --test scripts/consumer-patches/test.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.63.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "@types/node": "26.6.4",
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   },
   "pnpm": {
     "overrides": {
       "source-map-js": "1.2.2"
     }
-  }
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "libc": [
+    "glibc"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts/index.d.ts",
+      "import": "./dist/contracts/index.js"
+    },
+    "./contracts/schemas/backup-manifest.schema.json": "./dist/contracts/schemas/backup-manifest.schema.json",
+    "./contracts/schemas/administrator-auth.schema.json": "./dist/contracts/schemas/administrator-auth.schema.json",
+    "./contracts/schemas/error-envelope.schema.json": "./dist/contracts/schemas/error-envelope.schema.json",
+    "./contracts/schemas/release.schema.json": "./dist/contracts/schemas/release.schema.json",
+    "./contracts/schemas/state-contract.schema.json": "./dist/contracts/schemas/state-contract.schema.json",
+    "./contracts/fixtures/backup-manifest.fixtures.json": "./dist/contracts/fixtures/backup-manifest.fixtures.json",
+    "./contracts/fixtures/administrator-auth.fixtures.json": "./dist/contracts/fixtures/administrator-auth.fixtures.json",
+    "./contracts/fixtures/error-envelope.fixtures.json": "./dist/contracts/fixtures/error-envelope.fixtures.json",
+    "./contracts/fixtures/release.fixtures.json": "./dist/contracts/fixtures/release.fixtures.json",
+    "./contracts/fixtures/state-contract.fixtures.json": "./dist/contracts/fixtures/state-contract.fixtures.json",
+    "./design-tokens": {
+      "types": "./dist/design-tokens/index.d.ts",
+      "import": "./dist/design-tokens/index.js"
+    },
+    "./design-tokens/accessibility.css": "./dist/design-tokens/accessibility.css",
+    "./design-tokens/reset.css": "./dist/design-tokens/reset.css",
+    "./design-tokens/tokens.css": "./dist/design-tokens/tokens.css",
+    "./design-tokens/tokens.dark.css": "./dist/design-tokens/tokens.dark.css",
+    "./web-fonts": {
+      "types": "./dist/web-fonts/index.d.ts",
+      "import": "./dist/web-fonts/index.js"
+    },
+    "./web-fonts/fonts.css": "./dist/web-fonts/fonts.css",
+    "./web-fonts/boot.css": "./dist/web-fonts/boot.css",
+    "./web-fonts/MapleMono.woff2": "./dist/web-fonts/MapleMono.woff2",
+    "./web-fonts/MapleMono-Italic.woff2": "./dist/web-fonts/MapleMono-Italic.woff2",
+    "./web-fonts/provenance.json": "./dist/web-fonts/provenance.json",
+    "./web-fonts/OFL.txt": "./dist/web-fonts/OFL.txt",
+    "./web-fonts/MapleMonoNormalNL-Regular.woff2": "./dist/web-fonts/MapleMonoNormalNL-Regular.woff2",
+    "./web-fonts/MapleMonoBootstrap-Regular.woff2": "./dist/web-fonts/MapleMonoBootstrap-Regular.woff2",
+    "./web-fonts/MapleMonoBootstrap-Bold.woff2": "./dist/web-fonts/MapleMonoBootstrap-Bold.woff2",
+    "./web-fonts/CJK-LICENSE.txt": "./dist/web-fonts/CJK-LICENSE.txt",
+    "./web-toolchain": {
+      "types": "./dist/web-toolchain/index.d.ts",
+      "import": "./dist/web-toolchain/index.js"
+    },
+    "./web-toolchain/vite": {
+      "types": "./dist/web-toolchain/vite.d.ts",
+      "import": "./dist/web-toolchain/vite.js"
+    },
+    "./web-toolchain/tsconfig.json": "./dist/web-toolchain/tsconfig.json",
+    "./web-toolchain/native": {
+      "types": "./dist/web-toolchain/native.d.ts",
+      "import": "./dist/web-toolchain/native.js"
+    },
+    "./web-toolchain/server": {
+      "types": "./dist/web-toolchain/server.d.ts",
+      "import": "./dist/web-toolchain/server.js"
+    },
+    "./http-client": {
+      "types": "./dist/http-client/index.d.ts",
+      "import": "./dist/http-client/index.js"
+    },
+    "./admin-ui/i18n": {
+      "types": "./dist/admin-ui/i18n.d.ts",
+      "import": "./dist/admin-ui/i18n.js"
+    },
+    "./admin-ui": {
+      "types": "./dist/admin-ui/index.d.ts",
+      "import": "./dist/admin-ui/index.js"
+    },
+    "./admin-ui/styles.css": "./dist/admin-ui/styles.css",
+    "./admin-ui/content-blocks.css": "./dist/admin-ui/content-blocks.css",
+    "./admin-ui/date-range": {
+      "types": "./dist/admin-ui/DateRangeField.d.ts",
+      "import": "./dist/admin-ui/DateRangeField.js"
+    },
+    "./admin-ui/date-range.css": "./dist/admin-ui/date-range.css",
+    "./admin-web": {
+      "types": "./dist/admin-web/index.d.ts",
+      "import": "./dist/admin-web/index.js"
+    },
+    "./admin-web/react": {
+      "types": "./dist/admin-web/react.d.ts",
+      "import": "./dist/admin-web/react.js"
+    },
+    "./admin-shell": {
+      "types": "./dist/admin-shell/index.d.ts",
+      "import": "./dist/admin-shell/index.js"
+    },
+    "./admin-shell/native": {
+      "types": "./dist/admin-shell/native-workspace.d.ts",
+      "import": "./dist/admin-shell/native-workspace.js"
+    },
+    "./admin-shell/workspace-config": {
+      "types": "./dist/admin-shell/workspace-config.d.ts",
+      "import": "./dist/admin-shell/workspace-config.js"
+    }
+  },
+  "peerDependencies": {
+    "@vitejs/plugin-react": "6.1.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "vite": "8.3.3"
+  },
+  "peerDependenciesMeta": {
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
+  },
+  "bin": {
+    "xcss-build-server": "./dist/web-toolchain/server-cli.js"
+  },
+  "sideEffects": [
+    "./dist/admin-ui/i18n.js",
+    "**/*.css"
+  ]
 }

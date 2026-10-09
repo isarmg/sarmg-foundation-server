@@ -38,18 +38,18 @@ xcss 同时包含 Rust、TypeScript、React、Vite、CSS、JSON Schema、SQLite 
 
 ```text
 Rust Server
-├─ xcss-admin-auth        username/密码/token/header/cookie安全原语
-├─ xcss-contracts         管理员、Error、State、Release、Backup wire类型
-├─ xcss-error             machine error envelope
-├─ xcss-schema-identity   driver-independent SQLite身份算法
-├─ xcss-server-target     只允许x86_64-unknown-linux-gnu Server
-└─ xcss-sqlite            SQLx连接与诊断adapter
+├─ xcss::admin_auth        username/密码/token/header/cookie安全原语
+├─ xcss::contracts         管理员、Error、State、Release、Backup wire类型
+├─ xcss::error             machine error envelope
+├─ xcss::schema_identity   driver-independent SQLite身份算法
+├─ xcss::server_target     只允许x86_64-unknown-linux-gnu Server
+└─ xcss::sqlite            SQLx连接与诊断adapter
 
 React/Vite管理Web（Xczs除外）
-├─ @xcss/contracts        type + runtime guard + Schema + fixture
-├─ @xcss/http-client      同源、有界JSON transport
-├─ @xcss/admin-web        内存Session、竞态安全client、React hook、Vite baseline
-└─ @xcss/design-tokens    scoped CSS/TS primitive
+├─ @xcss/web/contracts        type + runtime guard + Schema + fixture
+├─ @xcss/web/http-client      同源、有界JSON transport
+├─ @xcss/web/admin-web        内存Session、竞态安全client、React hook、Vite baseline
+└─ @xcss/web/design-tokens    scoped CSS/TS primitive
 
 ### 4.1 管理面只有 Administrator
 
@@ -70,7 +70,7 @@ React/Vite管理Web（Xczs除外）
 
 ### 4.2 Server 只有 AMD64 GNU/Linux
 
-业务 Server 唯一 target 是 `x86_64-unknown-linux-gnu`。`xcss-server-target` 在编译期拒绝 ARM、musl、
+业务 Server 唯一 target 是 `x86_64-unknown-linux-gnu`。`xcss::server_target` 在编译期拒绝 ARM、musl、
 Windows、macOS 和32位目标。这个限制不能误加到 xsoc Client、Android/iOS、移动FFI或其他客户端。
 
 ### 4.3 Web 统一，业务模块可保留明确边界
@@ -111,5 +111,5 @@ const value = await response.json() as AdministratorSession;
 
 你能画出一次管理员 login 从 raw headers、strict JSON、username/密码策略、Argon2、Session persistence到React
 状态的完整路径；能解释每一层还缺什么产品责任；能用一个正例和至少四类负例评审新合同；能从真实tgz
-而不是workspace import验证package；能指出为何Xczs、客户端多架构和xcss无Server是合理差异；能在
+而不是workspace import验证package；能指出为何Xczs、客户端多架构和xcss以服务端依赖库提供能力是合理差异；能在
 不添加兼容代码的前提下设计一次新当前版本。

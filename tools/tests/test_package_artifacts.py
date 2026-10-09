@@ -20,14 +20,14 @@ from xcss_package_artifacts import (  # noqa: E402
 
 class PackageArtifactTests(unittest.TestCase):
     def fixture(self, repository: Path) -> Path:
-        package = repository / "packages" / "fixture"
+        package = repository
         (package / "dist").mkdir(parents=True)
         (package / "dist" / "index.js").write_text("export {};\n", encoding="utf-8")
         (package / "dist" / "index.d.ts").write_text("export {};\n", encoding="utf-8")
         (package / "package.json").write_text(
             json.dumps(
                 {
-                    "name": "@xcss/fixture",
+                    "name": "@xcss/web",
                     "version": "1.0.0",
                     "type": "module",
                     "main": "./dist/index.js",
@@ -39,6 +39,9 @@ class PackageArtifactTests(unittest.TestCase):
                         }
                     },
                     "files": ["dist"],
+                    "os": ["linux"],
+                    "cpu": ["x64"],
+                    "libc": ["glibc"],
                 }
             )
             + "\n",
@@ -106,11 +109,36 @@ class PackageArtifactTests(unittest.TestCase):
             repository = Path(directory)
             external = repository / "external"
             self.fixture(external)
-            packages = repository / "packages"
-            packages.mkdir()
-            os.symlink(external / "packages" / "fixture", packages / "fixture")
+            linked = repository / "linked"
+            os.symlink(external, linked)
             with self.assertRaisesRegex(PackagePolicyError, "linked package roots"):
+                discover_packages(linked)
+
+    def test_independent_npm_subpackages_are_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            self.fixture(repository)
+            nested = repository / "web/admin-ui"
+            nested.mkdir(parents=True)
+            (nested / "package.json").write_text("{}")
+            with self.assertRaisesRegex(PackagePolicyError, "independent npm subpackages"):
                 discover_packages(repository)
+
+    def test_cli_root_cannot_select_a_removed_package_or_other_platform(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            self.fixture(repository)
+            path = repository / "package.json"
+            valid = json.loads(path.read_text())
+            for key, value, message in (
+                ("name", "@xcss/admin-ui", "sole publishable package"),
+                ("os", ["win32"], "os must enforce"),
+                ("cpu", ["arm64"], "cpu must enforce"),
+                ("libc", ["musl"], "libc must enforce"),
+            ):
+                path.write_text(json.dumps({**valid, key: value}))
+                with self.subTest(key=key), self.assertRaisesRegex(PackagePolicyError, message):
+                    discover_packages(repository)
 
 
 if __name__ == "__main__":

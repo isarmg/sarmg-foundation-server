@@ -24,18 +24,6 @@ state = "current"
 owner = "foundation"
 state = "current"
 
-[capabilities.private-state]
-owner = "foundation"
-state = "current"
-
-[capabilities.explicit-paths]
-owner = "foundation"
-state = "current"
-
-[capabilities.restore-journal]
-owner = "foundation"
-state = "current"
-
 [capabilities.admin-client]
 owner = "foundation"
 state = "current"

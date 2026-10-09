@@ -4,9 +4,9 @@
 
 ## 决策
 
-带管理 Web 的正式 Server 必须通过 `xcss-web-assets` 在编译时嵌入资源。HTTP 请求读取编译资源，不从发行目录读取第二份 Web。每个可执行文件提供无配置、无服务副作用的 `web-assets` 命令，输出确定性的资源清单；清单摘要属于产品构建身份。发行目录携带清单，以逐字节匹配二进制内的清单，不携带重复的原始 Web 资源。
+带管理 Web 的正式 Server 必须通过 `xcss::web_assets` 在编译时嵌入资源。HTTP 请求读取编译资源，不从发行目录读取第二份 Web。每个可执行文件提供无配置、无服务副作用的 `web-assets` 命令，输出确定性的资源清单；清单摘要属于产品构建身份。发行目录携带清单，以逐字节匹配二进制内的清单，不携带重复的原始 Web 资源。
 
-`@xcss/web-toolchain` 的 `xcss-build-server` 读取产品根目录的 `xcss-web-build.json`，负责前端、Rust 的先后顺序、源码绑定、规范目标和实际可执行文件的资源验收。各产品只声明目录、构建脚本、Cargo package、binary、源码环境变量。清单生成、资源摘要、MIME、HEAD、ETag、条件请求和缓存策略只在 xcss 实现。
+`@xcss/web/web-toolchain` 的 `xcss-build-server` 读取产品根目录的 `xcss-web-build.json`，负责前端、Rust 的先后顺序、源码绑定、规范目标和实际可执行文件的资源验收。各产品只声明目录、构建脚本、Cargo package、binary、源码环境变量。清单生成、资源摘要、MIME、HEAD、ETag、条件请求和缓存策略只在 xcss 实现。
 
 发行构建要求干净源码、完整 Git commit、锁文件和规范 Linux 目标。产品继续负责独有的状态合同、伴随进程、签名、不可变目录、安装流程和实际部署验收。这些扩展不得绕过共享资源验收，也不得在 xcss 中引入产品名字分支。
 

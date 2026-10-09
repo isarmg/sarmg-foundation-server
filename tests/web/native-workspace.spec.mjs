@@ -1,10 +1,10 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 test('native consumers share icons and keep product callbacks and theme behavior',async({page})=>{
-  const i18n=await readFile(new URL('../../packages/admin-ui/dist/i18n.js',import.meta.url),'utf8');
-  const theme=await readFile(new URL('../../packages/admin-shell/dist/theme-store.js',import.meta.url),'utf8');
-  const config=await readFile(new URL('../../packages/admin-shell/dist/workspace-config.js',import.meta.url),'utf8');
-  const native=await readFile(new URL('../../packages/admin-shell/dist/native-workspace.js',import.meta.url),'utf8');
+  const i18n=await readFile(new URL('../../dist/admin-ui/i18n.js',import.meta.url),'utf8');
+  const theme=await readFile(new URL('../../dist/admin-shell/theme-store.js',import.meta.url),'utf8');
+  const config=await readFile(new URL('../../dist/admin-shell/workspace-config.js',import.meta.url),'utf8');
+  const native=await readFile(new URL('../../dist/admin-shell/native-workspace.js',import.meta.url),'utf8');
   await page.goto('/');
   await page.locator('body').evaluate((body,markup)=>{body.innerHTML=markup;},'<header id="head"><div id="actions"><button id="create">Create</button><button id="logout"><span>admin</span></button></div></header><main id="content">Files</main>');
   await page.addScriptTag({type:'module',content:i18n+'\n'+theme+'\n'+config+'\n'+native.replace(/^import .*?;\n/gm,'')+'\nconst logout=document.getElementById("logout"); logout.addEventListener("click",()=>document.body.dataset.loggedOut="true"); const create=document.getElementById("create"); create.textContent=""; create.addEventListener("click",()=>document.body.dataset.created="true"); configureNativeWorkspace({header:document.getElementById("head"),actions:document.getElementById("actions"),create,logout,refresh:()=>document.body.dataset.refreshed="true"});'});
@@ -18,10 +18,10 @@ test('native consumers share icons and keep product callbacks and theme behavior
 });
 
 test('native consumers can localize labels without replacing their existing logout handler',async({page})=>{
-  const i18n=await readFile(new URL('../../packages/admin-ui/dist/i18n.js',import.meta.url),'utf8');
-  const theme=await readFile(new URL('../../packages/admin-shell/dist/theme-store.js',import.meta.url),'utf8');
-  const config=await readFile(new URL('../../packages/admin-shell/dist/workspace-config.js',import.meta.url),'utf8');
-  const native=await readFile(new URL('../../packages/admin-shell/dist/native-workspace.js',import.meta.url),'utf8');
+  const i18n=await readFile(new URL('../../dist/admin-ui/i18n.js',import.meta.url),'utf8');
+  const theme=await readFile(new URL('../../dist/admin-shell/theme-store.js',import.meta.url),'utf8');
+  const config=await readFile(new URL('../../dist/admin-shell/workspace-config.js',import.meta.url),'utf8');
+  const native=await readFile(new URL('../../dist/admin-shell/native-workspace.js',import.meta.url),'utf8');
   await page.goto('/');
   await page.locator('body').evaluate((body,markup)=>{body.innerHTML=markup;},'<header id="head"><div id="actions"><button id="logout" aria-label="Sign out"></button></div></header><main id="content">Files</main>');
   await page.addScriptTag({type:'module',content:i18n+'\n'+theme+'\n'+config+'\n'+native.replace(/^import .*?;\n/gm,'')+'\nconst logout=document.getElementById("logout"); logout.addEventListener("click",()=>document.body.dataset.loggedOut="true"); configureNativeWorkspace({header:document.getElementById("head"),actions:document.getElementById("actions"),logout,refresh:()=>document.body.dataset.refreshed="true",labels:{actions:"Global actions",refresh:"Reload page",light:"Switch to light mode",dark:"Switch to dark mode"}});'});

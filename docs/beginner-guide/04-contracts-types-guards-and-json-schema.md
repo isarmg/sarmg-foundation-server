@@ -14,7 +14,7 @@ Fixture是第五层：用同一组valid/invalid JSON证明各实现对边界理�
 ## 4.2 为什么从`unknown`开始
 
 ```ts
-import { isAdministratorSession } from "@xcss/contracts";
+import { isAdministratorSession } from "@xcss/web/contracts";
 
 const candidate: unknown = JSON.parse(text);
 if (!isAdministratorSession(candidate)) {
@@ -45,7 +45,7 @@ Error Envelope的`request_id`/`details`是明确定义的optional fields，所�
 
 它故意不要求 username 已经 lowercase/canonical，也不在 Web 中实现 Argon2 plaintext byte policy。
 比如 `admin@example.test` 作为有界 printable ASCII candidate 能通过这个 guard，但 Server 的 canonical
-username admission 必须拒绝它。登录表单提交候选值，Server 的 `xcss-admin-auth` 才是
+username admission 必须拒绝它。登录表单提交候选值，Server 的 `xcss::admin_auth` 才是
 trim/lower/canonical 和密码验收的权威层。合同通过≠凭据有效；JSON 字段只有 `username`，不存在
 `email` alias。
 
@@ -133,11 +133,11 @@ Backup。State Contract顶层已经有application/version，所以内嵌schema�
 
 ```js
 import administratorSchema from
-  "@xcss/contracts/schemas/administrator-auth.schema.json" with { type: "json" };
+  "@xcss/web/contracts/schemas/administrator-auth.schema.json" with { type: "json" };
 ```
 
 具体Node/bundler的JSON import语法由消费者环境决定。关键是解析公开export，而不是
-`node_modules/@xcss/contracts/dist/...`。发布smoke会检查5份Schema和5份fixture都在真实tgz中。
+`node_modules/@xcss/web/dist/contracts/...`。发布smoke会检查5份Schema和5份fixture都在真实tgz中。
 
 ## 4.13 Fixture策略
 

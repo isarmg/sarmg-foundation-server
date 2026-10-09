@@ -1,14 +1,14 @@
 import React, { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createXcssAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceNameField, AccountPage } from "../../../packages/admin-shell/dist/index.js";
-import { createAdministratorApiClient } from "../../../packages/admin-web/dist/index.js";
-import { Button, Dialog, FormField, TextField, DateRangeField } from "../../../packages/admin-ui/dist/index.js";
-import "../../../packages/design-tokens/tokens.css";
-import "../../../packages/design-tokens/tokens.dark.css";
-import "../../../packages/design-tokens/reset.css";
-import "../../../packages/design-tokens/accessibility.css";
-import "../../../packages/web-fonts/fonts.css";
-import "../../../packages/admin-ui/styles.css";
+import { createXcssAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceNameField, AccountPage } from "../../../dist/admin-shell/index.js";
+import { createAdministratorApiClient } from "../../../dist/admin-web/index.js";
+import { Button, Dialog, FormField, TextField, DateRangeField } from "../../../dist/admin-ui/index.js";
+import "../../../web/design-tokens/tokens.css";
+import "../../../web/design-tokens/tokens.dark.css";
+import "../../../web/design-tokens/reset.css";
+import "../../../web/design-tokens/accessibility.css";
+import "../../../web/web-fonts/fonts.css";
+import "../../../web/admin-ui/styles.css";
 
 function WorkspaceFixture() {
   const [creating,setCreating] = useState(false); const [revision,setRevision] = useState(0);

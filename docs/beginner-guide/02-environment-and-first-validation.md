@@ -13,10 +13,10 @@ xcss 的产物会进入多个产品。Rust、Node、TypeScript、React或Vite的
 | Node | `26.7.0` | `.node-version` |
 | pnpm | `10.34.6` | 根 `package.json#packageManager` |
 | TypeScript / Node types | `7.0.2` / `26.6.4` | package manifest |
-| React/DOM | `19.3.0` | `packages/admin-web/package.json` |
-| Vite/plugin | `8.3.3` / `6.1.2` | `packages/admin-web/package.json` |
+| React/DOM | `19.3.0` | `package.json` |
+| Vite/plugin | `8.3.3` / `6.1.2` | `package.json` |
 
-消费者Web使用npm并不冲突：xcss内部pnpm只管理monorepo；共享断言统一Node/React/Vite/TypeScript，
+消费者Web使用npm并不冲突：xcss 内部 pnpm 管理单个服务端 Web 包；共享断言统一Node/React/Vite/TypeScript，
 不要求产品改包管理器。
 
 ## 2.2 安装Rust
@@ -92,7 +92,7 @@ xcss单测通过，也不能证明Sunshine仍强制上游TLS或Media release的�
 python3 scripts/check-xcss.py
 ```
 
-它会检查版本、工作区组件、精确内部依赖、工具链和取消名称。consumer matrix 是独立接入证据，
+它会检查版本、单体身份、内部模块边界、工具链和取消名称。consumer matrix 是独立接入证据，
 通过 `xcss-conformance` 检查。常见失败：
 
 | 失败 | 不要做 | 正确做法 |
@@ -117,10 +117,10 @@ trigger。该检查不是通用YAML linter，而是本仓精确安全合同；�
 
 ```bash
 cargo fmt --all -- --check
-cargo check --locked --workspace --all-targets --all-features
-cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-cargo test --locked --workspace --all-features
-RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-deps
+cargo check --locked --all-targets --all-features
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked --all-features
+RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --all-features --no-deps
 ```
 
 - `fmt`只检查格式；
@@ -129,7 +129,7 @@ RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-dep
 - `test`执行认证、合同、Schema、SQLite等正反例；
 - `doc`保证公开API链接和示例不会腐烂。
 
-`xcss-server-target`在当前开发主机必须处于GNU/Linux AMD64，否则workspace会按设计compile-fail。非目标
+`xcss::server_target`在当前开发主机必须处于GNU/Linux AMD64，否则workspace会按设计compile-fail。非目标
 Server的负向验证应由专门target gate测试完成，不能删除crate依赖。
 
 ## 2.9 Web与package验证

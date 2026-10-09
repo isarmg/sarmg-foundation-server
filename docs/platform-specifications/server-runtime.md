@@ -42,7 +42,7 @@ Schema identity 是经产品启动校验的编译期当前身份；数据库实�
 Operations Store 提供只读取计数的共享探针：audit 为尚未物化的 outbox 数，operation 为 pending/running/unknown 数。
 探针不得读取或返回产品 payload、Secret 或文件路径。
 
-Axum 和 Hyper 的管理员协议使用 `xcss-testkit::assert_administrator_http_contract` 运行同一套验收断言，
+Axum 和 Hyper 的管理员协议使用 `xcss::testkit::assert_administrator_http_contract` 运行同一套验收断言，
 覆盖重复 field line、Cookie 歧义、Origin/Host/authority、CSRF、body 预算、严格错误合同和 Request ID 传递。
 
 不提供 `/health`、`/health/live`、`/health/ready` 或旧认证路由别名。

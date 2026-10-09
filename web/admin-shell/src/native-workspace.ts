@@ -1,0 +1,38 @@
+import { getTheme, subscribeTheme, toggleTheme } from "./theme-store.js";
+import { t } from "@xcss/web/admin-ui/i18n";
+import { createLanguageControl } from "@xcss/web/admin-ui/i18n";
+import { resolveWorkspaceConfig, WORKSPACE_ICON_PATHS, type WorkspaceConfig } from "./workspace-config.js";
+/** Native Web adapter: retains existing product listeners, including logout/CSRF. */
+export function configureNativeWorkspace({ header, actions, create, logout, refresh, labels = {}, config: input }: {
+  header: HTMLElement; actions: HTMLElement; create?: HTMLButtonElement;
+  logout: HTMLButtonElement; refresh(): void; config?: Partial<WorkspaceConfig>;
+  labels?: Partial<{ actions: string; refresh: string; light: string; dark: string; logout: string }>;
+}) {
+  const config = resolveWorkspaceConfig(input);
+  header.style.setProperty("--xcss-header-icon-size", config.headerIconSize);
+  document.documentElement.dataset.xcssAppearance = config.appearance;
+  document.documentElement.dataset.xcssSelection = config.selection;
+  document.documentElement.style.setProperty("--xcss-font-ui", config.fontFamily);
+  actions.classList.add("xcss-header-actions"); actions.setAttribute("role", "group"); actions.setAttribute("aria-label", labels.actions ?? t("全局操作", "Global actions"));
+  const icon = (button: HTMLButtonElement, name: keyof typeof WORKSPACE_ICON_PATHS, label: string) => {
+    button.classList.add("xcss-button"); button.setAttribute("aria-label", label); button.title = label;
+    button.querySelector("svg")?.remove();
+    button.querySelector("[data-workspace-label]")?.remove();
+    if (config.headerControls === "text" && name !== "moon" && name !== "sun") {
+      const text = document.createElement("span"); text.dataset.workspaceLabel = ""; text.textContent = label; button.prepend(text); return;
+    }
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    for (const [key, value] of Object.entries({ width:"22", height:"22", viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", "stroke-width":"1.7", "stroke-linecap":"round", "stroke-linejoin":"round", "aria-hidden":"true" })) svg.setAttribute(key, value);
+    svg.style.fill = "none";
+    const path = document.createElementNS(svg.namespaceURI, "path"); path.setAttribute("d", WORKSPACE_ICON_PATHS[name]); svg.append(path); button.prepend(svg);
+  };
+  if (create) { icon(create, "create", create.getAttribute("aria-label") ?? t("新建实例", "Create instance")); actions.append(create); }
+  const reload = document.createElement("button"); reload.type = "button"; icon(reload,"refresh",labels.refresh ?? t("刷新", "Refresh")); reload.addEventListener("click",refresh); actions.append(reload);
+  const theme = document.createElement("button"); theme.type = "button";
+  actions.append(createLanguageControl());
+  const update = () => { const dark = getTheme() === "dark"; icon(theme,dark?"sun":"moon",dark?(labels.light ?? t("切换到浅色模式", "Switch to light mode")):(labels.dark ?? t("切换到深色模式", "Switch to dark mode"))); };
+  update(); const unsubscribe = subscribeTheme(update); theme.addEventListener("click", toggleTheme); actions.append(theme);
+  icon(logout,"logout",labels.logout ?? logout.getAttribute("aria-label") ?? t("退出", "Sign out")); logout.querySelectorAll<HTMLSpanElement>("span:not([data-workspace-label])").forEach(node=>node.hidden=true); actions.append(logout);
+  header.append(actions);
+  return unsubscribe;
+}

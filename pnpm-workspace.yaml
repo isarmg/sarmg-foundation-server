@@ -1,3 +1,0 @@
-packages:
-  # Build-time consumer packages live at the repository root; this project has no runtime client.
-  - "packages/*"

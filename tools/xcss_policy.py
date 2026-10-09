@@ -29,43 +29,9 @@ WEB_TOOLCHAIN_DEV_DEPENDENCIES = {
     "vite": "8.3.3",
 }
 SOURCE_REVISION = re.compile(r"[0-9a-f]{40}")
-KNOWN_PACKAGES = {
-    "@xcss/admin-web",
-    "@xcss/admin-shell",
-    "@xcss/admin-ui",
-    "@xcss/contracts",
-    "@xcss/design-tokens",
-    "@xcss/http-client",
-    "@xcss/web-fonts",
-    "@xcss/web-toolchain",
-    "xcss-admin-auth",
-    "xcss-admin-axum",
-    "xcss-admin-core",
-    "xcss-admin-hyper",
-    "xcss-admin-sqlite",
-    "xcss-admin-static",
-    "xcss-contracts",
-    "xcss-config",
-    "xcss-error",
-    "xcss-schema-identity",
-    "xcss-server-target",
-    "xcss-sqlite",
-    "xcss-state-file",
-    "xcss-platform-db",
-    "xcss-server-runtime",
-    "xcss-server-cli",
-    "xcss-log",
-    "xcss-fs-safety",
-    "xcss-secret",
-    "xcss-secret-envelope",
-    "xcss-secure-http",
-    "xcss-operations",
-    "xcss-testkit",
-    "xcss-web-assets",
-}
-RUST_PACKAGES = tuple(
-    sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
-)
+KNOWN_PACKAGES = {"xcss", "@xcss/web"}
+RUST_PACKAGES = ("xcss",)
+
 class XcssPolicyError(RuntimeError):
     """The repository does not describe one internally consistent release."""
 
@@ -122,197 +88,74 @@ def _exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None
 
 
 def check_dependency_boundaries(root: Path) -> None:
-    """Keep package dependencies inside the Server platform or external libraries.
-
-    Consumer metadata is reporting input, never a source of runtime dependencies.
-    Inspect every dependency scope, including aliases and target-specific tables.
-    """
+    """A server monolith depends only on external libraries, never another project."""
     root = root.resolve()
     cargo = _toml(root / "Cargo.toml")
     workspace_dependencies = cargo.get("workspace", {}).get("dependencies", {})
-
-    def check_cargo_table(table: dict[str, Any], path: Path) -> None:
-        for dependency, declared in table.items():
-            requirement = declared
-            if isinstance(declared, dict) and declared.get("workspace") is True:
-                requirement = workspace_dependencies.get(dependency)
-                if requirement is None:
-                    raise XcssPolicyError(f"{path}: unknown workspace dependency {dependency}")
-                origin = root
-            else:
-                origin = path.parent
-            package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
-            internal = package in RUST_PACKAGES
-            if package.startswith(("xcss-", "xcsc-")) and not internal:
-                raise XcssPolicyError(f"{path}: dependency {package} is outside xcss")
-            if internal:
-                expected = root / "rust" / "crates" / package
-                if (
-                    not isinstance(requirement, dict)
-                    or requirement.get("version") != f"={CURRENT_VERSION}"
-                    or not isinstance(requirement.get("path"), str)
-                    or (origin / requirement["path"]).resolve() != expected
-                    or "git" in requirement
-                ):
-                    raise XcssPolicyError(
-                        f"{path}: internal {package} must use its workspace crate path and ={CURRENT_VERSION}"
-                    )
-            elif isinstance(requirement, dict) and "path" in requirement:
-                raise XcssPolicyError(f"{path}: external local dependency {package} is not self-contained")
-
-    manifests = [root / "Cargo.toml", *sorted((root / "rust" / "crates").glob("*/Cargo.toml"))]
+    def inspect(table: dict[str, Any], path: Path) -> None:
+        for alias, declared in table.items():
+            value = workspace_dependencies.get(alias) if isinstance(declared, dict) and declared.get("workspace") else declared
+            if value is None:
+                raise XcssPolicyError(f"{path}: unknown workspace dependency {alias}")
+            name = value.get("package", alias) if isinstance(value, dict) else alias
+            if name in {"xcss", "xcsc"} or name.startswith(("xcss-", "xcsc-")):
+                raise XcssPolicyError(f"{path}: {name} is outside the single xcss package boundary")
+            if isinstance(value, dict) and "path" in value:
+                raise XcssPolicyError(f"{path}: external local dependency {name} is not self-contained")
+    manifests = [root / "Cargo.toml", *sorted((root / "src").glob("*/Cargo.toml")), *sorted((root / "rust/crates").glob("*/Cargo.toml"))]
     for path in manifests:
         manifest = cargo if path == root / "Cargo.toml" else _toml(path)
-        scopes = [manifest, *manifest.get("target", {}).values()]
-        if path == root / "Cargo.toml":
-            scopes.append(manifest.get("workspace", {}))
-        for scope in scopes:
+        for scope in [manifest, *manifest.get("target", {}).values(), manifest.get("workspace", {})]:
             for section in ("dependencies", "dev-dependencies", "build-dependencies"):
-                check_cargo_table(scope.get(section, {}), path)
+                inspect(scope.get(section, {}), path)
         for patches in manifest.get("patch", {}).values():
-            check_cargo_table(patches, path)
-        # Replacements select dependencies by package ID, including a version.
-        check_cargo_table(
-            {name.split(":", 1)[0]: value for name, value in manifest.get("replace", {}).items()},
-            path,
-        )
-
-    manifests = [root / "package.json", *sorted((root / "packages").glob("*/package.json"))]
-    for path in manifests:
+            inspect(patches, path)
+        inspect({name.split(":", 1)[0]: value for name, value in manifest.get("replace", {}).items()}, path)
+    for path in [root / "package.json", *sorted((root / "web").glob("*/package.json")), *sorted((root / "packages").glob("*/package.json"))]:
         manifest = _json(path)
         for section in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
-            for dependency, requirement in manifest.get(section, {}).items():
-                package = dependency
-                if isinstance(requirement, str) and requirement.startswith("npm:"):
-                    alias = re.fullmatch(r"npm:((?:@[^/]+/)?[^@]+)(?:@.*)?", requirement)
-                    if alias is not None:
-                        package = alias.group(1)
-                internal = package in KNOWN_PACKAGES and package.startswith("@xcss/")
-                if package.startswith("@xcss/") and not internal:
-                    raise XcssPolicyError(f"{path}: dependency {package} is outside xcss")
-                expected = CURRENT_VERSION if section == "peerDependencies" else f"workspace:{CURRENT_VERSION}"
-                if internal and (dependency != package or requirement != expected):
-                    raise XcssPolicyError(f"{path}: internal {package} must use {expected} without an alias")
-                if not internal and isinstance(requirement, str) and (
-                    requirement.startswith(("file:", "link:", "workspace:", "./", "../", "/"))
-                ):
-                    raise XcssPolicyError(f"{path}: external local dependency {package} is not self-contained")
+            for alias, value in manifest.get(section, {}).items():
+                name = alias
+                if isinstance(value, str) and value.startswith("npm:"):
+                    match = re.fullmatch(r"npm:((?:@[^/]+/)?[^@]+)(?:@.*)?", value)
+                    if match:
+                        name = match.group(1)
+                if name.startswith(("@xcss/", "@xcsc/")):
+                    raise XcssPolicyError(f"{path}: {name} is outside the single Web package boundary")
+                if isinstance(value, str) and value.startswith(("file:", "link:", "workspace:", "./", "../", "/")):
+                    raise XcssPolicyError(f"{path}: external local dependency {name} is not self-contained")
 
 
 def check_versions(root: Path) -> None:
-    root_license = root / "LICENSE"
-    root_license_bytes = read_audited_root_license(root_license)
-
-    readme = (root / "README.md").read_text(encoding="utf-8")
-    if f"| xcss 版本 | `{CURRENT_VERSION}` |" not in readme:
-        raise XcssPolicyError("README.md: xcss version table is stale")
-    if f'version = "={CURRENT_VERSION}"' not in readme:
-        raise XcssPolicyError("README.md: Rust consumer version example is stale")
-    if f"`v{CURRENT_VERSION}` tag" not in readme:
-        raise XcssPolicyError("README.md: release tag example is stale")
-
-    root_package = _json(root / "package.json")
-    if root_package.get("version") != CURRENT_VERSION:
-        raise XcssPolicyError("package.json: workspace version differs from policy")
-    if root_package.get("engines", {}).get("node") != f">={NODE_VERSION} <27":
-        raise XcssPolicyError("package.json: Node engine is not the current exact major line")
-    if root_package.get("packageManager") != f"pnpm@{PNPM_VERSION}":
-        raise XcssPolicyError("package.json: packageManager differs from the current pnpm version")
-    if (root / ".node-version").read_text(encoding="utf-8").strip() != NODE_VERSION:
-        raise XcssPolicyError(".node-version differs from the current Node version")
-
+    read_audited_root_license(root / "LICENSE")
     cargo = _toml(root / "Cargo.toml")
-    workspace_package = cargo.get("workspace", {}).get("package", {})
-    if workspace_package.get("version") != CURRENT_VERSION:
-        raise XcssPolicyError("Cargo workspace version differs from policy")
-    if workspace_package.get("rust-version") != RUST_VERSION.removesuffix(".0"):
-        raise XcssPolicyError("Cargo rust-version differs from policy")
-    toolchain = _toml(root / "rust-toolchain.toml")
-    if toolchain.get("toolchain", {}).get("channel") != RUST_VERSION:
-        raise XcssPolicyError("rust-toolchain.toml differs from policy")
-
-    package_roots = sorted((root / "packages").glob("*/package.json"))
-    observed_web: set[str] = set()
-    for path in package_roots:
-        manifest = _json(path)
-        name = manifest.get("name")
-        if not isinstance(name, str) or name not in KNOWN_PACKAGES:
-            raise XcssPolicyError(f"{path}: unknown package {name!r}")
-        observed_web.add(name)
-        if manifest.get("version") != CURRENT_VERSION:
-            raise XcssPolicyError(f"{path}: version must be {CURRENT_VERSION}")
-        expected_license = "OFL-1.1" if name == "@xcss/web-fonts" else "Apache-2.0"
-        if manifest.get("license") != expected_license:
-            raise XcssPolicyError(f"{path}: license must be {expected_license}")
-        if manifest.get("engines", {}).get("node") != f">={NODE_VERSION} <27":
-            raise XcssPolicyError(f"{path}: Node engine differs from policy")
-        for section in ("dependencies", "devDependencies", "optionalDependencies"):
-            dependencies = manifest.get(section, {})
-            if not isinstance(dependencies, dict):
-                raise XcssPolicyError(f"{path}.{section}: expected an object")
-            for dependency, requirement in dependencies.items():
-                if dependency.startswith("@xcss/") and requirement != f"workspace:{CURRENT_VERSION}":
-                    raise XcssPolicyError(
-                        f"{path}: internal {dependency} must use workspace:{CURRENT_VERSION}"
-                    )
-        for dependency, requirement in manifest.get("peerDependencies", {}).items():
-            if dependency.startswith("@xcss/") and requirement != CURRENT_VERSION:
-                raise XcssPolicyError(
-                    f"{path}: internal peer {dependency} must be exactly {CURRENT_VERSION}"
-                )
-    expected_web = {name for name in KNOWN_PACKAGES if name.startswith("@xcss/")}
-    if observed_web != expected_web:
-        raise XcssPolicyError(
-            f"publishable Web package set differs: {sorted(observed_web)}"
-        )
-
-    toolchain = _json(root / "packages" / "web-toolchain" / "package.json")
-    toolchain_development = toolchain.get("devDependencies", {})
+    package = cargo.get("package", {})
+    if package.get("name") != "xcss" or package.get("version") != CURRENT_VERSION:
+        raise XcssPolicyError("Cargo.toml must define the one xcss 1.0.0 package")
+    if package.get("rust-version") != RUST_VERSION.removesuffix(".0") or package.get("license") != "Apache-2.0":
+        raise XcssPolicyError("Cargo.toml toolchain or license differs from policy")
+    if "workspace" in cargo or list((root / "src").rglob("Cargo.toml")) or list((root / "rust/crates").glob("*/Cargo.toml")):
+        raise XcssPolicyError("xcss must not contain independent Rust subpackages")
+    gate = (root / "src/lib.rs").read_text()
+    if not all(token in gate for token in ('target_os = "linux"', 'target_arch = "x86_64"', 'target_env = "gnu"', 'compile_error!')):
+        raise XcssPolicyError("the whole xcss crate must enforce the Linux AMD64 GNU target")
+    manifest = _json(root / "package.json")
+    if manifest.get("name") != "@xcss/web" or manifest.get("version") != CURRENT_VERSION or manifest.get("private") is True:
+        raise XcssPolicyError("package.json must publish the one @xcss/web 1.0.0 package")
+    for key, expected in {"os": ["linux"], "cpu": ["x64"], "libc": ["glibc"]}.items():
+        if manifest.get(key) != expected:
+            raise XcssPolicyError(f"package.json {key} differs from the server build boundary")
+    if list((root / "web").glob("*/package.json")) or list((root / "packages").glob("*/package.json")):
+        raise XcssPolicyError("Web support must not contain independent npm subpackages")
+    if manifest.get("engines", {}).get("node") != f">={NODE_VERSION} <27" or manifest.get("packageManager") != f"pnpm@{PNPM_VERSION}":
+        raise XcssPolicyError("package.json Node or pnpm version differs from policy")
     for dependency, expected in WEB_TOOLCHAIN_DEV_DEPENDENCIES.items():
-        if dependency.startswith("@types/") and dependency != "@types/node":
-            continue
-        if toolchain_development.get(dependency) != expected:
-            raise XcssPolicyError(
-                f"packages/web-toolchain/package.json: {dependency} must be exactly {expected}"
-            )
-    toolchain_peers = toolchain.get("peerDependencies", {})
-    for dependency in ("@vitejs/plugin-react", "react", "react-dom", "vite"):
-        expected = WEB_TOOLCHAIN_DEV_DEPENDENCIES[dependency]
-        if toolchain_peers.get(dependency) != expected:
-            raise XcssPolicyError(
-                f"packages/web-toolchain/package.json peer {dependency} must be exactly {expected}"
-            )
-
-    members = set(cargo.get("workspace", {}).get("members", []))
-    expected_members = {f"rust/crates/{name}" for name in RUST_PACKAGES}
-    if members != expected_members:
-        raise XcssPolicyError(f"Rust workspace members differ: {sorted(members)}")
-    for member in sorted(members):
-        manifest_path = root / member / "Cargo.toml"
-        manifest = _toml(manifest_path)
-        package = manifest.get("package", {})
-        if package.get("name") != Path(member).name or package.get("version") != {"workspace": True}:
-            raise XcssPolicyError(f"{manifest_path}: crate identity is not workspace-owned")
-        if package.get("license") != {"workspace": True} or "license-file" in package:
-            raise XcssPolicyError(
-                f"{manifest_path}: crate must inherit the Apache-2.0 SPDX expression"
-            )
-        crate_license = root / member / "LICENSE"
-        require_license_copy(crate_license, root_license_bytes)
-        if manifest.get("lints") != {"workspace": True}:
-            raise XcssPolicyError(f"{manifest_path}: workspace lints are not enabled")
-        for section in ("dependencies", "dev-dependencies", "build-dependencies"):
-            dependencies = manifest.get(section, {})
-            for dependency, requirement in dependencies.items():
-                package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
-                if package.startswith("xcsc-") or package == "xcsc-mobile-ffi":
-                    raise XcssPolicyError(f"{manifest_path}: Server must not depend on Client package {package}")
-                if dependency not in KNOWN_PACKAGES or dependency.startswith("@"):
-                    continue
-                if not isinstance(requirement, dict) or requirement.get("version") != f"={CURRENT_VERSION}":
-                    raise XcssPolicyError(
-                        f"{manifest_path}: internal {dependency} must pin ={CURRENT_VERSION}"
-                    )
+        if manifest.get("devDependencies", {}).get(dependency) != expected:
+            raise XcssPolicyError(f"package.json {dependency} must be exactly {expected}")
+    if (root / ".node-version").read_text().strip() != NODE_VERSION:
+        raise XcssPolicyError(".node-version differs from policy")
+    if _toml(root / "rust-toolchain.toml").get("toolchain", {}).get("channel") != RUST_VERSION:
+        raise XcssPolicyError("Rust toolchain differs from policy")
 
 
 def check_repository(root: Path) -> None:

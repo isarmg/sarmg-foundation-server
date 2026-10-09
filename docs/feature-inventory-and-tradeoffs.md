@@ -1,3 +1,4 @@
+<!-- 当前单体架构：xcss 是一个 Linux AMD64 GNU Rust crate 和一个 @xcss/web npm 包。能力表描述内部模块；不表示独立 package 可以单独编译或发布。 -->
 # xcss 完整功能与取舍清单
 
 ## 0. 读法、分类和验收规则
@@ -22,8 +23,8 @@
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
 | FND-001 | 纯 build-time 共享层，不运行中央 xcss service | 根 README、Cargo/npm workspace、state contract 无资源 | 核心 | 高 | 引入生产网络依赖、中央故障域和所有产品锁步发布 | 消费者制品断网运行；无监听/daemon/config |
-| FND-002 | 24 个 Rust crate 与 8 个 npm package 可独立选择 | `Cargo.toml` members、`pnpm-workspace.yaml`、各 manifest | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | manifest 只声明真实直接依赖；依赖树抽查 |
-| FND-003 | 全组件当前 manifest 版本 `0.11.0` | workspace version、package version、`xcss_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
+| FND-002 | 1 个 Rust crate 与 1 个 npm package 的内部模块共同发布 | 根 Cargo/npm manifests、src/web 内部模块 | 核心 | 中 | 小产品被迫引入 SQLx、React 或无关依赖，编译/审计面扩大 | 单体内部无 package 依赖；外部依赖树抽查 |
+| FND-003 | 全组件当前 manifest 版本 `1.0.0` | Cargo package version、npm package version、`xcss_policy.py` | 保障 | 中 | 同一 release 内无法确定可组合组件，lock 和支持矩阵失真 | repository policy 精确一致性检查 |
 | FND-004 | 只提供唯一当前 API/合同/算法 | crate/package public API、strict guard、文档 | 核心 | 高 | 兼容分支和测试矩阵持续膨胀，产品边界不可证明 | 不存在 alias、dual reader/write、deprecated export |
 | FND-006 | xcss 不拥有用户、Session、业务 DB、文件树或进程 | 所有 crate/package API 范围 | 核心 | 高 | 共享库变成特权平台，产品无法独立运行和发布 | API/依赖审计；state contract resources 为空 |
 | FND-007 | 生产不依赖 GitHub/npm/xcss 在线可用 | 消费者 pin、编译/打包模型 | 保障 | 高 | registry/GitHub 故障会让已部署产品不可用 | 构建后断网启动与核心功能验证 |
@@ -31,12 +32,12 @@
 | FND-009 | Rust 全 workspace `unsafe_code=deny` | `[workspace.lints.rust]` | 保障 | 中 | 新 unsafe 可绕过内存安全假设并扩大全仓审计 | all-target/all-feature check 与 lint |
 | FND-010 | Clippy 禁止 `dbg!` 与 `todo!` | `[workspace.lints.clippy]` | 开发运维 | 低 | 临时诊断或未实现路径进入发布 crate | clippy `-D warnings` |
 | FND-011 | Rust edition 2024、MSRV/toolchain 1.99 | workspace、`rust-toolchain.toml` | 开发运维 | 中 | 各 crate 编译语义和依赖解析漂移 | fixed toolchain check/test/doc |
-| FND-012 | Web workspace Node 26.7.0、pnpm 10.34.6、TS 7.0.2 | `.node-version`、root/package manifest、lock | 开发运维 | 中 | 本地/CI/package 构建结果不一致 | policy + frozen install + package smoke |
-| FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，24 个 crate 各携带普通单链接 byte-exact LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | workspace/package manifests、`LICENSE`、各 crate `LICENSE`、`xcss_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、全部 workspace crate 的 `cargo package --list`、npm tar inventory、Xczs notices E2E |
+| FND-012 | Web 单包 Node 26.7.0、pnpm 10.34.6、TS 7.0.2 | `.node-version`、root/package manifest、lock | 开发运维 | 中 | 本地/CI/package 构建结果不一致 | policy + frozen install + package smoke |
+| FND-013 | Apache-2.0 SPDX 元数据与审核文本一致；根 LICENSE 的 SHA-256 固定，唯一 crate 携带普通单链接审核过的 LICENSE，Cargo package 清单必须实际分发它，npm tgz也携带许可证 | 根 Cargo/npm manifests、`LICENSE`、根 `LICENSE`、`xcss_policy.py`、`check-rust-package-licenses.py` | 保障 | 中 | `cargo vendor` 展平 Git dependency 后丢失许可证，第三方 notices 只能失败或错误借用消费者通用文本，发布来源和使用权不可审计 | 根摘要、链接/字节负例、单体 crate 的 `cargo package --list`、npm tar inventory、Xczs notices E2E |
 | FND-014 | xcss 无 `config/`、`deploy/`、`clients/` | 仓库布局 | 核心 | 低 | 容易误认为存在在线服务或产品 UI | 目录与 state contract 审查 |
-| FND-015 | 发布 package 放 `packages/` 而非产品 `web` | monorepo 布局 | 核心 | 低 | 发布依赖与可运行客户端职责混淆 | package exports 与消费者 import 验证 |
+| FND-015 | 单个 package 的内部前端源码位于 `web/`，产物位于根 `dist/` | monorepo 布局 | 核心 | 低 | 发布依赖与可运行客户端职责混淆 | package exports 与消费者 import 验证 |
 
-## 2. 管理员身份与密码：`xcss-admin-auth`
+## 2. 管理员身份与密码：`xcss::admin_auth`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -66,7 +67,7 @@
 | FND-043 | 可在无 plaintext 时检查持久 hash 当前性 | `require_current_password_hash` | 保障 | 高 | 服务只能在某管理员下次登录时才发现状态不合规 | 产品启动遍历所有管理员并 fail fast |
 | FND-044 | xcss 不实现“成功登录后顺便升级 hash” | API 明确无此入口 | 核心 | 高 | 在线服务携带历史转换和双 verifier | API 面/依赖扫描；转换归独立流程 |
 
-## 3. Token、Cookie、same-origin 与 CSRF：`xcss-admin-auth`
+## 3. Token、Cookie、same-origin 与 CSRF：`xcss::admin_auth`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -102,7 +103,7 @@
 | FND-079 | CSRF 与 Session digest常量时间比较 | `require_csrf_token_matches_hash` | 保障 | 高 | mutation 防护变成普通字符串比较 | match/mismatch/错误长度测试 |
 | FND-080 | crate不决定 Cookie 名/flags/TTL/Session table | public API边界 | 核心 | 高 | 不同部署和威胁模型被错误锁死或中央化 | 产品拥有 Secure/HttpOnly/SameSite/撤销测试 |
 
-## 4. 管理员与错误 wire contract：`xcss-contracts` / `@xcss/contracts` / `xcss-error`
+## 4. 管理员与错误 wire contract：`xcss::contracts` / `@xcss/web/contracts` / `xcss::error`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -117,7 +118,7 @@
 | FND-098 | Session username 必须已是 canonical 管理员用户名 | admin-auth复用、TS regex、Schema | 核心 | 高 | Server 与 Web 展示/比较不同身份或把登录候选误当持久值 | Rust/TS/Schema 同一 fixture；uppercase/`@`拒绝 |
 | FND-099 | Session `csrf_token` 必须当前43字符token | admin-auth复用、TS guard、Schema | 保障 | 高 | Web持有无法被Server当前CSRF验证的值 | canonical末尾bits负例 |
 | FND-100 | Rust Session constructor自动固定 `role=admin` | `AdministratorSession::new` | 保障 | 中 | 产品手写role或false authenticated | serialize验证和constructor测试 |
-| FND-101 | `ErrorCode` 1..128 bytes、小写字母开头 | `xcss-error::ErrorCode`、TS guard | 核心 | 中 | UI按自由文本分支，日志/指标字段无界 | 首字符/长度/Unicode负例 |
+| FND-101 | `ErrorCode` 1..128 bytes、小写字母开头 | `xcss::error::ErrorCode`、TS guard | 核心 | 中 | UI按自由文本分支，日志/指标字段无界 | 首字符/长度/Unicode负例 |
 | FND-102 | ErrorCode只含小写字母、数字、`.`、`_`、`-` | ErrorCode validator | 保障 | 低 | 控制字符/空格进入日志、指标和client dispatch | 字符集 fixture |
 | FND-103 | `RequestId` 1..128 bytes有界ASCII identifier | `RequestId`、TS `isRequestId` | 保障 | 中 | header/body/log correlation可注入或无界 | 空/129/control/Unicode负例 |
 | FND-104 | Error Envelope拒绝unknown fields | Rust `deny_unknown_fields`、TS allowed keys、Schema | 核心 | 高 | 服务和client对错误含义静默分叉 | unknown/missing fixture |
@@ -162,11 +163,11 @@
 | FND-146 | Rust State/Release/Backup直接include TS package fixture | `include_str!`测试 | 保障 | 高 | 两语言各自测试但语义仍漂移 | 同一valid/invalid集合 |
 | FND-147 | JSON Schema与fixture作为公开package export | contracts manifest/copy script | 建议保留 | 中 | 非Rust/TS工具复制合同或深层导入 | tarball export解析 |
 
-## 6. Schema 身份：`xcss-schema-identity`
+## 6. Schema 身份：`xcss::schema_identity`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
-| FND-150 | Schema算法与数据库driver解耦 | crate无SQLx/rusqlite dependency | 核心 | 高 | SQLx/rusqlite native link冲突或复制算法 | dependency树、双driver消费者 |
+| FND-150 | Schema算法与数据库driver解耦 | 模块算法不调用SQLx/rusqlite，单体包统一持有服务端依赖 | 核心 | 高 | SQLx/rusqlite native link冲突或复制算法 | dependency树、双driver消费者 |
 | FND-151 | canonical `product_metadata` DDL恰好五列 | `PRODUCT_METADATA_DDL` | 核心 | 高 | 产品metadata字段/约束分叉 | DDL fixture与产品migration对比 |
 | FND-152 | singleton INTEGER PK NOT NULL CHECK=1 | DDL/column validator | 保障 | 高 | 多身份row或无唯一锚点 | DDL/PRAGMA/row负例 |
 | FND-153 | application/application_version TEXT NOT NULL | DDL/column validator | 核心 | 中 | SQLite动态类型让身份变为null/其他storage class | column和runtime typeof检查 |
@@ -191,7 +192,7 @@
 | FND-172 | 发布可复核golden vectors JSON | crate fixture常量 | 开发运维 | 中 | 新driver/语言无法独立证明同算法 | fixture parse与expected hash |
 | FND-173 | typed error指出row/column/identity/order/hash字段 | `Error`/`IdentityField` | 建议保留 | 中 | doctor只能解析字符串，现场定位困难 | error variant单元测试 |
 
-## 7. SQLx SQLite 基线：`xcss-sqlite`
+## 7. SQLx SQLite 基线：`xcss::sqlite`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -214,9 +215,9 @@
 | FND-196 | `read_schema_identity` 先验证实际hash才返回身份 | function顺序 | 保障 | 高 | 调用方误信未绑定真实DDL的metadata | drifted DDL测试 |
 | FND-197 | pool convenience仍执行相同current验证 | `read_pool_*`/`require_pool_*` | 建议保留 | 低 | 产品为便利绕过connection级验证 | wrapper集成测试 |
 | FND-198 | 不含业务DDL、migration、路径权限、实例锁、backup | crate public API | 核心 | 高 | 通用层越权修改产品状态或给出错误安全保证 | API面审计；产品生命周期测试 |
-| FND-199 | `xcss-platform-db` 提供当前平台元数据单例的事务内初始化、严格读取与 Profile 验证；产品仍拥有业务初始数据 | `initialize_current_platform_metadata`、`require_current_platform_metadata` | 核心 | 高 | 产品复制平台 SQL 或只建表不写记录，当前平台身份无法闭环 | 新库初始化后立即验证；空行、重复行、错误 Profile/代际拒绝 |
+| FND-199 | `xcss::platform_db` 提供当前平台元数据单例的事务内初始化、严格读取与 Profile 验证；产品仍拥有业务初始数据 | `initialize_current_platform_metadata`、`require_current_platform_metadata` | 核心 | 高 | 产品复制平台 SQL 或只建表不写记录，当前平台身份无法闭环 | 新库初始化后立即验证；空行、重复行、错误 Profile/代际拒绝 |
 
-## 8. Server 架构门禁：`xcss-server-target`
+## 8. Server 架构门禁：`xcss::server_target`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -229,9 +230,9 @@
 | FND-206 | 提供human architecture常量`amd64` | `SERVER_ARCHITECTURE` | 建议保留 | 低 | release/install脚本各自命名架构 | 常量测试 |
 | FND-207 | runtime/release metadata可精确检查target | `require_server_target` | 保障 | 中 | manifest宣称与编译target漂移 | accepted canonical、所有近似值拒绝 |
 | FND-208 | 客户端/Client不依赖该crate | crate文档与消费者Cargo边界 | 核心 | 高 | xsoc/移动/桌面客户端被误限制为AMD64 Linux | dependency tree + 各客户端平台构建 |
-| FND-209 | xcss自身不宣称是AMD64 Server | release target `source-any` | 核心 | 中 | source package和Server平台概念混淆 | release identity检查 |
+| FND-209 | xcss整体只允许Linux AMD64 GNU编译及发布 | release target `x86_64-unknown-linux-gnu` | 核心 | 中 | source package和Server平台概念混淆 | release identity检查 |
 
-## 9. JSON HTTP Client：`@xcss/http-client`
+## 9. JSON HTTP Client：`@xcss/web/http-client`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -270,7 +271,7 @@
 | FND-252 | 泛型T不声称运行时验证 | JSON parse cast + docs | 核心 | 中 | 调用方把静态类型当网络信任边界 | 产品guard集成测试 |
 | FND-253 | 不用于文件上传/下载或streaming媒体 | package边界 | 核心 | 高 | JSON预算/parse破坏大对象业务 | API面与产品专用transport |
 
-## 10. 管理员 Web：`@xcss/admin-web`
+## 10. 管理员 Web：`@xcss/web/admin-web`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -313,7 +314,7 @@
 | FND-296 | Vite helper只允许产品选择base | `XcssReactViteOptions` | 核心 | 中 | 共享配置越权控制产品业务bundle | public API审查 |
 | FND-297 | Xczs明确不采用React/Vite helper | 项目级例外与root差异文档 | 核心 | 高 | 为表面统一重写成熟嵌入前端，扩大风险 | Xczs保持ES modules但共享auth合同 |
 
-## 11. 设计 primitive：`@xcss/design-tokens`
+## 11. 设计 primitive：`@xcss/web/design-tokens`
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
@@ -336,7 +337,7 @@
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
-| FND-320 | 8个npm package统一metadata/license/engine/repository | manifests + policy | 开发运维 | 中 | 来源、许可、工具链不可审计 | manifest check |
+| FND-320 | 单个npm package统一metadata/license/engine/repository | manifests + policy | 开发运维 | 中 | 来源、许可、工具链不可审计 | manifest check |
 | FND-321 | package只发布`dist` | `files:["dist"]` | 保障 | 中 | src/test/cache/Secret意外进入tar | tar inventory |
 | FND-322 | 每个公开入口显式写入exports | package manifests | 核心 | 中 | 消费者深层导入私有布局或入口漏包 | import.meta.resolve全部export |
 | FND-323 | contracts复制5份Schema与5份fixture | copy-contract-data script | 核心 | 中 | 机器合同或跨语言测试数据缺失 | dist/tar export检查 |
@@ -344,13 +345,13 @@
 | FND-325 | design-token复制4份CSS入口 | copy-css script | 核心 | 中 | package声明与实际CSS缺失 | source=dist/tar测试 |
 | FND-326 | build前clean且拒绝linked dist | package artifact policy | 保障 | 高 | 陈旧输出或symlink逃逸进入包 | linked/stale dist负例 |
 | FND-327 | manifest与export目标必须普通单链接文件 | artifact policy | 保障 | 高 | symlink/hardlink使审计对象与安装对象不同 | link负例 |
-| FND-328 | internal runtime peer使用精确0.10.0 | manifests/policy | 保障 | 高 | 依赖所有权隐藏或运行时解析另一代 | packed manifest检查 |
-| FND-329 | workspace协议仅用于内部dev/build | manifest policy + packed check | 开发运维 | 中 | 发布tar无法由外部npm安装 | tgz manifest无workspace |
+| FND-328 | 内部模块使用同包公开子路径 | manifests/policy | 保障 | 高 | 依赖所有权隐藏或运行时解析另一代 | packed manifest检查 |
+| FND-329 | 内部 package 依赖与workspace协议被删除 | manifest policy + packed check | 开发运维 | 中 | 发布tar无法由外部npm安装 | tgz manifest无workspace |
 | FND-330 | tar path必须canonical且留在package根 | tar inspector | 保障 | 高 | 安装路径逃逸/跨平台解释差异 | absolute/`..`/backslash负例 |
 | FND-331 | tar拒绝duplicate member | tar inspector | 保障 | 高 | 不同解包器选择不同内容 | duplicate负例 |
 | FND-332 | tar拒绝link和special file | tar inspector | 保障 | 高 | 安装对象可指向包外或设备 | symlink/hardlink/device负例 |
 | FND-333 | tar拒绝意外源码/未发布文件 | expected inventory | 保障 | 中 | 内部测试/Secret/维护脚本泄露 | member allowlist |
-| FND-334 | 临时空消费者离线同时安装8个tgz | package smoke | 开发运维 | 高 | 只在workspace link下成功的包被发布 | npm offline/ignore-scripts install |
+| FND-334 | 临时空消费者安装唯一真实tgz | package smoke | 开发运维 | 高 | 只在workspace link下成功的包被发布 | npm offline/ignore-scripts install |
 | FND-335 | 离线消费者解析每个静态/代码export | smoke import/resolve | 开发运维 | 高 | 部分深入口在真实package缺失 | 全exports遍历 |
 | FND-336 | release tool BuildIdentity复用五字段合同 | `xcss_release::BuildIdentity` | 核心 | 高 | Python工具与Rust/TS release identity分叉 | round-trip/fixture |
 | FND-337 | release manifest记录exact path/mode/size/hash | release.py | 保障 | 高 | 下载树无法证明完整和无额外文件 | build/parse/verify测试 |
@@ -361,10 +362,10 @@
 | FND-342 | tool tar固定mtime=0/uid/gid/name/mode/order | asset builder | 开发运维 | 中 | 相同源码无法复核字节一致性 | 双构建SHA相同 |
 | FND-343 | release output必须安全、空、非root目录 | `prepare_output` | 保障 | 高 | 覆盖源码/宽目录或混入陈旧资产 | broad/nonempty/link目录负例 |
 | FND-344 | release要求工作树无tracked/untracked变化 | `verify_source` | 保障 | 高 | tag资产包含未提交或本地文件 | porcelain必须空 |
-| FND-345 | tag必须精确`v0.10.0`且唯一指向HEAD | `verify_source` | 保障 | 高 | 资产版本/source/tag不能建立一一关系 | wrong/missing/multiple tag负例 |
+| FND-345 | tag必须精确`v1.0.0`且唯一指向HEAD | `verify_source` | 保障 | 高 | 资产版本/source/tag不能建立一一关系 | wrong/missing/multiple tag负例 |
 | FND-346 | state contract先生成再hash绑定release identity | asset builder顺序 | 保障 | 高 | identity引用错误状态合同 | hash与Schema验证 |
 | FND-347 | build inventory记录工具链与两个lock hash | `inventory` | 开发运维 | 中 | 事故时无法重构构建输入 | JSON内容与hash测试 |
-| FND-348 | inventory枚举6个Rust和4个npm组件 | cargo metadata + package discover | 开发运维 | 中 | 发布组件缺失/多余不易发现 | component集合检查 |
+| FND-348 | inventory枚举1个Rust和1个npm组件 | cargo metadata + package discover | 开发运维 | 中 | 发布组件缺失/多余不易发现 | component集合检查 |
 | FND-349 | `SHA256SUMS`覆盖全部非自身artifact | `checksums` | 保障 | 中 | 下载后只能信托管平台声明 | asset集合与sha256sum复核 |
 | FND-350 | release-tree manifest置于artifacts外且不自描述 | builder布局 | 保障 | 高 | manifest递归hash或遗漏边界 | exact tree测试 |
 | FND-351 | action只允许完整SHA allowlist | workflow policy | 保障 | 高 | mutable action tag被供应链替换 | valid/invalid fixture |
@@ -383,7 +384,7 @@
 | FND-360 | Rust执行fmt/check/clippy/test/doc完整门禁 | CI/README/operations | 开发运维 | 中 | target、lint、测试或rustdoc回归进入消费者 | locked/all-target/all-feature/-Dwarnings |
 | FND-361 | Web执行typecheck、package unit与tar smoke分层 | pnpm scripts/package tool | 开发运维 | 中 | 源码通过但dist/tar失败 | clean workspace + offline smoke |
 | FND-362 | Python policy/release/package有正反单元测试 | `tools/tests` | 开发运维 | 高 | fail-closed verifier只是未经证明的假设 | unittest discovery全部通过 |
-| FND-363 | 管理员auth有策略/攻击/authority/cookie/CSRF测试 | `xcss-admin-auth` tests | 保障 | 高 | 各产品依赖的认证下限可无声退化 | 每种typed error和边界 |
+| FND-363 | 管理员auth有策略/攻击/authority/cookie/CSRF测试 | `xcss::admin_auth` tests | 保障 | 高 | 各产品依赖的认证下限可无声退化 | 每种typed error和边界 |
 | FND-364 | admin-web有 login/logout/restore/401 的受控 Promise 竞态测试 | package tests | 保障 | 高 | 正常单请求通过但真实UI竞态失效 | controlled Promise/fetch交错；React client-switch 仍由消费者组件门禁验证 |
 | FND-365 | contracts用跨语言共享fixture | contracts tests/crate include | 保障 | 高 | Rust/TS/Schema理解不同当前合同 | valid/invalid全量执行 |
 | FND-366 | design token测试source/dist/value/scope | package test/scripts | 开发运维 | 中 | CSS发布漂移只能在视觉回归发现 | CSS静态与effective值测试 |
@@ -398,11 +399,11 @@
 
 | ID | 当前功能/特性 | 实现/锚点 | 分类 | 复杂度 | 删除后的确定后果 | 最低验证/边界 |
 |---|---|---|---|---|---|---|
-| FND-400 | 正式 Web 字节内嵌且与 Server 同一身份 | `xcss-web-assets::build`、ADR-0009 | 核心 | 高 | 可执行文件读取另一版本的 dist，发布身份不完整 | 编译资源快照、清单摘要、实际 binary 验收 |
+| FND-400 | 正式 Web 字节内嵌且与 Server 同一身份 | `xcss::web_assets::build`、ADR-0009 | 核心 | 高 | 可执行文件读取另一版本的 dist，发布身份不完整 | 编译资源快照、清单摘要、实际 binary 验收 |
 | FND-401 | 清单自动生成并绑定路径/MIME/大小/SHA-256 | `EmbeddedAsset`、`verify_embedded` | 保障 | 高 | 人工 include 列表遗漏字体/许可证，外部清单可授权不同字节 | 排序、canonical JSON、篡改与资源遗漏负例 |
-| FND-402 | GET/HEAD/304、准确 MIME 与缓存统一 | `xcss-web-assets::response` | 核心 | 中 | 多产品处理条件请求与 HTML 缓存时分叉 | HEAD 空 body、ETag 列表/weak/*、HTML no-store |
+| FND-402 | GET/HEAD/304、准确 MIME 与缓存统一 | `xcss::web_assets::response` | 核心 | 中 | 多产品处理条件请求与 HTML 缓存时分叉 | HEAD 空 body、ETag 列表/weak/*、HTML no-store |
 | FND-403 | 明确开发目录与每次请求安全读取 | `DirectoryAssets` | 开发运维 | 高 | 前端改动需要反复编译 Rust或开发模式渗入正式包 | 热更新、Unix descriptor/no-follow、链接/路径穿越负例 |
-| FND-404 | 前端→Rust→实际资源的共同构建顺序 | `@xcss/web-toolchain/server`、`xcss-build-server` | 保障 | 高 | 打包旧 dist，编译资源与本次 Web 输出不一致 | 干净源码、锁定依赖、规范 target、执行 binary `web-assets` |
+| FND-404 | 前端→Rust→实际资源的共同构建顺序 | `@xcss/web/web-toolchain/server`、`xcss-build-server` | 保障 | 高 | 打包旧 dist，编译资源与本次 Web 输出不一致 | 干净源码、锁定依赖、规范 target、执行 binary `web-assets` |
 | FND-405 | capability 与构建声明接入门禁 | `xcss_conformance.policy` | 保障 | 中 | 使用新版本却继续维护产品私有资源实现 | missing capability/declaration、目录逃逸、缺共同 runtime/build crate 负例 |
 
 ## 14. 明确排除项（同样属于功能边界）
@@ -432,21 +433,21 @@
 ## 15. 组件依赖与责任图
 
 ```text
-xcss-admin-auth ───────────────┐
-                               ├─> xcss-contracts
-xcss-error ────────────────────┤
-xcss-schema-identity ──────────┘
-       └─> xcss-sqlite
+xcss::admin_auth ───────────────┐
+                               ├─> xcss::contracts
+xcss::error ────────────────────┤
+xcss::schema_identity ──────────┘
+       └─> xcss::sqlite
 
-@xcss/contracts ──> @xcss/http-client ──┐
-                                          ├─> @xcss/admin-web
+@xcss/web/contracts ──> @xcss/web/http-client ──┐
+                                          ├─> @xcss/web/admin-web
 React/Vite peers ─────────────────────────┘
 
-@xcss/design-tokens（独立可选）
-xcss-server-target（只由Server binary直接采用）
+@xcss/web/design-tokens（独立可选）
+xcss::server_target（只由Server binary直接采用）
 ```
 
-依赖箭头不转移产品责任。例如 `xcss-contracts` 依赖 admin-auth 只是复用 canonical username/token validator，
+依赖箭头不转移产品责任。例如 `xcss::contracts` 依赖 admin-auth 只是复用 canonical username/token validator，
 并不让合同 crate拥有密码数据库；`admin-web` 依赖 http-client 也不让它拥有 Server Cookie。
 
 ## 16. 关键取舍矩阵
@@ -475,24 +476,24 @@ consumer matrix 和真实源码确认无人依赖。
 
 ## 18. 当前版本整体交付定义
 
-`0.11.0`只有在以下条件全部成立时才完成：24 个 crate 和 8 个 package 身份一致；24 个 crate 的 Cargo package 均
+`1.0.0`只有在以下条件全部成立时才完成：单个 crate 和单个 npm package 身份一致；唯一 Cargo package 与 npm tgz 均
 自带审核过的Apache-2.0文本；Rust/TS/Schema/fixture同构；
 管理员唯一角色和认证策略被所有Server采用；非AMD64 Server编译失败而客户端平台不受误限；非Xczs Web
 使用精确React/Vite基线；Xczs例外有文档和测试；SQLite current identity严格；真实tgz离线安装；release
 tree可复核；workflow最小权限；消费者改用不可变来源并独立验证；中文文档准确；无兼容分支；每个大问题
 独立Git提交并推送。
-带 Web 的 Server 还必须采用共同构建声明与 `xcss-web-assets`，真实二进制内嵌字节通过共同验收；
+带 Web 的 Server 还必须采用共同构建声明与 `xcss::web_assets`，真实二进制内嵌字节通过共同验收；
 产品安装、状态、签名和部署校验继续有效。前端生产改动需要重建 binary，开发热更新通过显式开发模式。
 
 ## 当前工作树公共机制补充（尚未发布）
 
 | ID | 实际实现 | 权威锚点与验证边界 |
 |---|---|---|
-| FND-300 | 分层 typed JSON 配置、显式环境映射、叶字段来源与每层语义 hook | `xcss-config`；结构/来源/秘密/输入预算测试；产品完成最终必需字段和外部前提检查 |
-| FND-301 | 机器 CLI 错误、真实服务 readiness 身份核验、共同 HTTP 解析拒绝 | `xcss-server-cli`；单记录输出、HTTP parser/413/no-store、临时监听测试 |
-| FND-302 | 同目录运行/维护/诊断写锁、持久维护门和通用维护描述符借用 | `xcss-state-file`；真实 flock、inode、pending、显式release、持久维护门和真实owner/root权限测试 |
-| FND-303 | 当前 WAL/journal 代的只读临时数据库校验副本 | `xcss-sqlite::validation_snapshot`；源字节不变、writer busy、query-only与clone guard测试；仅独立诊断进程，不声明备份 |
-| FND-304 | Server/Client 中立结构化日志、公共事件模板、精确筛选和有界轮转 | `xcss-log`；UTC/脱敏/limits/query/真实rotation/tracing sink切换；跨平台原生验证由产品提供 |
-| FND-305 | 既有静态管理员只读检查、只在首次初始化写当前账户文件 | `xcss-admin-static`；当前格式与准确configured IDs、不创建文件、不改持久字节 |
+| FND-300 | 分层 typed JSON 配置、显式环境映射、叶字段来源与每层语义 hook | `xcss::config`；结构/来源/秘密/输入预算测试；产品完成最终必需字段和外部前提检查 |
+| FND-301 | 机器 CLI 错误、真实服务 readiness 身份核验、共同 HTTP 解析拒绝 | `xcss::server_cli`；单记录输出、HTTP parser/413/no-store、临时监听测试 |
+| FND-302 | 同目录运行/维护/诊断写锁、持久维护门和通用维护描述符借用 | `xcss::state_file`；真实 flock、inode、pending、显式release、持久维护门和真实owner/root权限测试 |
+| FND-303 | 当前 WAL/journal 代的只读临时数据库校验副本 | `xcss::sqlite::validation_snapshot`；源字节不变、writer busy、query-only与clone guard测试；仅独立诊断进程，不声明备份 |
+| FND-304 | 服务端结构化日志；客户端在xcsc独立拥有、公共事件模板、精确筛选和有界轮转 | `xcss::log`；UTC/脱敏/limits/query/真实rotation/tracing sink切换；跨平台原生验证由产品提供 |
+| FND-305 | 既有静态管理员只读检查、只在首次初始化写当前账户文件 | `xcss::admin_static`；当前格式与准确configured IDs、不创建文件、不改持久字节 |
 
 工作树能力不能借用不可变 v0.10.4 tag 的发布证据。正式版本、完整 revision、锁闭包、package/license清单和产品发行物需在受控发布时同步验收。API、适用边界和公共模块的实际消费入口见 [配置、CLI、锁与日志](configuration-cli-logging.md)。

@@ -26,7 +26,7 @@ class DependencyBoundaryTests(unittest.TestCase):
         self.cargo.write_text("[workspace]\nmembers = []\n")
         self.package = self.root / "package.json"
         self.package.write_text("{}")
-        self.crate = self.root / "rust/crates/xcss-error/Cargo.toml"
+        self.crate = self.root / "src/error/Cargo.toml"
         self.crate.parent.mkdir(parents=True)
         self.crate.write_text("[package]\nname = 'xcss-error'\n")
 
@@ -37,23 +37,20 @@ class DependencyBoundaryTests(unittest.TestCase):
         for scope in ("dependencies", "dev-dependencies", "build-dependencies", "target.'cfg(unix)'.dependencies"):
             with self.subTest(scope=scope):
                 self.crate.write_text(f"[{scope}]\nlocal = {{ package = 'xcsc-core', version = '1' }}\n")
-                with self.assertRaisesRegex(XcssPolicyError, "outside xcss"):
+                with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
                     check_dependency_boundaries(self.root)
 
-    def test_rust_internal_alias_requires_the_owned_crate_path(self) -> None:
-        self.crate.write_text(
-            f"[dependencies]\nlocal = {{ package = 'xcss-error', path = '.', version = '={CURRENT_VERSION}' }}\n"
-        )
-        check_dependency_boundaries(self.root)
-        self.crate.write_text(self.crate.read_text().replace("path = '.'", "path = '../../../../product'"))
-        with self.assertRaisesRegex(XcssPolicyError, "workspace crate path"):
-            check_dependency_boundaries(self.root)
+    def test_rust_self_dependencies_and_independent_internal_aliases_are_rejected(self) -> None:
+        for package in ("xcss", "xcss-error"):
+            self.crate.write_text(f"[dependencies]\nlocal = {{ package = '{package}', path = '.', version = '={CURRENT_VERSION}' }}\n")
+            with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
+                check_dependency_boundaries(self.root)
 
     def test_rust_workspace_and_patch_dependencies_obey_the_same_boundary(self) -> None:
         for scope in ("workspace.dependencies", "patch.crates-io", "replace"):
             with self.subTest(scope=scope):
                 self.cargo.write_text(f"[{scope}]\nlocal = {{ package = 'xcss-product', path = '../product' }}\n")
-                with self.assertRaisesRegex(XcssPolicyError, "outside xcss"):
+                with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
                     check_dependency_boundaries(self.root)
 
     def test_rust_external_path_cannot_reach_a_consumer(self) -> None:
@@ -61,15 +58,14 @@ class DependencyBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(XcssPolicyError, "external local dependency"):
             check_dependency_boundaries(self.root)
 
-    def test_rust_workspace_paths_resolve_from_the_workspace(self) -> None:
-        self.cargo.write_text(
-            f"[workspace.dependencies]\nlocal = {{ package = 'xcss-error', path = 'rust/crates/xcss-error', version = '={CURRENT_VERSION}' }}\n"
-        )
+    def test_inherited_rust_dependencies_cannot_bypass_the_monolith(self) -> None:
+        self.cargo.write_text(f"[workspace.dependencies]\nlocal = {{ package = 'xcss', path = '.', version = '={CURRENT_VERSION}' }}\n")
         self.crate.write_text("[dependencies]\nlocal = { workspace = true }\n")
-        check_dependency_boundaries(self.root)
+        with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
+            check_dependency_boundaries(self.root)
 
     def test_web_root_and_package_aliases_cannot_import_downstream(self) -> None:
-        child = self.root / "packages/admin-ui/package.json"
+        child = self.root / "web/admin-ui/package.json"
         child.parent.mkdir(parents=True)
         child.write_text("{}")
         for path in (self.package, child):
@@ -87,14 +83,13 @@ class DependencyBoundaryTests(unittest.TestCase):
                             check_dependency_boundaries(self.root)
                         path.write_text("{}")
 
-    def test_web_internal_packages_use_the_workspace_and_external_libraries_are_allowed(self) -> None:
-        self.package.write_text(json.dumps({"dependencies": {
-            "@xcss/admin-ui": f"workspace:{CURRENT_VERSION}", "react": "19.3.0",
-        }}))
+    def test_web_self_dependencies_are_rejected_and_external_libraries_allowed(self) -> None:
+        self.package.write_text(json.dumps({"dependencies": {"react": "19.3.0"}}))
         check_dependency_boundaries(self.root)
-        self.package.write_text(json.dumps({"dependencies": {"@xcss/admin-ui": f"^{CURRENT_VERSION}"}}))
-        with self.assertRaisesRegex(XcssPolicyError, "workspace:"):
-            check_dependency_boundaries(self.root)
+        for name in ("@xcss/web", "@xcss/admin-ui"):
+            self.package.write_text(json.dumps({"dependencies": {name: CURRENT_VERSION}}))
+            with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
+                check_dependency_boundaries(self.root)
 
 
 if __name__ == "__main__":

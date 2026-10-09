@@ -2,15 +2,15 @@
 
 ## 3.1 阅读顺序
 
-建议按以下顺序阅读Rust crate，因为后者会复用前者：
+建议按以下顺序阅读Rust 内部模块，因为后者会复用前者：
 
 ```text
-xcss-admin-auth ───────────────┐
-xcss-error ────────────────────┼─> xcss-contracts
-xcss-schema-identity ──────────┘
-       └─> xcss-sqlite
+xcss::admin_auth ───────────────┐
+xcss::error ────────────────────┼─> xcss::contracts
+xcss::schema_identity ──────────┘
+       └─> xcss::sqlite
 
-xcss-server-target（独立，只给Server binary）
+xcss::server_target（独立，只给Server binary）
 ```
 
 每读一个public函数都问四个问题：输入是否已经可信、失败是否typed、产品还需做什么、哪个测试证明负例。
@@ -23,7 +23,7 @@ xcss-server-target（独立，只给Server binary）
 wire Session：它不修改输入，只接受已经规范的值。
 
 ```rust
-use xcss_admin_auth::{
+use xcss::admin_auth::{
     normalize_administrator_username,
     require_canonical_administrator_username,
 };
@@ -48,7 +48,7 @@ plaintext policy：12～1024 UTF-8 bytes且无ASCII control。bytes和Unicode co
 contract允许最多1024字符候选，Server仍会按bytes执行真正密码策略。
 
 ```rust
-use xcss_admin_auth::{hash_password, verify_password};
+use xcss::admin_auth::{hash_password, verify_password};
 
 let phc = hash_password("correct horse battery staple")?;
 assert!(verify_password("correct horse battery staple", &phc));
@@ -64,7 +64,7 @@ assert!(!verify_password("wrong-password", &phc));
 ## 3.4 Token与摘要
 
 ```rust
-use xcss_admin_auth::{random_token, token_hash, token_matches_hash};
+use xcss::admin_auth::{random_token, token_hash, token_matches_hash};
 
 let token = random_token()?;
 assert_eq!(token.len(), 43);
@@ -92,7 +92,7 @@ xcss无法知道原请求是否歧义。这是“library contract”和“framew
 Server应把全部Origin值、全部Host值、HTTP/2 URI authority和全部Sec-Fetch-Site值复制为byte列表，再调用：
 
 ```rust
-use xcss_admin_auth::{
+use xcss::admin_auth::{
     AdministratorOriginMode,
     require_administrator_same_origin,
 };
@@ -116,7 +116,7 @@ loopback；最后比较规范化authority。
 ## 3.7 CSRF
 
 ```rust
-use xcss_admin_auth::require_csrf_token_matches_hash;
+use xcss::admin_auth::require_csrf_token_matches_hash;
 
 require_csrf_token_matches_hash(&[csrf_header_bytes], &stored_digest)?;
 ```
@@ -128,7 +128,7 @@ helper要求X-CSRF-Token只有一行、无逗号、visible、canonical 43字符�
 ## 3.8 ErrorCode与RequestId
 
 ```rust
-use xcss_error::{ErrorCode, RequestId};
+use xcss::error::{ErrorCode, RequestId};
 
 let code = ErrorCode::new("media.upload_conflict")?;
 let request = RequestId::new("request:01J-test")?;
@@ -140,7 +140,7 @@ ErrorCode最长128 bytes，小写字母开头，只含小写字母、数字、`.
 ## 3.9 ErrorEnvelope
 
 ```rust
-use xcss_error::{ErrorEnvelope, HttpStatus};
+use xcss::error::{ErrorEnvelope, HttpStatus};
 
 let envelope = ErrorEnvelope::new(HttpStatus::TooManyRequests, "请稍后重试")
     .with_request_id("request-1")?
@@ -156,17 +156,17 @@ HttpStatus提供常用400/401/403/404/409/422/429/500/503映射；默认只有42
 
 ## 3.10 Server Target
 
-Server binary的Cargo依赖：
+Server binary 声明唯一 Cargo 依赖：
 
 ```toml
-xcss-server-target = {
+xcss = {
   git = "https://github.com/isarmg/xcss.git",
   rev = "<完整commit>",
-  version = "=0.10.0"
+  version = "=1.0.0"
 }
 ```
 
-crate root在非`x86_64-unknown-linux-gnu`直接`compile_error!`。产品release identity可通过
+整个 xcss crate root 在非`x86_64-unknown-linux-gnu`直接`compile_error!`。产品release identity可通过
 `SERVER_TARGET_TRIPLE`避免复制字符串，再用`require_server_target`检查外部metadata。
 
 不要把依赖放到包含Server和客户端的workspace根公共crate里，否则Windows/macOS Client也会compile-fail。
@@ -184,7 +184,7 @@ type/name/table/sql分别加入8-byte big-endian UTF-8 byte length和原始bytes
 ## 3.12 SQLx打开意图
 
 ```rust
-use xcss_sqlite::{open_existing, create_if_missing, PoolOptions};
+use xcss::sqlite::{open_existing, create_if_missing, PoolOptions};
 
 let existing = open_existing(path, PoolOptions::new(8)).await?;
 // 只有明确初始化流程才调用create_if_missing。
@@ -235,4 +235,4 @@ require_current_schema
 3. 构造Host与`:authority`冲突的请求，说明adapter应传几个host value。
 4. 比较`open_existing`、`create_if_missing`和产品初始化DDL的责任。
 5. 改变一个index SQL空格，预测fingerprint为何变化。
-6. 在一个混合Server/Client workspace中画出`xcss-server-target`应放在哪个依赖节点。
+6. 在一个混合Server/Client workspace中画出`xcss::server_target`应放在哪个依赖节点。

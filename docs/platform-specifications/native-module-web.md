@@ -2,7 +2,7 @@
 
 `web-embedded-native` 由 xcss 拥有原生 ESM 管理员客户端、当前合同、设计 token、Maple 字体和构建策略。产品只保留原生业务页面与 HTTP/XHR 业务协议 Adapter，不引入 React。
 
-`@xcss/web-toolchain/native` 提供唯一 Vite 配置：ES 输出、保留公开入口、相对资源 URL、外置字体、无 source map、单资源 256 KiB 硬预算。默认产物为 `platform.js`、`platform.css` 及字体和许可证；产品可以从官方字体包的 `OFL.txt` 导出引用，构建时必须包含许可证。产品不能复制平台源码到自己的 vendor 目录。
+`@xcss/web/web-toolchain/native` 提供唯一 Vite 配置：ES 输出、保留公开入口、相对资源 URL、外置字体、无 source map、单资源 256 KiB 硬预算。默认产物为 `platform.js`、`platform.css` 及字体和许可证；产品可以从官方字体包的 `OFL.txt` 导出引用，构建时必须包含许可证。产品不能复制平台源码到自己的 vendor 目录。
 
 产品将生成的资源作为构建输入嵌入二进制，以资源名、媒体类型和实际字节共同计算缓存身份。声明文件从产品的纯再导出入口生成，不检查压缩后的 JS，不手写第二套平台类型。
 

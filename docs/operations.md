@@ -6,24 +6,24 @@
 
 ## 2. 当前发行身份与事实源
 
-1.0.0 发布账号设置内容块、可编辑日志日期范围和提前加载字体的启动逻辑。正式消费以发布后的完整源码 revision 与不可变资产为准；既有发行保持不变。Windows 日志原生验证仍是 release job 的必需前置条件；其 LocalService 私有锚策略沿用 0.11.4。详见[版本说明](releases/1.0.0.md)。
+1.0.0 发布账号设置内容块、可编辑日志日期范围和提前加载字体的启动逻辑。正式消费以发布后的完整源码 revision 与不可变资产为准；既有发行保持不变。xcss 物理合并为一个 Linux AMD64 Rust crate 与一个服务端管理 Web npm 包。跨平台客户端及 Windows 日志验证属于独立的 xcsc。详见[版本说明](releases/1.0.0.md)。
 
 | 项目 | 唯一当前值 | 权威位置 | 漂移时的处理 |
 |---|---|---|---|
-| xcss 版本 | `1.0.0` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
+| xcss 版本 | `1.0.0` | 根 `Cargo.toml`、`package.json`、根单包 manifests、policy | 阻止 CI/发布，统一更新后重建 lock |
 | Rust | `1.99.0` | `rust-toolchain.toml` | 不用其他版本代替验证 |
-| Rust edition/MSRV | 2024 / `1.99` | workspace package | 作为工具链大问题单独升级 |
+| Rust edition/MSRV | 2024 / `1.99` | 根 Cargo package | 作为工具链大问题单独升级 |
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI | 切换 Node，不放宽 engine |
 | pnpm | `10.34.6` | 根 `packageManager`、CI | 安装精确版本，不使用 Corepack 浮动解析 |
-| TypeScript | `7.0.2` | 8 个 npm package manifest、lock | 与产品 Web 基线一起升级 |
+| TypeScript | `7.0.2` | 根 package.json、lock | 与产品 Web 基线一起升级 |
 | React / React DOM | `19.3.0` | `admin-web` toolchain/peer/dev deps | 所有 React 管理 Web（包括 Xczs）同步验证 |
 | Vite / React plugin | `8.3.3` / `6.1.2` | `admin-web` toolchain/peer/dev deps | 所有非 Xczs Web 同步验证 |
-| Server target | `x86_64-unknown-linux-gnu` | `xcss-server-target` | Server 其他 target 编译必须失败 |
-| License | Apache-2.0 | 根及 24 个 crate 的 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |
+| Server target | `x86_64-unknown-linux-gnu` | `xcss::server_target` | Server 其他 target 编译必须失败 |
+| License | Apache-2.0 | 根 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |
 | Release tag | `v1.0.0` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
 
-xcss 自身的 source/tool release identity 默认 target 是 `source-any`；`xcss-server-target` 是消费者
-Server 的编译门禁，不能把 xcss 误写成 AMD64 在线服务。
+xcss 是构建时服务端依赖库，不独立运行 daemon。整个 crate、Node 构建进程及 release identity 的目标均为
+`x86_64-unknown-linux-gnu`；客户端改用 xcsc，不能通过选用某个 xcss 内部模块绕开平台约束。
 
 ### 3.1 必需工具
 
@@ -48,7 +48,7 @@ cargo metadata --locked --no-deps --format-version 1
 
 ### 3.2 可安全删除的缓存
 
-在确认目标是本仓具体目录后，可以删除并重建 `target/`、根 `node_modules/`、各 package `dist/` 和临时
+在确认目标是本仓具体目录后，可以删除并重建 `target/`、根 `node_modules/`、根 `dist/` 和临时
 release 输出。不可将 `Cargo.lock`、`pnpm-lock.yaml`、Schema、fixture、consumer matrix、文档或 Git tag
 当缓存处理。不要对工作区根或未解析变量使用递归删除。
 
@@ -62,10 +62,10 @@ python3 scripts/check-rust-package-licenses.py
 python3 scripts/check-workflow-supply-chain.py
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
 cargo fmt --all -- --check
-cargo check --locked --workspace --all-targets --all-features
-cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-cargo test --locked --workspace --all-features
-RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-deps
+cargo check --locked --all-targets --all-features
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked --all-features
+RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --all-features --no-deps
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm typecheck
 pnpm test
@@ -84,11 +84,10 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 
 - Cargo/npm/policy 的版本均为 `1.0.0`；
 - Rust `1.99.0`、Node `26.7.0`、pnpm `10.34.6` 的事实源一致；
-- Rust workspace 恰好包含 24 个已知 crate，npm workspace 恰好包含 8 个已知 package；
-- 根 `LICENSE` 必须匹配审核过的 Apache-2.0 SHA-256；24 个 crate 必须各有普通、单链接、byte-exact副本，
-  且 `cargo package --list` 必须把它作为唯一根 `LICENSE` 分发；
-- 所有 crate 启用 workspace lint，内部 Rust dependency 精确 `=1.0.0`；
-- 内部 npm build dependency 使用 `workspace:1.0.0`，peer 使用精确 `1.0.0`；
+- 只有一个 Rust package `xcss` 和一个 npm package `@xcss/web`，没有子 package manifest 或内部 package 依赖；
+- 根 `LICENSE` 必须是普通、单链接、审核过的 Apache-2.0 文本，Cargo 清单及 npm tgz实际携带它；
+- 整个 crate 启用安全 lint 和 Linux AMD64 GNU 编译硬门禁；
+- npm 的 `os`、`cpu`、`libc` 必须为 Linux、x64、glibc；CLI 和构建入口再次检查实际进程平台；
 - `admin-web` 的 React/Vite/TypeScript/type package 精确一致；
 - 源码和文档不存在已取消的项目/客户端名称。
 
@@ -154,8 +153,8 @@ SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未�
 
 ### 7.1 四阶段
 
-1. `pnpm typecheck` 验证源码类型，不写产物；
-2. `pnpm test` 由各包先 clean/build，再从 `dist` 运行单元/契约测试；
+1. `pnpm typecheck` 先构建根 dist，再验证所有内部模块源码类型；
+2. `pnpm test` 先 clean/build 根 dist，再从 `dist` 运行单元/契约测试；
 3. `package-artifacts.py check` 只审计现有 dist；
 4. `package-artifacts.py smoke` clean、重建、pack、检查 tar并在空目录 isolated install + TypeScript/Vite。
 
@@ -169,8 +168,8 @@ SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未�
 - `dist` 必须是真实目录且每次构建前清空；
 - tar member 必须 canonical、无 absolute/`..`/backslash、duplicate、symlink、hardlink、device 或源码泄漏；
 - 发布 manifest 内不得出现 `workspace:`；
-- `admin-web`/`http-client` 的内部 peer 必须精确版本，消费者显式拥有；
-- 临时消费者使用 `npm --ignore-scripts` 同时安装 全部包的真实 tgz 并解析所有 export。
+- 内部模块以 `@xcss/web/<module>` 自引用；外部 React/Vite peer 使用固定精确版本，消费者显式拥有；
+- 临时消费者使用 `npm --ignore-scripts` 安装唯一真实 tgz 并解析所有 export。
 
 ### 7.3 常见故障
 
@@ -180,7 +179,7 @@ SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未�
 | engine warning/failure | Node 不是 26.7.0 | 切换 Node；不要放宽 `<27`/最低版本 |
 | export missing | build/copy script 与 manifest 分叉 | 修复 source→dist 和 export 单一事实源 |
 | stale artifact | clean 没清除被删产物 | 修复 clean，重跑 smoke；不要手工补文件 |
-| tar contains workspace | runtime dependency 声明错误 | peer 用精确版本，workspace 仅 dev/build 使用 |
+| tar contains workspace | runtime dependency 声明错误 | 删除内部 package 依赖，使用同包子路径；外部 peer 使用精确版本 |
 | peer resolution failure | 没同时安装显式 peer | 修正消费者依赖或 package metadata |
 | linked file rejected | package 树含 symlink/hardlink | 生成真实单链接文件；查供应链污染 |
 | admin toolchain assertion | 产品 React/Vite/Node 漂移 | 全产品同步使用精确 xcss baseline |
@@ -189,10 +188,10 @@ SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未�
 
 从 xcss `0.10.8` 起，带 Web 的 Server component 必须声明 `embedded-web` capability，并提供
 `xcss-web-build.json`。`xcss-build-server --mode release` 依次执行 npm 锁定安装、前端构建、
-规范目标 Rust 编译及实际二进制的 `web-assets` 验收；构建命令来自发布包 `@xcss/web-toolchain`。
+规范目标 Rust 编译及实际二进制的 `web-assets` 验收；构建命令来自发布包 `@xcss/web/web-toolchain`。
 Web 输出路径通过 `XCSS_WEB_DIST` 传给 Vite/native preset 和 Rust build script，避免各产品各自猜测
 目录和先后顺序。Rust package 在 runtime 和 build-dependencies 中都使用同一精确版本的
-`xcss-web-assets`。
+`xcss::web_assets`。
 
 二进制中的清单绑定每个资源的路径、MIME、大小和 SHA-256。发行树可以携带这份清单并与二进制逐字节
 核对，生产请求直接使用内嵌字节。不要再次发行 raw Web 目录来保存重复副本，也不要用可重写的外部
@@ -213,27 +212,29 @@ script 与共同 crate 依赖。历史版本按历史声明接受检查，报告
 xcss 当前不要求 crates.io 在线依赖。正式消费者使用 release tag 对应完整 commit：
 
 ```toml
-xcss-admin-auth = {
+xcss = {
   git = "https://github.com/isarmg/xcss.git",
   rev = "<v1.0.0 对应的 40 位 commit>",
   version = "=1.0.0"
 }
 ```
 
-不得使用 branch、短 SHA、浮动 tag 或永久 sibling path。按最小需要选择：
+不得使用 branch、短 SHA、浮动 tag 或永久 sibling path。Cargo 只声明一次 `xcss`，Rust代码按需求使用内部模块：
 
-| 需求 | 应选 crate | 不应额外引入 |
-|---|---|---|
-| username/密码/token/same-origin | `xcss-admin-auth` | SQLx、Web package |
-| wire contract | `xcss-contracts` | 产品 DTO框架 |
-| 仅 Error Envelope | `xcss-error` | 完整 contracts |
-| rusqlite/离线 Schema 算法 | `xcss-schema-identity` | `xcss-sqlite` |
-| Server target gate | `xcss-server-target`（只给 Server crate） | 客户端/Client crate |
-| SQLx SQLite 服务 | `xcss-sqlite` | 产品 migration/backup 假设 |
+| 需求 | Rust 模块 |
+|---|---|
+| username/密码/token/same-origin | `xcss::admin_auth` |
+| wire contract | `xcss::contracts` |
+| Error Envelope | `xcss::error` |
+| Schema 身份算法 | `xcss::schema_identity` |
+| Server target 常量与检查 | `xcss::server_target` |
+| SQLx SQLite 服务 | `xcss::sqlite` |
+
+这些模块共享一个编译、版本、来源及许可证身份，不再各自发布。跨平台客户端及离线客户端工具使用 xcsc。
 
 | 故障 | 解释与处理 |
 |---|---|
-| `links=sqlite3` 冲突 | 错误地把 SQLx adapter 引入 rusqlite 工具；改用纯 identity crate |
+| `links=sqlite3` 冲突 | 错误地把 SQLx adapter 引入 rusqlite 工具；检查产品依赖图；客户端离线工具改用 xcsc 的独立中立模块 |
 | Server 交叉 target compile_error | 当前 Server 只支持 GNU/Linux AMD64；不要绕过 gate |
 | `open_existing` missing | 路径或部署错误；不要改成隐式 create |
 | product_metadata mismatch | DDL/列/storage class 非当前合同；停止并定位来源 |
@@ -282,7 +283,7 @@ YAML anchor 和 action outside steps。修改 workflow policy 时必须同时新
 - 版本与工具链事实源一致；
 - 至少一个会实际触发本次改动的真实消费者完成发布前联调；若改动跨语言 wire、认证、Schema 算法或 Web
   runtime，必须覆盖至少两个不同产品，不能用 xcss 自测替代消费者证据；
-- 24 个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
+- 单个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
 - GitHub 不存在同名 tag/release；
 - tag `v1.0.0` 精确指向当前 HEAD，source revision 为完整小写 SHA。
 
@@ -301,14 +302,7 @@ python3 scripts/build-release-assets.py \
 xcss-release/
 ├─ release-tree.json
 └─ artifacts/
-   ├─ xcss-admin-web-1.0.0.tgz
-   ├─ xcss-admin-shell-1.0.0.tgz
-   ├─ xcss-admin-ui-1.0.0.tgz
-   ├─ xcss-contracts-1.0.0.tgz
-   ├─ xcss-design-tokens-1.0.0.tgz
-   ├─ xcss-http-client-1.0.0.tgz
-   ├─ xcss-web-fonts-1.0.0.tgz
-   ├─ xcss-web-toolchain-1.0.0.tgz
+   ├─ xcss-web-1.0.0.tgz
    ├─ xcss-release-tool-1.0.0.tar.gz
    ├─ state-contract.json
    ├─ release-identity.json
@@ -318,7 +312,7 @@ xcss-release/
 
 xcss state contract 的 `schema=null`，lock/resource/external/companion 数组为空，因为本仓无运行时状态。
 release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool bundle 固定 mtime/owner/group/mode和
-排序；inventory 描述精确 toolchain、两个 lockfile hash、24 个 crate、8 个 package 和已生成资产。
+排序；inventory 描述精确 toolchain、两个 lockfile hash、单个 Rust crate、单个 npm package 和已生成资产。
 
 ### 11.3 Release-tree 防护
 

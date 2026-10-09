@@ -122,7 +122,7 @@ def load_profiles(foundation_root: Path) -> tuple[dict[str, dict[str, Any]], set
             raise ConformanceError(f"{path}: invalid profile identity")
         if path.stem != identifier or identifier in profiles:
             raise ConformanceError(f"{path}: profile filename/id mismatch or duplicate")
-        if value["kind"] not in {"server", "tool", "web"}:
+        if value["kind"] not in {"server", "web"}:
             raise ConformanceError(f"{path}: invalid profile kind")
         for key in ("formal_targets", "http_adapters", "web_profiles"):
             items = value[key]
@@ -138,7 +138,6 @@ def load_profiles(foundation_root: Path) -> tuple[dict[str, dict[str, Any]], set
     if set(profiles) != {
         "server-control-plane",
         "server-filesystem",
-        "offline-tool",
         "web-react-admin",
         "web-embedded-native",
     }:
@@ -162,6 +161,8 @@ def verify_manifest(product_root: Path, foundation_root: Path) -> dict[str, Any]
     product_id = manifest["product_id"]
     if manifest["format"] != 1 or not isinstance(product_id, str) or IDENTIFIER.fullmatch(product_id) is None:
         raise ConformanceError("product manifest: invalid format or product_id")
+    if re.fullmatch(r"x[a-z]{2}c", product_id):
+        raise ConformanceError(f"{product_id}: client products cannot consume server-only xcss; use xcsc")
     foundation = manifest["foundation"]
     if not isinstance(foundation, dict):
         raise ConformanceError("product manifest.foundation: expected a table")
@@ -323,8 +324,8 @@ def _verify_embedded_web_build(product_root: Path, manifest: dict[str, Any]) -> 
             _dependency_name(alias, _resolved_rust_requirement(alias, requirement, workspace_dependencies, member_path))
             for alias, requirement in dependencies.items()
         } if isinstance(dependencies, dict) else set()
-        if "xcss-web-assets" not in resolved_names:
-            raise ConformanceError(f"{member_path}: embedded-web requires xcss-web-assets in {section}")
+        if "xcss" not in resolved_names:
+            raise ConformanceError(f"{member_path}: embedded-web requires xcss::web_assets in the xcss package in {section}")
     return {"mode": "embedded", "declaration": str(declaration)}
 
 
@@ -357,17 +358,11 @@ def _used_dependency_aliases(cargo: dict[str, Any]) -> set[str]:
 
 
 def _xcss_package_names(foundation_root: Path) -> set[str]:
-    names: set[str] = set()
-    for path in (foundation_root / "rust" / "crates").glob("*/Cargo.toml"):
-        package = _toml(path).get("package", {})
-        name = package.get("name") if isinstance(package, dict) else None
-        if isinstance(name, str):
-            names.add(name)
-    for path in (foundation_root / "packages").glob("*/package.json"):
-        name = _json(path).get("name")
-        if isinstance(name, str):
-            names.add(name)
-    return names
+    rust = _toml(foundation_root / "Cargo.toml")["package"]["name"]
+    web = _json(foundation_root / "package.json")["name"]
+    if rust != "xcss" or web != "@xcss/web":
+        raise ConformanceError("xcss must contain exactly one Rust and one npm package")
+    return {rust, web}
 
 
 def _dependency_name(alias: str, requirement: Any) -> str:
@@ -579,6 +574,9 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
                 findings.append(("immutable-foundation-dependencies", str(error)))
                 continue
             dependency = _dependency_name(alias, resolved)
+            if dependency.startswith("xcss-"):
+                findings.append(("single-foundation-package", f"{path}: independent {dependency} was removed; declare the single xcss package"))
+                continue
             if dependency not in foundation_packages:
                 continue
             if alias in used_aliases:
@@ -611,6 +609,9 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
             if not isinstance(dependencies, dict):
                 continue
             for dependency, requirement in dependencies.items():
+                if dependency.startswith("@xcss/") and dependency != "@xcss/web":
+                    findings.append(("single-foundation-package", f"{path}: independent {dependency} was removed; declare @xcss/web and import its subpaths"))
+                    continue
                 if dependency not in foundation_packages:
                     continue
                 if not isinstance(requirement, str):
@@ -725,6 +726,8 @@ def verify_web(product_root: Path, foundation_root: Path) -> dict[str, Any]:
         dependencies = package.get(section, {})
         if isinstance(dependencies, dict):
             for dependency, requirement in dependencies.items():
+                if dependency.startswith("@xcss/") and dependency != "@xcss/web":
+                    raise ConformanceError(f"{package_path}: independent {dependency} was removed; declare @xcss/web and import its subpaths")
                 if dependency not in foundation_packages:
                     continue
                 if not isinstance(requirement, str):
@@ -782,14 +785,7 @@ def _registry(foundation_root: Path) -> list[dict[str, Any]]:
 
 def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
     profile_catalog, capability_catalog = load_profiles(foundation_root)
-    known_packages = {
-        path.parent.name for path in (foundation_root / "rust" / "crates").glob("*/Cargo.toml")
-    }
-    for path in (foundation_root / "packages").glob("*/package.json"):
-        package = _json(path)
-        name = package.get("name")
-        if isinstance(name, str):
-            known_packages.add(name)
+    known_packages = _xcss_package_names(foundation_root)
     entries: list[dict[str, Any]] = []
     seen: set[str] = set()
     for index, repository in enumerate(_registry(foundation_root)):
@@ -802,6 +798,8 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
         if not isinstance(product, str) or IDENTIFIER.fullmatch(product) is None or product in seen:
             raise ConformanceError(f"{context}: invalid or duplicate product")
         seen.add(product)
+        if re.fullmatch(r"x[a-z]{2}c", product):
+            raise ConformanceError(f"{context}: client products cannot be registered as xcss consumers; use xcsc")
         if not isinstance(repository["url"], str) or not repository["url"].startswith("https://github.com/"):
             raise ConformanceError(f"{context}: repository URL must be an HTTPS GitHub URL")
         if REVISION.fullmatch(str(repository["commit"])) is None:
@@ -852,9 +850,9 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
 
 def _xcss_version(foundation_root: Path) -> str:
     cargo = _toml(foundation_root / "Cargo.toml")
-    version = cargo.get("workspace", {}).get("package", {}).get("version")
+    version = cargo.get("package", {}).get("version")
     if not isinstance(version, str) or SEMVER.fullmatch(version) is None:
-        raise ConformanceError("Cargo.toml: invalid xcss workspace version")
+        raise ConformanceError("Cargo.toml: invalid xcss package version")
     return version
 
 
@@ -873,7 +871,7 @@ def verify_foundation(foundation_root: Path) -> dict[str, Any]:
     if schema_profiles != set(profiles):
         raise ConformanceError("xcss-product Schema profile enum is stale")
     own_packages = _xcss_package_names(foundation_root)
-    for path in sorted((foundation_root / "rust" / "crates").glob("*/Cargo.toml")):
+    for path in [foundation_root / "Cargo.toml"]:
         cargo = _toml(path)
         for alias, requirement in _walk_dependency_tables(cargo):
             dependency = _dependency_name(alias, requirement)

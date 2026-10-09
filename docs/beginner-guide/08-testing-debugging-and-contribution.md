@@ -98,7 +98,7 @@ primitive单元测试
 violation、integrity诊断、checkpoint busy/incomplete、metadata DDL/column/storage class、0/2 row、每字段
 current mismatch和实际fingerprint drift。
 
-路径no-follow、owner/mode、实例锁和backup crash recovery不属于`xcss-sqlite`单测，应在产品层测试。
+路径no-follow、owner/mode、实例锁和backup crash recovery不属于`xcss::sqlite`单测，应在产品层测试。
 
 ## 8.7 Package与release安全测试
 

@@ -169,7 +169,7 @@ def inventory(identity: BuildIdentity, artifacts: Path) -> dict[str, Any]:
         components.append({"name": package.name, "version": package.version, "kind": "npm"})
     cargo = json.loads(checked_output(["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"]))
     for package in cargo["packages"]:
-        if package["name"].startswith("xcss-"):
+        if package["name"] == "xcss":
             components.append({"name": package["name"], "version": package["version"], "kind": "rust"})
     described = []
     for path in sorted(artifacts.iterdir()):
@@ -203,6 +203,8 @@ def checksums(artifacts: Path) -> None:
 
 
 def build(output: Path, source_revision: str, tag: str, target: str) -> Path:
+    if target != "x86_64-unknown-linux-gnu":
+        raise ReleaseBuildError("xcss release target must be x86_64-unknown-linux-gnu")
     check_repository(ROOT)
     verify_source(source_revision, tag)
     output, artifacts = prepare_output(output)
@@ -240,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--source-revision", required=True)
     parser.add_argument("--tag", required=True)
-    parser.add_argument("--target", default="source-any")
+    parser.add_argument("--target", default="x86_64-unknown-linux-gnu")
     arguments = parser.parse_args(argv)
     try:
         build(arguments.output, arguments.source_revision, arguments.tag, arguments.target)

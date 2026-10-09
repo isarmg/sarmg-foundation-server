@@ -12,23 +12,6 @@ env:
   RUSTUP_TOOLCHAIN: 1.99.0
 
 jobs:
-  windows-log:
-    permissions:
-      contents: read
-    runs-on: windows-2025
-    timeout-minutes: 15
-    steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-      - name: Install exact Rust toolchain
-        run: rustup toolchain install 1.99.0 --profile minimal --component clippy
-      - name: Verify native private persistent log storage and restricted token refusal
-        run: cargo test --locked -p xcss-log --all-features
-      - name: Lint the portable logging leaf
-        run: cargo clippy --locked -p xcss-log --all-features --all-targets -- -D warnings
-
   rust:
     permissions:
       contents: read
@@ -52,26 +35,26 @@ jobs:
           rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-musl
           for target in aarch64-unknown-linux-gnu x86_64-unknown-linux-musl; do
             log="$RUNNER_TEMP/xcss-server-target-$target.log"
-            if cargo check --locked -p xcss-server-target --target "$target" 2>"$log"; then
-              echo "::error::xcss-server-target unexpectedly accepted $target"
+            if cargo check --locked -p xcss --target "$target" 2>"$log"; then
+              echo "::error::xcss unexpectedly accepted $target"
               exit 1
             fi
-            grep -F "Xcss server binaries support only x86_64-unknown-linux-gnu" "$log"
+            grep -F "xcss supports only x86_64-unknown-linux-gnu server builds" "$log"
           done
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Verify every Cargo package carries its audited license text
         run: python3 scripts/check-rust-package-licenses.py
       - name: Check all targets
-        run: cargo check --locked --workspace --all-targets --all-features
+        run: cargo check --locked --all-targets --all-features
       - name: Lint all targets
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-      - name: Verify the portable logging leaf without the optional tracing adapter
-        run: cargo clippy --locked -p xcss-log --no-default-features -- -D warnings
-      - name: Test all crates
-        run: cargo test --locked --workspace --all-features
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
+      - name: Verify server logging without the optional tracing adapter
+        run: cargo clippy --locked --no-default-features -- -D warnings
+      - name: Test the single server package
+        run: cargo test --locked --all-targets --all-features
       - name: Reject Rust documentation warnings
-        run: RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --workspace --all-features --no-deps
+        run: RUSTDOCFLAGS="-Dwarnings" cargo doc --locked --all-features --no-deps
 
   web:
     permissions:
@@ -94,15 +77,15 @@ jobs:
         run: npm install --global pnpm@10.34.6 --ignore-scripts
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
-      - name: Build packages
+      - name: Build the single Web package
         run: pnpm build
-      - name: Typecheck packages
+      - name: Typecheck Web modules
         run: pnpm typecheck:built
-      - name: Test packages
+      - name: Test Web modules
         run: pnpm test:built
       - name: Install browser test engines
         run: pnpm exec playwright install --with-deps chromium firefox
       - name: Verify keyboard, authentication, workspace and WCAG AA contracts
         run: pnpm test:web:built
-      - name: Verify publishable tarballs from a clean build
+      - name: Verify the publishable tarball from a clean build
         run: python3 scripts/package-artifacts.py smoke
