@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.sarmg.org/foundation/xcss-product.v1.schema.json",
+  "$id": "https://schemas.sarmg.org/xcss/xcss-product.v1.schema.json",
   "title": "Server and server-management Web product manifest",
   "type": "object",
   "additionalProperties": false,

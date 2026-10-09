@@ -322,7 +322,7 @@ pub enum Error {
     Sqlite(#[from] xcss_sqlite::Error),
     #[error("platform metadata table is missing")]
     PlatformMetadataTableMissing,
-    #[error("platform metadata DDL differs from the current Foundation DDL")]
+    #[error("platform metadata DDL differs from the current xcss DDL")]
     PlatformMetadataDdlMismatch,
     #[error("platform metadata must contain exactly one row, found {actual}")]
     PlatformMetadataRowCount { actual: usize },

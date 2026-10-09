@@ -1,6 +1,6 @@
 //! Framework- and database-independent administrator authentication primitives.
 //!
-//! This crate defines the current primitive policy. Foundation Core, Stores and
+//! This crate defines the current primitive policy. xcss Core, Stores and
 //! HTTP adapters own admission, persistence, cookies, expiry and security audit;
 //! products compose those capabilities without a second credential algorithm.
 

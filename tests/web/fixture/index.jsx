@@ -41,7 +41,7 @@ function ProductRoutes() {
   </section>;
 }
 const App = createXcssAdminApplication({
-  product: { name: "Foundation acceptance" },
+  product: { name: "xcss acceptance" },
   client: createAdministratorApiClient(),
   navigation: [{ label: "Overview", href: "#overview" }, { label: "Activity", href: "#activity" }],
   loginLandingHref: new URLSearchParams(window.location.search).has("loginLanding")

@@ -14,7 +14,7 @@ for (const root of process.argv.slice(2)) {
   const manifest = await readFile(resolve(root, 'Cargo.toml'), 'utf8');
   const edition = /^edition\s*=\s*"(2021|2024)"\s*$/m.exec(manifest)?.[1];
   if (!edition) throw new Error(root + ': expected an explicit supported Cargo edition');
-  const folder = resolve(root, 'foundation'); await mkdir(folder, { recursive: true });
+  const folder = resolve(root, 'xcss'); await mkdir(folder, { recursive: true });
   await writeFile(join(folder, 'platform_router.rs'), bytes);
   execFileSync('rustfmt', ['--edition', edition, join(folder, 'platform_router.rs')], {timeout:10000});
   const formatted = await readFile(join(folder, 'platform_router.rs'));

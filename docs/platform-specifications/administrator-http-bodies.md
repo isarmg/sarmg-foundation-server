@@ -1,6 +1,6 @@
 # 管理员 HTTP 正文资源边界
 
-所有权：Foundation Admin Core 的固定策略、Axum Adapter 的读取机制；Hyper 仅适配 Body 和真实 socket peer，
+所有权：xcss Admin Core 的固定策略、Axum Adapter 的读取机制；Hyper 仅适配 Body 和真实 socket peer，
 共享同一套读取/限流逻辑。适用于持久管理员和静态管理员 Profile。
 文件上传的流式协议、提交事务和容量控制由产品业务负责。
 

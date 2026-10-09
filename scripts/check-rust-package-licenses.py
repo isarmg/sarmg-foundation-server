@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from foundation_policy import CURRENT_VERSION  # noqa: E402
+from xcss_policy import CURRENT_VERSION  # noqa: E402
 from rust_package_licenses import (  # noqa: E402
     RustPackageLicenseError,
     check_rust_package_licenses,

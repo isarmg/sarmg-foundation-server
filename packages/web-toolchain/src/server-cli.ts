@@ -2,7 +2,7 @@
 import { buildWebServer, verifyWebServerBinary, type WebServerBuildOptions } from "./server.js";
 
 const options: WebServerBuildOptions = { mode: "development", cargoArgs: [] };
-let config = "foundation-web-build.json";
+let config = "xcss-web-build.json";
 let verifyOnly = false;
 let binaryToVerify: string | undefined;
 try {

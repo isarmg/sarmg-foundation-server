@@ -2,7 +2,7 @@
 
 ## 1. 运维范围
 
-本仓库维护公共库、构建工具、不可变输入和共享检查。Foundation没有生产daemon；这里只说明自己的来源、构建、发布、缓存和故障诊断。
+本仓库维护公共库、构建工具、不可变输入和共享检查。xcss没有生产daemon；这里只说明自己的来源、构建、发布、缓存和故障诊断。
 
 ## 2. 当前发行身份与事实源
 
@@ -10,7 +10,7 @@
 
 | 项目 | 唯一当前值 | 权威位置 | 漂移时的处理 |
 |---|---|---|---|
-| Foundation 版本 | `1.0.0` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
+| xcss 版本 | `1.0.0` | 根 `Cargo.toml`、`package.json`、各 crate/package、policy | 阻止 CI/发布，统一更新后重建 lock |
 | Rust | `1.99.0` | `rust-toolchain.toml` | 不用其他版本代替验证 |
 | Rust edition/MSRV | 2024 / `1.99` | workspace package | 作为工具链大问题单独升级 |
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI | 切换 Node，不放宽 engine |
@@ -22,8 +22,8 @@
 | License | Apache-2.0 | 根及 24 个 crate 的 `LICENSE`、Cargo/npm metadata、Cargo package 清单 | 缺失或字节漂移即不发布 |
 | Release tag | `v1.0.0` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
 
-Foundation 自身的 source/tool release identity 默认 target 是 `source-any`；`xcss-server-target` 是消费者
-Server 的编译门禁，不能把 Foundation 误写成 AMD64 在线服务。
+xcss 自身的 source/tool release identity 默认 target 是 `source-any`；`xcss-server-target` 是消费者
+Server 的编译门禁，不能把 xcss 误写成 AMD64 在线服务。
 
 ### 3.1 必需工具
 
@@ -57,7 +57,7 @@ release 输出。不可将 `Cargo.lock`、`pnpm-lock.yaml`、Schema、fixture、
 代码与文档全部完成后，按顺序执行：
 
 ```bash
-python3 scripts/check-foundation.py
+python3 scripts/check-xcss.py
 python3 scripts/check-rust-package-licenses.py
 python3 scripts/check-workflow-supply-chain.py
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
@@ -80,7 +80,7 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 
 ## 5. Repository Policy 运维
 
-`scripts/check-foundation.py` 调用 `tools/foundation_policy.py`，当前核对：
+`scripts/check-xcss.py` 调用 `tools/xcss_policy.py`，当前核对：
 
 - Cargo/npm/policy 的版本均为 `1.0.0`；
 - Rust `1.99.0`、Node `26.7.0`、pnpm `10.34.6` 的事实源一致；
@@ -92,7 +92,7 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 - `admin-web` 的 React/Vite/TypeScript/type package 精确一致；
 - 源码和文档不存在已取消的项目/客户端名称。
 
-消费者矩阵是独立接入报告，不参与 `check-foundation.py`、Foundation CI 或 Release 门禁。维护报告时另外
+消费者矩阵是独立接入报告，不参与 `check-xcss.py`、xcss CI 或 Release 门禁。维护报告时另外
 运行 `python3 scripts/xcss-conformance.py verify-consumers` 与
 `python3 scripts/xcss-conformance.py generate-consumer-matrix --check`；产品行为验收仍在对应产品仓库完成。
 
@@ -102,8 +102,8 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 `python3 scripts/xcss-conformance.py verify-release --product-root <path> --require-published`，并继续使用
 `xcss-release verify` 核对实际发布树、文件模式、大小与 SHA-256。
 
-产品 Rust Foundation 依赖只接受官方 Git URL、精确版本和完整 revision，并由 `Cargo.lock` 复核实际解析
-结果；Web Foundation 依赖只接受对应版本的官方 release tarball，并由 `package-lock.json` 的 resolved 与
+产品 Rust xcss 依赖只接受官方 Git URL、精确版本和完整 revision，并由 `Cargo.lock` 复核实际解析
+结果；Web xcss 依赖只接受对应版本的官方 release tarball，并由 `package-lock.json` 的 resolved 与
 SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未识别所以跳过”的成功路径。
 
 若检查报 unknown package/member，不要把未知项加入 allowlist 让测试变绿；先确认它是否经过共享准入。若
@@ -132,7 +132,7 @@ SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未�
 - 管理员登录 username 候选必须是 1～64 个 printable ASCII bytes；先 `trim_ascii`、再 ASCII lowercase。
   control 在 trim 前已拒绝，所以实际只移除两端 U+0020 space；候选 guard 通过不表示身份已接受。
 - canonical username 必须是 3～64 bytes，首尾为字母/数字，全部字符只来自 `[a-z0-9._-]`；`@`、Unicode、
-  control character 和其他符号拒绝。相邻分隔符允许，Foundation 不赋予点号任何域名语义。
+  control character 和其他符号拒绝。相邻分隔符允许，xcss 不赋予点号任何域名语义。
 - 持久状态和 Session 必须已经 canonical，产品启动时验证但不能悄悄改写；数据库应同时建立同义 CHECK。
 - Session/CSRF token 是 32-byte OS 随机数，经 URL-safe Base64 无 padding 编为 43 字符。
 - `token_hash`/`token_hash_hex` 是 SHA-256 摘要工具；只有先通过 token shape 才允许做 Session 匹配。
@@ -183,12 +183,12 @@ SHA-512 integrity 复核。任何其他写法都明确失败，不存在“未�
 | tar contains workspace | runtime dependency 声明错误 | peer 用精确版本，workspace 仅 dev/build 使用 |
 | peer resolution failure | 没同时安装显式 peer | 修正消费者依赖或 package metadata |
 | linked file rejected | package 树含 symlink/hardlink | 生成真实单链接文件；查供应链污染 |
-| admin toolchain assertion | 产品 React/Vite/Node 漂移 | 全产品同步使用精确 Foundation baseline |
+| admin toolchain assertion | 产品 React/Vite/Node 漂移 | 全产品同步使用精确 xcss baseline |
 
 ### 7.4 Server 与 Web 的统一构建
 
-从 Foundation `0.10.8` 起，带 Web 的 Server component 必须声明 `embedded-web` capability，并提供
-`foundation-web-build.json`。`xcss-build-server --mode release` 依次执行 npm 锁定安装、前端构建、
+从 xcss `0.10.8` 起，带 Web 的 Server component 必须声明 `embedded-web` capability，并提供
+`xcss-web-build.json`。`xcss-build-server --mode release` 依次执行 npm 锁定安装、前端构建、
 规范目标 Rust 编译及实际二进制的 `web-assets` 验收；构建命令来自发布包 `@xcss/web-toolchain`。
 Web 输出路径通过 `XCSS_WEB_DIST` 传给 Vite/native preset 和 Rust build script，避免各产品各自猜测
 目录和先后顺序。Rust package 在 runtime 和 build-dependencies 中都使用同一精确版本的
@@ -210,7 +210,7 @@ script 与共同 crate 依赖。历史版本按历史声明接受检查，报告
 
 ## 8. Rust crate 消费与排障
 
-Foundation 当前不要求 crates.io 在线依赖。正式消费者使用 release tag 对应完整 commit：
+xcss 当前不要求 crates.io 在线依赖。正式消费者使用 release tag 对应完整 commit：
 
 ```toml
 xcss-admin-auth = {
@@ -250,12 +250,12 @@ xcss-admin-auth = {
 |---|---|
 | `product` | 6 个真实产品仓库之一的产品标识 |
 | `commit` | 本次评估采用的已提交消费者基线，必须是完整 SHA |
-| `foundation_version` | 该提交采用的 Foundation 版本；未集成为 null |
+| `xcss_version` | 该提交采用的 xcss 版本；未集成为 null |
 | `packages` | 直接采用的组件，不列传递依赖 |
 | `status` | not-migrated / migration-in-progress / conforming / non-conforming / temporary-exception |
 | `exceptions` | 非 conforming 状态对应的显式例外编号；conforming 必须为空 |
 
-发布前本地 path/file 联调最多标 `migration-in-progress`；Foundation release 后，将消费者换成 Git rev/tgz、
+发布前本地 path/file 联调最多标 `migration-in-progress`；xcss release 后，将消费者换成 Git rev/tgz、
 重建 lock、完整验证并提交，才能标 `conforming`。若 CI 后来失败，应真实标 `non-conforming`；存在有效迁移
 例外时标 `temporary-exception`，不能保留过期绿色状态。
 
@@ -281,7 +281,7 @@ YAML anchor 和 action outside steps。修改 workflow policy 时必须同时新
 - 全部质量门通过；
 - 版本与工具链事实源一致；
 - 至少一个会实际触发本次改动的真实消费者完成发布前联调；若改动跨语言 wire、认证、Schema 算法或 Web
-  runtime，必须覆盖至少两个不同产品，不能用 Foundation 自测替代消费者证据；
+  runtime，必须覆盖至少两个不同产品，不能用 xcss 自测替代消费者证据；
 - 24 个 Rust crate 的真实 Cargo package 清单均携带审核过的根 `LICENSE`；
 - GitHub 不存在同名 tag/release；
 - tag `v1.0.0` 精确指向当前 HEAD，source revision 为完整小写 SHA。
@@ -301,22 +301,22 @@ python3 scripts/build-release-assets.py \
 xcss-release/
 ├─ release-tree.json
 └─ artifacts/
-   ├─ xcss-admin-web-0.11.7.tgz
-   ├─ xcss-admin-shell-0.11.7.tgz
-   ├─ xcss-admin-ui-0.11.7.tgz
-   ├─ xcss-contracts-0.11.7.tgz
-   ├─ xcss-design-tokens-0.11.7.tgz
-   ├─ xcss-http-client-0.11.7.tgz
-   ├─ xcss-web-fonts-0.11.7.tgz
-   ├─ xcss-web-toolchain-0.11.7.tgz
-   ├─ xcss-release-tool-0.11.7.tar.gz
+   ├─ xcss-admin-web-1.0.0.tgz
+   ├─ xcss-admin-shell-1.0.0.tgz
+   ├─ xcss-admin-ui-1.0.0.tgz
+   ├─ xcss-contracts-1.0.0.tgz
+   ├─ xcss-design-tokens-1.0.0.tgz
+   ├─ xcss-http-client-1.0.0.tgz
+   ├─ xcss-web-fonts-1.0.0.tgz
+   ├─ xcss-web-toolchain-1.0.0.tgz
+   ├─ xcss-release-tool-1.0.0.tar.gz
    ├─ state-contract.json
    ├─ release-identity.json
    ├─ build-inventory.json
    └─ SHA256SUMS
 ```
 
-Foundation state contract 的 `schema=null`，lock/resource/external/companion 数组为空，因为本仓无运行时状态。
+xcss state contract 的 `schema=null`，lock/resource/external/companion 数组为空，因为本仓无运行时状态。
 release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool bundle 固定 mtime/owner/group/mode和
 排序；inventory 描述精确 toolchain、两个 lockfile hash、24 个 crate、8 个 package 和已生成资产。
 
@@ -360,9 +360,9 @@ release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool 
 ## 14. 依赖更新
 
 每次依赖更新单独提交并记录：上游源码/公告、license、启用 feature/default、Rust MSRV/Node engine、native
-dependency、bundle/compile size、API 行为和消费者影响。更新顺序：Foundation manifest/lock → Foundation
+dependency、bundle/compile size、API 行为和消费者影响。更新顺序：xcss manifest/lock → xcss
 全门禁 → package tarball → consumer matrix 中所有采用者 → 独立产品 release 验证。若消费者仍调用被删
-API，应同步升级消费者；不得在 Foundation 添加 alias 维持另一代。
+API，应同步升级消费者；不得在 xcss 添加 alias 维持另一代。
 
 ### 15.1 通用处置
 
@@ -377,7 +377,7 @@ API，应同步升级消费者；不得在 Foundation 添加 alias 维持另一�
 
 若问题涉及 Argon2 policy、随机 token、same-origin/CSRF 或管理员合同，应同时审计全部消费者的：启动时
 持久凭据验证、登录限流、Cookie flags、Session TTL/撤销、全部原始 header 收集、HTTP2 authority、Web
-内存 Session 和 stale-response 竞态。Foundation 修复库并不自动修复已编译产品，必须逐产品发布。
+内存 Session 和 stale-response 竞态。xcss 修复库并不自动修复已编译产品，必须逐产品发布。
 
 ### 15.3 供应链事件
 
@@ -392,7 +392,7 @@ Schema/fixture、consumer matrix 和文档。registry cache、`node_modules`、`
 
 建议每个发布周期至少执行：从空缓存 locked install；全部包的真实 tgz 离线安装；release-tree 回下载验证；所有
 consumer matrix 项状态复核；完整 SHA action 与权限扫描；旧名称/current-only 扫描；管理员合同/Server
-target 跨产品抽查。Foundation 无业务数据，所以不得把产品 backup 文件复制进本仓或 Release。
+target 跨产品抽查。xcss 无业务数据，所以不得把产品 backup 文件复制进本仓或 Release。
 
 ## 当前认证与发布验收
 

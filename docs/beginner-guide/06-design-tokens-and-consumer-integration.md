@@ -78,7 +78,7 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 4. 产品情境下对比度和forced-colors如何验证？
 5. 删除后消费者具体需要复制什么？
 
-例如`--xcss-color-bg-panel`是跨页面语义候选；`--sentinel-camera-offline-card`明显属于Sentinel。
+例如`--xcss-color-bg-panel`是跨页面语义候选；`--xcos-camera-offline-card`明显属于xcos。
 
 ## 6.7 消费者采用组件
 
@@ -90,15 +90,15 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 - `@xcss/design-tokens`；
 - 精确React/React DOM和Vite/TypeScript peers。
 
-本地联调可暂用`file:../../../xcss/packages/...`。Foundation release后必须替换为GitHub Release
-中不可变tgz URL，重建`package-lock.json`，再把整个产品复制到没有sibling Foundation的checkout验证。
+本地联调可暂用`file:../../../xcss/packages/...`。xcss release后必须替换为GitHub Release
+中不可变tgz URL，重建`package-lock.json`，再把整个产品复制到没有sibling xcss的checkout验证。
 
 ## 6.8 Rust消费者采用组件
 
 按最小需要选crate。一个只需Schema fingerprint的rusqlite工具不应引入`xcss-sqlite`；客户端crate不应
 引入`xcss-server-target`；只做错误输出的service adapter可以仅用`xcss-error`。
 
-本地path联调后改成Foundation release commit完整rev与`version="=0.10.0"`。Git branch、短SHA和永久path都
+本地path联调后改成xcss release commit完整rev与`version="=0.10.0"`。Git branch、短SHA和永久path都
 不能提供不可变来源。
 
 ## 6.9 产品边界不能在接入时丢失
@@ -108,11 +108,11 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 - Sunshine仍必须验证上游TLS证书；
 - Server release仍检查产品specific路径、mode、ELF和self-binding；
 - SQLite打开前仍做no-follow、owner/mode和实例锁；
-- Sentinel仍验证MediaMTX companion；
+- xcos仍验证MediaMTX companion；
 - Media仍管理文件树两阶段提交；
-- Host Client仍维护跨平台spool与配对协议。
+- xsoc仍维护跨平台spool与配对协议。
 
-若共享helper比产品旧实现弱，应缩小采用范围或加强Foundation，而不是降低产品测试。
+若共享helper比产品旧实现弱，应缩小采用范围或加强xcss，而不是降低产品测试。
 
 ## 6.10 Xczs例外怎样接入
 
@@ -129,7 +129,7 @@ tar inventory必须证明旧产物不在dist/tgz。若消费者仍使用旧名�
 ## 6.12 本章练习
 
 1. 在最小HTML中验证scope内外box-sizing差异。
-2. 列出产品品牌变量与Foundation semantic token各三个例子。
+2. 列出产品品牌变量与xcss semantic token各三个例子。
 3. 用浏览器模拟dark、reduced motion和forced colors，记录仍需产品负责的缺口。
 4. 为一个consumer写本地file阶段与不可变tgz阶段的检查清单。
-5. 解释为什么Xczs不迁React仍可算完成Foundation认证统一。
+5. 解释为什么Xczs不迁React仍可算完成xcss认证统一。

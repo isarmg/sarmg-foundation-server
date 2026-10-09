@@ -1,6 +1,6 @@
 # Profile 与 Capability 规范
 
-Profile 是 Foundation 发布并验证过的有限能力组合。产品的 `xcss-product.toml` 必须为每个组件选择一个
+Profile 是 xcss 发布并验证过的有限能力组合。产品的 `xcss-product.toml` 必须为每个组件选择一个
 Profile，并声明该 Profile 的全部必选 Capability；只能追加 Profile 明确允许的可选 Capability。
 
 第一代 Profile 是：`server-control-plane`、`server-filesystem`、

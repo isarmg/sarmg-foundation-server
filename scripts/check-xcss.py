@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that Foundation describes exactly one current release."""
+"""Validate that xcss describes exactly one current release."""
 
 from __future__ import annotations
 
@@ -10,15 +10,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 
-from foundation_policy import (  # noqa: E402
+from xcss_policy import (  # noqa: E402
     CURRENT_VERSION,
-    FoundationPolicyError,
+    XcssPolicyError,
     check_repository,
 )
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="check-foundation.py")
+    parser = argparse.ArgumentParser(prog="check-xcss.py")
     parser.add_argument("--version", action="version", version=f"%(prog)s {CURRENT_VERSION}")
     parser.add_argument(
         "--root",
@@ -28,10 +28,10 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
     try:
         check_repository(arguments.root)
-        print(f"foundation policy: passed {arguments.root}")
+        print(f"xcss policy: passed {arguments.root}")
         return 0
-    except (OSError, FoundationPolicyError) as error:
-        print(f"foundation policy: FAILED: {error}", file=sys.stderr)
+    except (OSError, XcssPolicyError) as error:
+        print(f"xcss policy: FAILED: {error}", file=sys.stderr)
         return 1
 
 

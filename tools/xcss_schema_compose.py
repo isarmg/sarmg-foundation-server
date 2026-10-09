@@ -152,7 +152,7 @@ def _reject_product_reserved_objects(product_sql: str, product_path: Path) -> No
     if objects:
         rendered = ", ".join(f"{kind} {name}" for kind, name in objects)
         raise ComposeError(
-            f"{product_path}: product DDL uses Foundation-reserved objects: {rendered}"
+            f"{product_path}: product DDL uses xcss-reserved objects: {rendered}"
         )
 
 

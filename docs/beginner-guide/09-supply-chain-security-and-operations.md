@@ -2,7 +2,7 @@
 
 ## 9.1 为什么共享库事件影响更大
 
-Foundation代码会被编译进多个Server和Web，一个认证或package漏洞不会表现为“Foundation服务宕机”，而
+xcss代码会被编译进多个Server和Web，一个认证或package漏洞不会表现为“xcss服务宕机”，而
 会静默存在于每个已发布消费者。因此运维重点是不可变来源、消费者可达性、重建证据和逐产品发布。
 
 ## 9.2 威胁面地图
@@ -58,7 +58,7 @@ package release前审查真实tgz，而不是只看src。离线空目录安装�
 
 Rust crate 也不能只在 workspace 根声明 `license="Apache-2.0"`。`cargo vendor` 会把每个 crate 展平为
 独立 package；若 crate 根没有自己的普通 `LICENSE`，消费者生成第三方 notices 时不能安全借用另一个项目的
-通用文本。Foundation 因此要求 21 个 crate 各携带与根文件 byte-exact 的许可证，并用真实
+通用文本。xcss 因此要求 21 个 crate 各携带与根文件 byte-exact 的许可证，并用真实
 `cargo package --list` 证明文件确实进入分发清单。
 
 ## 9.6 Release资产复核
@@ -73,11 +73,11 @@ Release metadata/provenance应与仓库证据一起保存。
 
 若发现管理员 username 规范化、Argon2、token、same-origin、CSRF 或 admin-web 竞态问题：
 
-1. 暂停Foundation和所有消费者release；
+1. 暂停xcss和所有消费者release；
 2. 确认受影响函数、版本和产品可达路径；
 3. 检查是否已有Session/凭据需要产品级撤销或重建；
 4. 修复唯一当前实现和攻击负例；
-5. 发布新Foundation不可变版本；
+5. 发布新xcss不可变版本；
 6. 每个产品更新依赖、重建、测试并发布；
 7. 按产品运维策略撤销Session/轮换凭据；
 8. 更新consumer matrix与事件记录。
@@ -86,14 +86,14 @@ Release metadata/provenance应与仓库证据一起保存。
 
 ## 9.8 密码policy变化
 
-如果安全评审决定更改Argon2参数，新Foundation版本只接受新current policy。在线Server不同时验证两套。
+如果安全评审决定更改Argon2参数，新xcss版本只接受新current policy。在线Server不同时验证两套。
 稳定环境需要离线重新设置/转换管理员凭据，由有明确权限和审计的独立流程执行；开发期数据直接重建。
 
 不得把raw密码或hash放进日志、Release、fixture或issue。测试使用明显虚构密码和每次随机salt。
 
 ## 9.9 依赖漏洞响应
 
-确认公告对应的版本、启用feature、可达代码和native/transitive影响。修复顺序：Foundation依赖/lock→全
+确认公告对应的版本、启用feature、可达代码和native/transitive影响。修复顺序：xcss依赖/lock→全
 门禁→真实tgz→每个采用组件的consumer→产品release。没有采用受影响组件的消费者不应仅因传递猜测列入，
 consumer matrix帮助定位直接采用范围。
 
@@ -103,11 +103,11 @@ consumer matrix帮助定位直接采用范围。
 target参数、release identity、ELF machine、启动平台检查和CI matrix。不要把该制品“标best effort”；
 当前合同明确不支持，应撤下并重建正确target。
 
-客户端跨平台制品不属于该事件。先根据binary职责分类，避免误撤Host Client或移动客户端。
+客户端跨平台制品不属于该事件。先根据binary职责分类，避免误撤xsoc或移动客户端。
 
 ## 9.11 Secret边界
 
-Foundation可能接触的敏感物主要是CI/release credential，而不是产品Secret。产品管理员密码、Session token、
+xcss可能接触的敏感物主要是CI/release credential，而不是产品Secret。产品管理员密码、Session token、
 external key、数据库、摄像头URL等不应进入本仓。fixture必须使用`.test`域、确定无效的虚构key或随机临时值。
 
 Error Envelope details也不是内部诊断转储；raw上游body、SQL、PHC和token只在必要且脱敏的产品日志处理。
@@ -134,7 +134,7 @@ Error Envelope details也不是内部诊断转储；raw上游body、SQL、PHC和
 文档。最好有与GitHub/registry独立的备份位置。`node_modules`、`target`、dist和registry cache不能替代源码
 或Release备份。
 
-Foundation没有业务数据库。State/Backup合同提供机器可验证的数据描述，不定义产品操作流程。
+xcss没有业务数据库。State/Backup合同提供机器可验证的数据描述，不定义产品操作流程。
 
 ## 9.14 事件沟通
 
@@ -147,5 +147,5 @@ Foundation没有业务数据库。State/Backup合同提供机器可验证的数�
 1. 假设admin-web出现stale 401漏洞，列出从暂停发布到六个消费者重发的步骤。
 2. 比较SHA256SUMS与release-tree能分别发现什么。
 3. 评审一个使用`actions/checkout@v4`的workflow为何不合格。
-4. 区分Foundation发布Token、产品管理员密码和external key的所有者。
+4. 区分xcss发布Token、产品管理员密码和external key的所有者。
 5. 为非AMD64 Server asset事件写证据清单，同时避免误判客户端。

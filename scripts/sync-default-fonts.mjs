@@ -34,7 +34,7 @@ for (const argument of process.argv.slice(2)) {
   const snapshot = structuredClone(provenance);
   delete snapshot.assets["MapleMono.woff2"];
   delete snapshot.assets["MapleMono-Italic.woff2"];
-  snapshot.distribution = "Reviewed Server Foundation font source snapshot; published npm dependencies remain unchanged";
+  snapshot.distribution = "Reviewed Server xcss font source snapshot; published npm dependencies remain unchanged";
   await writeFile(join(destination, "provenance.json"), JSON.stringify(snapshot, null, 2) + "\n");
   await copyFile(new URL("../packages/web-fonts/scripts/verify-snapshot.mjs", import.meta.url), join(destination, "verify.mjs"));
   console.log(`${product}: synchronized ${names.length} reviewed font files`);

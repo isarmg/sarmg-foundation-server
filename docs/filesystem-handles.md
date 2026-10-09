@@ -37,5 +37,5 @@ Products may retain business-specific symlink, upload metadata, tree mutation an
 ## Remaining acceptance
 
 Server-side product staging, cross-directory publication and bounded inventories require acceptance in each adopting consumer.
-Passing Foundation Linux library tests proves only the shared primitives exercised there. Client Spool and native client
+Passing xcss Linux library tests proves only the shared primitives exercised there. Client Spool and native client
 acceptance are tracked only in xcsc, not governed by this server specification.

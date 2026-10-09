@@ -2,8 +2,8 @@
 
 ## 1. 文档目标
 
-本文描述一项能力从产品本地需求进入 Foundation、形成可发布合同、被真实产品采用并最终受运维约束的
-完整流程。Foundation 是所有产品的上游平台规范和安全下限；一次看似很小的 helper 修改可能同时改变 Server、Web、
+本文描述一项能力从产品本地需求进入 xcss、形成可发布合同、被真实产品采用并最终受运维约束的
+完整流程。xcss 是所有产品的上游平台规范和安全下限；一次看似很小的 helper 修改可能同时改变 Server、Web、
 SQLite、离线工具和发布树，所以“源码编译通过”只是中间节点，不是完成定义。
 
 ## 2. 全局流程树
@@ -11,7 +11,7 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 ```text
 提出能力
 ├─ 是否属于平台责任？
-│  └─ 是：Foundation 定义唯一规范和实现
+│  └─ 是：xcss 定义唯一规范和实现
 ├─ 是否属于已知运行形态差异？
 │  └─ 是：选择或新增产品无关 Profile/Capability
 ├─ 是否属于产品业务语义？
@@ -23,10 +23,10 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 ├─ 收集实际调用点、最强安全约束和删除后果
 ├─ 写唯一当前 API、输入上限、错误、并发和所有权
 ├─ 先同步实现、正例/负例、Schema/fixture、中文文档
-├─ 运行 Foundation 全部门禁
+├─ 运行 xcss 全部门禁
 ├─ 消费者使用本地 path/file 联调
 ├─ 修复所有消费者暴露的抽象缺陷
-├─ 发布不可变 Foundation tag 与资产
+├─ 发布不可变 xcss tag 与资产
 ├─ 消费者换成完整 Git rev / GitHub Release tgz
 ├─ 独立 checkout、无 sibling 仓库、完整产品门禁
 ├─ 产品断网运行编译后制品
@@ -44,7 +44,7 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 | 为什么属于平台 | 责任边界、适用 Profile、参考实现与负责人 | “多个项目代码看起来相似” |
 | 输入是什么 | 不可信/可信边界、编码、大小、是否可空、所有字段 | 一个理想化函数签名 |
 | 失败怎样表达 | typed error、HTTP/CLI 映射、是否可重试、是否有副作用 | 返回 `anyhow::Error` 后各自猜 |
-| 状态由谁拥有 | 数据库、Cookie、内存、文件、锁、发布树的明确所有者 | “Foundation 统一管理” |
+| 状态由谁拥有 | 数据库、Cookie、内存、文件、锁、发布树的明确所有者 | “xcss 统一管理” |
 | 最强约束是什么 | 所有消费者中的最严格规则和无法共享的产品规则 | 取最低共同实现 |
 | 删除会怎样 | 具体破坏、替代实现、消费者迁移动作 | “应该没影响” |
 | 如何验证 | 正例、边界、攻击/竞态/损坏负例、真实产品集成 | 只有 happy path 单测 |
@@ -60,12 +60,12 @@ POST /api/v1/auth/login
 ├─ xcss-contracts 解析 exact {username,password}
 ├─ normalize_administrator_username
 ├─ validate_password（12..1024 bytes，无 ASCII control）
-├─ Foundation 执行 body/IP/account/global 限流
-├─ Foundation Store 加载当前管理员记录
+├─ xcss 执行 body/IP/account/global 限流
+├─ xcss Store 加载当前管理员记录
 ├─ verify_password（只接受当前 Argon2id PHC）
 ├─ random_token 分别生成 Session/CSRF 所需随机值
-├─ Foundation Store 只持久化摘要、固定 TTL 和 Session version
-├─ Foundation HTTP Adapter 设置固定 Cookie
+├─ xcss Store 只持久化摘要、固定 TTL 和 Session version
+├─ xcss HTTP Adapter 设置固定 Cookie
 └─ 返回 exact AdministratorSession，role 固定 admin
 ```
 
@@ -88,7 +88,7 @@ POST /api/v1/auth/login
 └─ Origin authority 与有效 Host authority 精确相等
 ```
 
-Foundation 没有 forwarded-header fallback。反向代理部署必须由产品在可信代理边界内先形成一个权威外部
+xcss 没有 forwarded-header fallback。反向代理部署必须由产品在可信代理边界内先形成一个权威外部
 Host，再把完整值交给 primitive；不能让库从冲突的 `Host`、`:authority`、`X-Forwarded-*` 中挑一个。
 
 ### 4.3 Mutation 与 CSRF
@@ -103,7 +103,7 @@ Host，再把完整值交给 primitive；不能让库从冲突的 `Host`、`:aut
 ```
 
 safe method 不自动携带 CSRF。调用方不能直接设置 `X-CSRF-Token` 绕过 client 所有权；Server 不能只读取
-第一个同名 header。Cookie 名称、属性、Session TTL、撤销、并发上限和安全审计由 Foundation Profile 固定，
+第一个同名 header。Cookie 名称、属性、Session TTL、撤销、并发上限和安全审计由 xcss Profile 固定，
 产品不得覆盖。
 
 ### 4.4 角色流程
@@ -216,7 +216,7 @@ rusqlite，防止两个驱动同时链接 native SQLite，也使离线工具可�
 ```
 
 `integrity_check`、`foreign_key_check` 与 TRUNCATE checkpoint 是可组合诊断 primitive。checkpoint busy 或
-incomplete 都是失败，不能在仍有 writer/reader 时只复制 main SQLite 文件。Foundation 不执行 migration、
+incomplete 都是失败，不能在仍有 writer/reader 时只复制 main SQLite 文件。xcss 不执行 migration、
 backup、restore 或业务 transaction。
 
 ## 8. Server Target 流程
@@ -247,12 +247,12 @@ package.json + .node-version
 └─ 对实际 Server 的 web-assets 清单验收，发行只携带清单，Web 内嵌于二进制
 ```
 
-消费者目前使用 npm 与 `package-lock.json`；Foundation monorepo 使用 pnpm 与 `pnpm-lock.yaml`。共享断言不
-强制消费者改用 pnpm。Xczs 当前选择 `web-react-admin` Profile：React/Foundation 拥有登录、导航和页面
+消费者目前使用 npm 与 `package-lock.json`；xcss monorepo 使用 pnpm 与 `pnpm-lock.yaml`。共享断言不
+强制消费者改用 pnpm。Xczs 当前选择 `web-react-admin` Profile：React/xcss 拥有登录、导航和页面
 骨架，原生 ES modules 的文件业务控制器保留独占 DOM 区域；两者一同嵌入单 binary。这是明确的组件
 所有权边界，不是第二套认证或前端入口。
 
-### 9.2 Foundation package
+### 9.2 xcss package
 
 ```text
 修改 src / Schema / fixture / CSS
@@ -283,7 +283,7 @@ React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依
  -> 所有消费者视觉、键盘、高对比度和 reduced-motion 验证
 ```
 
-不得因为多个产品都使用“按钮”就把完整组件、品牌、页面 shell 或主题存储移入 Foundation。删除 token 时
+不得因为多个产品都使用“按钮”就把完整组件、品牌、页面 shell 或主题存储移入 xcss。删除 token 时
 直接删除并升级消费者，不留下重复 CSS custom property alias。
 
 ## 11. Consumer Matrix 流程
@@ -296,8 +296,8 @@ React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依
 | `non-conforming` | 已声明 Profile 但当前验证失败 | 保留真实失败状态，不伪装绿色 |
 | `temporary-exception` | 迁移期存在已登记例外 | 例外必须有期限且不得降低安全下限 |
 
-`packages` 只列消费者直接采用的 Foundation 组件，不能把传递依赖或相似本地实现算作已采用。消费者矩阵
-是独立的接入报告，不是 Foundation 自身构建、测试或发布的前置条件；新增、删除或暂时失败的产品不会阻塞
+`packages` 只列消费者直接采用的 xcss 组件，不能把传递依赖或相似本地实现算作已采用。消费者矩阵
+是独立的接入报告，不是 xcss 自身构建、测试或发布的前置条件；新增、删除或暂时失败的产品不会阻塞
 公共实现发布。需要更新报告时显式运行 `verify-consumers` 与 `generate-consumer-matrix --check`，产品行为验收仍
 在对应产品仓库完成。
 
@@ -313,7 +313,7 @@ main 工作树完全干净
 ├─ 再次运行全部门禁
 ├─ 生成 8 个 npm tgz
 ├─ 生成 deterministic xcss-release-tool tar.gz
-├─ 写 state-contract.json（Foundation 无 runtime state）
+├─ 写 state-contract.json（xcss 无 runtime state）
 ├─ SHA-256 绑定五字段 release-identity.json
 ├─ 写 toolchain/lock/component/asset build-inventory.json
 ├─ 写覆盖所有非自身 asset 的 SHA256SUMS
@@ -350,6 +350,6 @@ fixture、Schema、lockfile、package smoke、release inventory、consumer matri
 供应链、中文文档与消费者采用分别提交。提交前确认没有把 `target`、`node_modules`、`dist`、测试数据库、
 真实 Secret 或本地 release 资产带入 Git。
 
-最终交付必须同时满足：Foundation 全部门禁通过；每个消费者使用不可变依赖；各产品自己的测试和 release
+最终交付必须同时满足：xcss 全部门禁通过；每个消费者使用不可变依赖；各产品自己的测试和 release
 验证通过；Server 非 AMD64 compile-fail；Xczs 例外被明确记录；管理面只有 admin；current-only 扫描无旧
 名称/旧字段/双路径；Git 按大问题提交并推送；任何尚未完成的外部发布步骤被明确报告而不是假定成功。

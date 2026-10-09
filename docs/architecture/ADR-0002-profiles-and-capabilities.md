@@ -5,7 +5,7 @@
 
 ## 决策
 
-产品组件必须选择 Foundation 发布的有限 Profile，并只能声明该 Profile 允许的 Capability。Profile 固定
+产品组件必须选择 xcss 发布的有限 Profile，并只能声明该 Profile 允许的 Capability。Profile 固定
 安全常量、正式 target 和适配边界；产品不得自由拼装或覆盖这些政策。
 
 ## 后果

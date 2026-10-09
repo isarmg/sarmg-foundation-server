@@ -115,7 +115,7 @@ URL。产品一般创建一个全应用单例，以便共享Session、mutation q
 不要照搬以下反模式：
 
 ```ts
-// 错误：当前Foundation不允许。
+// 错误：当前xcss不允许。
 sessionStorage.setItem("csrf", session.csrf_token);
 ```
 

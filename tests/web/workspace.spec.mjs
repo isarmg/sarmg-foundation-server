@@ -6,7 +6,7 @@ test('configured admin workspace, header actions, names and consumer override',a
   const actions=page.getByRole('group',{name:"Global actions"});
   await expect(actions.getByRole('button')).toHaveCount(6);
   await expect(page.getByRole('banner').locator('.xcss-product-identity')).toBeVisible();
-  await expect(page.getByRole('banner').locator('.xcss-product-identity')).toHaveText('Foundation acceptance');
+  await expect(page.getByRole('banner').locator('.xcss-product-identity')).toHaveText('xcss acceptance');
   await expect(page.locator('.xcss-product-identity small')).toHaveCount(0);
   await expect(page.getByRole('button',{name:/诊断|Diagnostics/})).toHaveCount(0);
   for(const width of [1280,320]){

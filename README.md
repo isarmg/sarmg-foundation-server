@@ -18,7 +18,7 @@ xcss-admin-core = { git = "https://github.com/isarmg/xcss.git", rev = "<full-com
 Web 包使用仓库生成的不可变发行 tarball，并在产品锁文件中保留完整 integrity。产品还需维护 `xcss-product.toml`，由统一检查脚本核对 Profile、能力、Schema 和依赖身份：
 
 ```sh
-python3 scripts/check-foundation.py
+python3 scripts/check-xcss.py
 python3 scripts/xcss-conformance.py report \
   --product-root /absolute/path/to/product \
   --json
@@ -37,7 +37,7 @@ python3 scripts/xcss-conformance.py report \
 
 | 项目 | 版本 |
 |---|---|
-| Foundation 版本 | `1.0.0` |
+| xcss 版本 | `1.0.0` |
 | Rust | `1.99.0` |
 | Node / pnpm | `26.7.0` / `10.34.6` |
 
@@ -46,7 +46,7 @@ python3 scripts/xcss-conformance.py report \
 ## 开发验证
 
 ```sh
-python3 scripts/check-foundation.py
+python3 scripts/check-xcss.py
 cargo +1.99.0 fmt --all -- --check
 cargo +1.99.0 test --locked --workspace --all-targets --all-features
 cargo +1.99.0 clippy --locked --workspace --all-targets --all-features -- -D warnings

@@ -37,7 +37,7 @@ def _write_matrix(root: Path, *, check: bool) -> dict[str, Any]:
 
 
 def _product_check(arguments: argparse.Namespace, check: Check) -> dict[str, Any]:
-    return check(arguments.product_root.resolve(strict=True), arguments.foundation_root.resolve(strict=True))
+    return check(arguments.product_root.resolve(strict=True), arguments.xcss_root.resolve(strict=True))
 
 
 def _report(arguments: argparse.Namespace) -> tuple[dict[str, Any], bool]:
@@ -62,9 +62,9 @@ def _report(arguments: argparse.Namespace) -> tuple[dict[str, Any], bool]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    default_foundation = Path(__file__).resolve().parents[2]
+    default_xcss = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser(prog="xcss-conformance")
-    parser.add_argument("--foundation-root", type=Path, default=default_foundation)
+    parser.add_argument("--xcss-root", type=Path, default=default_xcss)
     subparsers = parser.add_subparsers(dest="command", required=True)
     for name in ("verify-manifest", "verify-source", "verify-schema", "verify-web", "verify-release", "report"):
         child = subparsers.add_parser(name)
@@ -73,18 +73,18 @@ def main(argv: list[str] | None = None) -> int:
             child.add_argument("--require-published", action="store_true")
         if name == "report":
             child.add_argument("--json", action="store_true", dest="as_json")
-    subparsers.add_parser("verify-foundation")
+    subparsers.add_parser("verify-xcss")
     subparsers.add_parser("verify-consumers")
     generate = subparsers.add_parser("generate-consumer-matrix")
     generate.add_argument("--check", action="store_true")
     arguments = parser.parse_args(argv)
     try:
-        if arguments.command == "verify-foundation":
-            result = verify_foundation(arguments.foundation_root.resolve(strict=True))
+        if arguments.command == "verify-xcss":
+            result = verify_foundation(arguments.xcss_root.resolve(strict=True))
         elif arguments.command == "verify-consumers":
-            result = verify_consumer_registry(arguments.foundation_root.resolve(strict=True))
+            result = verify_consumer_registry(arguments.xcss_root.resolve(strict=True))
         elif arguments.command == "generate-consumer-matrix":
-            result = _write_matrix(arguments.foundation_root.resolve(strict=True), check=arguments.check)
+            result = _write_matrix(arguments.xcss_root.resolve(strict=True), check=arguments.check)
         elif arguments.command == "report":
             result, ok = _report(arguments)
             print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         elif arguments.command == "verify-release":
             result = verify_release(
                 arguments.product_root.resolve(strict=True),
-                arguments.foundation_root.resolve(strict=True),
+                arguments.xcss_root.resolve(strict=True),
                 require_published=arguments.require_published,
             )
         else:

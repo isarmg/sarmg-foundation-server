@@ -34,7 +34,7 @@ Session。
 TypeScript `7.0.2`、`@types/node` `26.6.4`、`@types/react` `19.3.0`、`@types/react-dom` `19.3.0`。版本范围、caret、tilde 或同一
 工具链版本漂移由 `@xcss/web-toolchain` 的精确断言拒绝。
 
-Foundation 定义 Cookie、密码散列、Session、限流和安全审计；产品负责挂载、初始化和能力选择，以及业务 guard、
+xcss 定义 Cookie、密码散列、Session、限流和安全审计；产品负责挂载、初始化和能力选择，以及业务 guard、
 路由、页面、品牌和可访问性验收。本包没有 viewer/operator、多角色、SSO、token 持久化或旧 API fallback。
 
 退出立即关闭本地授权。网络或服务器错误保留内存中的撤销目标，`logout()` 可主动重试；不无限重试、不写浏览器存储，也不恢复业务页面。只有确认注销或明确失效才清理上下文。

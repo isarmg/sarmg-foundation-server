@@ -34,7 +34,7 @@ consumer调用；不添加deprecated wrapper、alias、dual parser、版本协�
 `@xcss/http-client`把contracts作为精确peer；`admin-web`把contracts/http-client与React/Vite需要项作为精确
 peer。这样消费者明确拥有依赖，不会因某个包内部悄悄嵌入另一版本而出现两份合同。
 
-Foundation workspace 中的 `workspace:0.10.0` 只用于 dev/build。发布 tar manifest 不能含 workspace 协议；真实
+xcss workspace 中的 `workspace:0.10.0` 只用于 dev/build。发布 tar manifest 不能含 workspace 协议；真实
 consumer必须同时安装所需tgz。
 
 ## 7.5 Rust消费版本
@@ -49,7 +49,7 @@ xcss-contracts = {
 }
 ```
 
-完整rev绑定Git对象，exact version防止选错workspace package。更新Foundation时明确改rev/version并重建
+完整rev绑定Git对象，exact version防止选错workspace package。更新xcss时明确改rev/version并重建
 Cargo.lock；不要只改lock让源码看不出依赖变化。
 
 ## 7.6 Web消费版本
@@ -72,7 +72,7 @@ Cargo.lock；不要只改lock让源码看不出依赖变化。
 └─ release-tree.json（在artifacts树外）
 ```
 
-Foundation无runtime状态，所以state contract的schema为null，资源/锁/外部要求/companion为空。identity target
+xcss无runtime状态，所以state contract的schema为null，资源/锁/外部要求/companion为空。identity target
 默认`source-any`；这不改变消费者Server只允许AMD64的规则。
 
 ## 7.8 Deterministic tool bundle
@@ -99,7 +99,7 @@ trigger只有`v*`tag push。action锁完整SHA，checkout不持久credential，r
 
 ```text
 发布前
-Foundation代码/测试 -> 消费者本地path/file -> integration-pending
+xcss代码/测试 -> 消费者本地path/file -> integration-pending
 
 发布
 immutable tag + assets
@@ -113,8 +113,8 @@ immutable tag + assets
 
 ## 7.12 回退策略
 
-若新Foundation版本有问题，不修改已发布版本。消费者可以在源码依赖层回退到此前不可变版本并重建产品，
-同时开发新的修复版本。运行时不同时加载两代Foundation做兼容；package版本不能代替持久状态身份检查。
+若新xcss版本有问题，不修改已发布版本。消费者可以在源码依赖层回退到此前不可变版本并重建产品，
+同时开发新的修复版本。运行时不同时加载两代xcss做兼容；package版本不能代替持久状态身份检查。
 
 ## 7.13 发布证据
 

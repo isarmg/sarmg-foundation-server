@@ -1,6 +1,6 @@
 [package]
 name = "xcss-testkit"
-description = "Reusable conformance assertions for Foundation adapters and consumers"
+description = "Reusable conformance assertions for xcss adapters and consumers"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

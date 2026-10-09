@@ -1,31 +1,31 @@
 # 01. 项目定位、硬边界与目录
 
-## 1.1 为什么需要 Foundation
+## 1.1 为什么需要 xcss
 
 多个产品都会遇到“看起来很基础”的问题：管理员密码怎样散列、Session token怎样编码、浏览器如何严格
 同源、错误 JSON 长什么样、SQLite Schema怎样绑定产品身份、React/Vite用哪个精确版本、发行树怎样证明
 没有被替换。如果每个仓库都独立实现，几个月后通常会产生不同长度、不同错误、不同fallback和不同测试。
 
-Foundation 的目标不是消灭所有重复，而是共享那些已经被至少两个真实产品证明具有相同语义的最小能力。
+xcss 的目标不是消灭所有重复，而是共享那些已经被至少两个真实产品证明具有相同语义的最小能力。
 共享收益必须大于耦合成本；页面、业务数据库、外部设备、进程生命周期和数据面协议仍留在产品。
 
 ## 1.2 Build-time 模型
 
 ```text
 开发/CI时
-产品源码 -> 锁定Foundation commit/tgz -> 编译/打包 -> 产品制品
+产品源码 -> 锁定xcss commit/tgz -> 编译/打包 -> 产品制品
 
 生产运行时
 用户/客户端 -> 产品制品
-                  X 不连接Foundation
+                  X 不连接xcss
                   X 不访问npm registry
                   X 不依赖GitHub在线
 ```
 
 这带来两个重要结果：
 
-1. Foundation 仓库或 registry 故障不会影响已经部署的产品；
-2. Foundation 修复不会自动进入生产，每个消费者必须更新精确依赖、重建、验证和重新发布。
+1. xcss 仓库或 registry 故障不会影响已经部署的产品；
+2. xcss 修复不会自动进入生产，每个消费者必须更新精确依赖、重建、验证和重新发布。
 
 它与“中央身份平台”完全不同。共享的管理员认证是库和wire合同，不是所有产品登录同一个账户数据库。
 
@@ -71,7 +71,7 @@ docs/                仅五类中文文档
 ```
 
 为什么没有 `clients/`？因为 npm package 是被产品构建消费的库，不是本仓运行的产品客户端。为什么没有
-`config/` 和 `deploy/`？因为 Foundation 没有daemon、systemd或运行配置。
+`config/` 和 `deploy/`？因为 xcss 没有daemon、systemd或运行配置。
 
 ## 1.5 “统一”到底统一什么
 
@@ -117,7 +117,7 @@ x86_64 + linux + gnu + 64-bit
 ## 1.8 Xczs前端例外
 
 Xczs原生ES modules与Rust binary一起嵌入，文件管理交互和测试体系已经围绕这一形态建立。把它迁到React
-只会增加重写风险，不会改善统一认证的核心目标。因此Xczs保留原生前端，但Server登录仍返回Foundation
+只会增加重写风险，不会改善统一认证的核心目标。因此Xczs保留原生前端，但Server登录仍返回xcss
 AdministratorSession，密码/token/same-origin/CSRF仍用同一Rust primitive。例外必须是可解释的产品边界，
 不是随意漂移。
 
@@ -135,6 +135,6 @@ AdministratorSession，密码/token/same-origin/CSRF仍用同一Rust primitive�
 
 1. 在根 manifest 中列出24个crate 和 8 个 package，并为每个写一个“不负责”项。
 2. 从一个产品中找出管理员身份与数据面credential，解释为何二者不能合并。
-3. 画出产品build时与production runtime时Foundation是否在线的两张图。
+3. 画出产品build时与production runtime时xcss是否在线的两张图。
 4. 解释Xczs为何是前端例外、客户端多架构为何不是Server target例外。
 5. 从功能台账任选一个“保障”项，写出删除后的具体攻击或故障路径。

@@ -14,7 +14,7 @@ pub use windows_rotating::{RotatingLogFile, WindowsLogAccess};
 #[cfg(feature = "tracing")]
 mod tracing_layer;
 #[cfg(feature = "tracing")]
-pub use tracing_layer::FoundationStructuredLayer;
+pub use tracing_layer::XcssStructuredLayer;
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};

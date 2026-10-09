@@ -210,7 +210,7 @@ mod tests {
                     .collect::<Vec<_>>()
                     .join(",")
             );
-            // Test-owned schema initialized from the fixed Foundation DDL;
+            // Test-owned schema initialized from the fixed xcss DDL;
             // table and identifier names cannot come from a submitted value.
             let rows = sqlx::query(sqlx::AssertSqlSafe(sql.as_str()))
                 .fetch_all(pool)

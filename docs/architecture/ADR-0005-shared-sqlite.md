@@ -5,7 +5,7 @@
 
 ## 决策
 
-`server-control-plane` 的平台表与产品业务表组合进同一 SQLite Schema。Foundation 独占 `_xcss_*` 名称，
+`server-control-plane` 的平台表与产品业务表组合进同一 SQLite Schema。xcss 独占 `_xcss_*` 名称，
 产品维护 `schema/product.sql`，Schema Composer 生成完整 current Schema 和 fingerprint。
 
 ## 后果

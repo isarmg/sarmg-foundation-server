@@ -1,4 +1,4 @@
-//! Transactional persistent implementation of the Foundation administrator store.
+//! Transactional persistent implementation of the xcss administrator store.
 
 mod management;
 
@@ -38,7 +38,7 @@ impl SqliteAdministratorStore {
         Ok(deleted.rows_affected())
     }
 
-    /// Validates every stored administrator against the current Foundation
+    /// Validates every stored administrator against the current xcss
     /// identity and password-hash contract before a server starts accepting
     /// requests.
     pub async fn validate_all_administrators(&self) -> Result<(), Error> {

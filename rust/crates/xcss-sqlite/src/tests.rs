@@ -8,7 +8,7 @@ fn test_identity(schema_sha256: String) -> Result<SchemaIdentity, SchemaIdentity
 async fn explicit_creation_applies_pragmas_to_every_connection_and_reopens()
 -> Result<(), Box<dyn std::error::Error>> {
     let directory = tempfile::tempdir()?;
-    let database_path = directory.path().join("foundation.sqlite3");
+    let database_path = directory.path().join("xcss.sqlite3");
     let options = PoolOptions::new(2).with_min_connections(2);
     let pool = create_if_missing(&database_path, options.clone()).await?;
 

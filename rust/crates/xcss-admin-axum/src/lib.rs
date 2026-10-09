@@ -1,4 +1,4 @@
-//! Axum wire adapter for the Foundation-owned administrator endpoints.
+//! Axum wire adapter for the xcss-owned administrator endpoints.
 
 mod body;
 mod management;
@@ -24,7 +24,7 @@ use xcss_contracts::{
 
 /// Identifies an already-normalized platform response to outer product layers.
 #[derive(Clone, Copy, Debug)]
-pub struct FoundationErrorResponse;
+pub struct XcssErrorResponse;
 
 /// In-process access-log metadata produced only after successful authentication.
 /// Never contains a credential and is not serialized into response headers.
@@ -597,7 +597,7 @@ fn error(
         details: Default::default(),
     };
     let mut response = no_store((status, axum::Json(envelope)).into_response());
-    response.extensions_mut().insert(FoundationErrorResponse);
+    response.extensions_mut().insert(XcssErrorResponse);
     response
 }
 
@@ -840,7 +840,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn successful_login_uses_foundation_cookie_and_contract() {
+    async fn successful_login_uses_xcss_cookie_and_contract() {
         let response = router()
             .oneshot(request(
                 Method::POST,

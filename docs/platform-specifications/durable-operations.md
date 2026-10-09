@@ -1,6 +1,6 @@
 # Durable Operations 当前接口
 
-业务只提供目标、请求/结果、执行器，以及确定失败是否可重试的分类。Foundation 拥有状态、领取、attempt、
+业务只提供目标、请求/结果、执行器，以及确定失败是否可重试的分类。xcss 拥有状态、领取、attempt、
 租约、幂等和审计 outbox。Unknown 绝不自动重放；同一 namespace/target 的 Running 或 Unknown 阻止后续领取。
 
 ## 事务与 fencing

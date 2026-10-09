@@ -191,7 +191,7 @@ fn changed_acl_poisoning_refuses_append_and_exposes_layer_failure() {
     #[cfg(feature = "tracing")]
     {
         use tracing_subscriber::prelude::*;
-        let layer = crate::FoundationStructuredLayer::new("test-service")
+        let layer = crate::XcssStructuredLayer::new("test-service")
             .unwrap()
             .with_rotating_file(sink);
         let counter = layer.clone();
@@ -335,7 +335,7 @@ fn process_sink_helper() {
     let sink = RotatingLogFile::create_private(&path, "service", limits()).unwrap();
     crate::install_rotating_file(sink).unwrap();
     record("instance").emit().unwrap();
-    let layer = crate::FoundationStructuredLayer::new("test-service").unwrap();
+    let layer = crate::XcssStructuredLayer::new("test-service").unwrap();
     let counter = layer.clone();
     tracing::subscriber::with_default(tracing_subscriber::registry().with(layer), || {
         tracing::info!(

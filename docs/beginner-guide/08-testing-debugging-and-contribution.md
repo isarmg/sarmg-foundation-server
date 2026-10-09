@@ -68,7 +68,7 @@ primitive单元测试
 - URL path/query/fragment/userinfo/opaque origin；
 - CSRF missing/duplicate/noncanonical/mismatch。
 
-产品集成必须从真实framework HeaderMap/Request构造，不能只测Foundation byte slice函数。
+产品集成必须从真实framework HeaderMap/Request构造，不能只测xcss byte slice函数。
 
 ## 8.4 Admin Web竞态测试
 
@@ -140,7 +140,7 @@ current mismatch和实际fingerprint drift。
    └─ sibling path假成功 -> immutable rev/tgz独立checkout
 ```
 
-先找到层，不要在产品加path hack或在Foundation放宽合同掩盖真实错误。
+先找到层，不要在产品加path hack或在xcss放宽合同掩盖真实错误。
 
 ## 8.9 新共享能力提案模板
 

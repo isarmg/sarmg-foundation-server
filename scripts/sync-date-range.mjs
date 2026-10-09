@@ -18,5 +18,5 @@ for (const product of ["xsos", "xscs", "xcos", "xszs"]) {
       if (await readFile(new URL(name, directory), "utf8") !== expected) throw new Error(`${product}: outdated date range snapshot ${name}`);
     }
   }
-  console.log(`${product}: Foundation date range snapshot ${process.argv.includes("--write") ? "updated" : "verified"}`);
+  console.log(`${product}: xcss date range snapshot ${process.argv.includes("--write") ? "updated" : "verified"}`);
 }

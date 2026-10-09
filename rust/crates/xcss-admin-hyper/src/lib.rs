@@ -1,5 +1,5 @@
 //! Hyper integration for the exact administrator semantics implemented by the
-//! Foundation Axum router. The wrapper adapts only body and peer-address types;
+//! xcss Axum router. The wrapper adapts only body and peer-address types;
 //! it intentionally owns no second authentication handler implementation.
 
 use axum::{
@@ -13,7 +13,7 @@ use http_body::Body as HttpBody;
 use std::{net::SocketAddr, sync::Arc};
 use tower::ServiceExt;
 use xcss_admin_auth::AdministratorOriginMode;
-pub use xcss_admin_axum::{FoundationErrorResponse, VerifiedAdministrator, authenticate_request};
+pub use xcss_admin_axum::{VerifiedAdministrator, XcssErrorResponse, authenticate_request};
 use xcss_admin_core::{AdministratorService, AdministratorStore};
 
 #[derive(Clone, Debug)]

@@ -1010,7 +1010,7 @@ pub enum Error {
     InvalidIdentifier,
     #[error("product ID is not canonical")]
     InvalidProductId,
-    #[error("session token is not one canonical Foundation token")]
+    #[error("session token is not one canonical xcss token")]
     InvalidSessionToken,
     #[error("timestamp does not fit the persisted signed 64-bit representation")]
     InvalidTimestamp,

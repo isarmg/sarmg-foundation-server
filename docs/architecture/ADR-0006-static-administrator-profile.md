@@ -6,7 +6,7 @@
 ## 决策
 
 `server-filesystem` 使用通用静态管理员 Store：配置提供当前 PHC 账户，Session 仅存内存并在重启后失效；
-认证政策、限流、Cookie 和 Auth Router 仍由 Foundation 拥有。
+认证政策、限流、Cookie 和 Auth Router 仍由 xcss 拥有。
 
 ## 后果
 

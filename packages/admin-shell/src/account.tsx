@@ -70,7 +70,7 @@ function AccountForm({ client, username, onUpdated }: { client: AdministratorApi
     setPending(true);
     setFailure(null);
     try {
-      // Foundation verifies the current password and updates the account atomically.
+      // xcss verifies the current password and updates the account atomically.
       await client.updateAccount({ username: String(data.get("username")), current_password: String(data.get("current_password")),
         ...(password ? { new_password: password } : {}) });
       form.reset();

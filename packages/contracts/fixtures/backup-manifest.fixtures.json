@@ -35,7 +35,7 @@
     {
       "manifest_version": 1,
       "tool_version": "0.3.0",
-      "product": "media-backup",
+      "product": "xszs",
       "application_version": "0.3.0",
       "schema_identity": null,
       "created_at_epoch_seconds": 0,

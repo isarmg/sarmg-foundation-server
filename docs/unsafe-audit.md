@@ -1,6 +1,6 @@
 # 原生 unsafe 审查
 
-本次审查针对 Foundation Server 自有 Rust 源码。第三方库内部的 unsafe 不算作本仓实现；依赖的来源和版本由根 `Cargo.toml` 与 `Cargo.lock` 控制。
+本次审查针对 xcss 自有 Rust 源码。第三方库内部的 unsafe 不算作本仓实现；依赖的来源和版本由根 `Cargo.toml` 与 `Cargo.lock` 控制。
 
 ## 默认规则
 
@@ -20,7 +20,7 @@
 
 ## 本轮验证与边界
 
-Rust 1.99.0 macOS 已执行更新后的认证、错误、合同、秘密封装、Schema、SQLite 与日志八个 crate 的测试，66 项通过。Python 工具测试与 Foundation 一致性检查另行执行。Windows 日志和 Linux 完整 workspace 已通过包含测试源码的交叉 clippy；Web 包构建、类型、73 项单元测试、Chromium/Firefox 的 44 项真实浏览器测试和八个 tarball 的隔离安装及 41 个公开 export smoke 通过。
+Rust 1.99.0 macOS 已执行更新后的认证、错误、合同、秘密封装、Schema、SQLite 与日志八个 crate 的测试，66 项通过。Python 工具测试与 xcss 一致性检查另行执行。Windows 日志和 Linux 完整 workspace 已通过包含测试源码的交叉 clippy；Web 包构建、类型、73 项单元测试、Chromium/Firefox 的 44 项真实浏览器测试和八个 tarball 的隔离安装及 41 个公开 export smoke 通过。
 
 完整 Linux workspace 测试和 Windows 原生日志测试须在对应系统执行。本文件不以交叉检查或本地 smoke 代替正式发行及真实目标系统验收。
 
@@ -28,9 +28,9 @@ Rust 1.99.0 macOS 已执行更新后的认证、错误、合同、秘密封装�
 
 `rust/crates/xcss-log/src/windows_rotating.rs` 的共享 descriptor/ACL 读取与验证增加 `WindowsLogAccess` 策略；产品仍不复制原生日志或 ACL 实现。SDDL 仅由固定 owner、固定权限和长度不超过 64 的规范 SCM SID 组成，不接受任意用户或表达式。原生 allocation、SID、ACL 和句柄继续由既有 RAII 管理，指针借用不超过 descriptor 生命周期。每个 ACE 在转为 SID 前检查 header、类型和变长大小，再逐项核对 trustee、mask 与继承标志；保留 READ_CONTROL 而不授予 owner 隐式 WRITE_DAC。
 
-服务角色与现有当前用户角色使用同一轮转和防重解析实现。LocalService owner、service SID 限定权限及 OWNER RIGHTS 是实际 Host MSI 合同，不通过产品发行版本推断。安全替代是消费此共享策略接口；标准文件 API 无法声明或校验上述 Windows DACL，不能通过弱化权限取得零 unsafe。
+服务角色与现有当前用户角色使用同一轮转和防重解析实现。LocalService owner、service SID 限定权限及 OWNER RIGHTS 是实际 xsoc MSI 合同，不通过产品发行版本推断。安全替代是消费此共享策略接口；标准文件 API 无法声明或校验上述 Windows DACL，不能通过弱化权限取得零 unsafe。
 
-新增原生测试只在临时树调整故意不安全的 ACL，并在受限 token 下实际申请数据读取与 WRITE_DAC。另从已打开的真实文件取得 owner/group/DACL，读取实际线程 impersonation token 并核对其用户就是文件 owner；使用文件权限映射执行 AccessCheck，独立证明 READ_CONTROL 授予而 WRITE_DAC 和 FILE_READ_DATA 拒绝，避免路径遍历及文件打开条件掩盖 OWNER RIGHTS。原生输出缓冲区按类型对齐、长度受限，descriptor 与 token 保持有效；impersonation guard 在清理前恢复线程身份。GNU strict Clippy 证明目标源码边界；真实 Windows 执行和 SCM 角色分别等待 Foundation/Host 最终 Source CI。
+新增原生测试只在临时树调整故意不安全的 ACL，并在受限 token 下实际申请数据读取与 WRITE_DAC。另从已打开的真实文件取得 owner/group/DACL，读取实际线程 impersonation token 并核对其用户就是文件 owner；使用文件权限映射执行 AccessCheck，独立证明 READ_CONTROL 授予而 WRITE_DAC 和 FILE_READ_DATA 拒绝，避免路径遍历及文件打开条件掩盖 OWNER RIGHTS。原生输出缓冲区按类型对齐、长度受限，descriptor 与 token 保持有效；impersonation guard 在清理前恢复线程身份。GNU strict Clippy 证明目标源码边界；真实 Windows 执行和 SCM 角色分别等待 xcss/xsoc 最终 Source CI。
 
 ## 0.11.4 认证私有锚与继承
 

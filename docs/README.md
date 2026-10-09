@@ -6,10 +6,10 @@
 
 | 分类 | 文档 | 适合回答的问题 |
 |---|---|---|
-| 必要 README | [仓库 README](../README.md) | Foundation 是什么、当前组件、硬边界、验证与消费入口 |
+| 必要 README | [仓库 README](../README.md) | xcss 是什么、当前组件、硬边界、验证与消费入口 |
 | 初学者学习指南 | [十一章教程](beginner-guide/README.md) | 如何阅读认证、合同、SQLite、Web、发布和测试源码 |
 | Server/Web 构建 | [统一构建与开发热更新](beginner-guide/11-embedded-web-build.md) | 正式内嵌资源、开发目录、构建顺序与实际产物验收 |
-| 工作流程与流程树 | [project-workflow.md](project-workflow.md) | 一个需求怎样进入 Foundation、怎样跨产品落地、如何删除或发布 |
+| 工作流程与流程树 | [project-workflow.md](project-workflow.md) | 一个需求怎样进入 xcss、怎样跨产品落地、如何删除或发布 |
 | unsafe 审查 | [unsafe-audit.md](unsafe-audit.md) | 原生接口必要性、安全前提、检查与未验证平台 |
 | 架构决策 | [architecture/README.md](architecture/README.md) | 平台所有权、Profile、升级和依赖方向为何如此定义 |
 | 平台规范 | [platform-specifications](platform-specifications/platform-migration-roadmap.md) | 当前平台能力与 Profile/Capability 的正式边界 |

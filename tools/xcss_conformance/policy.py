@@ -174,9 +174,9 @@ def verify_manifest(product_root: Path, foundation_root: Path) -> dict[str, Any]
     if foundation["platform_generation"] != 1:
         raise ConformanceError("product manifest: unsupported platform generation")
     if not isinstance(foundation["version"], str) or SEMVER.fullmatch(foundation["version"]) is None:
-        raise ConformanceError("product manifest: invalid Foundation version")
+        raise ConformanceError("product manifest: invalid xcss version")
     if not isinstance(foundation["git_rev"], str) or REVISION.fullmatch(foundation["git_rev"]) is None:
-        raise ConformanceError("product manifest: Foundation git_rev must be 40 lowercase hex characters")
+        raise ConformanceError("product manifest: xcss git_rev must be 40 lowercase hex characters")
     components = manifest["components"]
     if not isinstance(components, list) or not components:
         raise ConformanceError("product manifest: at least one component is required")
@@ -227,7 +227,7 @@ def verify_manifest(product_root: Path, foundation_root: Path) -> dict[str, Any]
             and "embedded-web" not in declared
         ):
             raise ConformanceError(
-                f"{context}: Foundation 0.10.0 and later Server Web requires embedded-web capability"
+                f"{context}: xcss 0.10.0 and later Server Web requires embedded-web capability"
             )
     return manifest
 
@@ -277,9 +277,9 @@ def _build_path(product_root: Path, base: Path, value: Any, context: str) -> Pat
 def _verify_embedded_web_build(product_root: Path, manifest: dict[str, Any]) -> dict[str, Any] | None:
     if not _embedded_web_required(manifest):
         return None
-    declaration = product_root / "foundation-web-build.json"
+    declaration = product_root / "xcss-web-build.json"
     if not declaration.exists():
-        raise ConformanceError("embedded-web requires foundation-web-build.json")
+        raise ConformanceError("embedded-web requires xcss-web-build.json")
     config = _json(declaration)
     _exact_keys(config, {"format", "web", "rust"}, {"format", "web", "rust"}, str(declaration))
     if type(config["format"]) is not int or config["format"] != 1:
@@ -356,7 +356,7 @@ def _used_dependency_aliases(cargo: dict[str, Any]) -> set[str]:
     return aliases
 
 
-def _foundation_package_names(foundation_root: Path) -> set[str]:
+def _xcss_package_names(foundation_root: Path) -> set[str]:
     names: set[str] = set()
     for path in (foundation_root / "rust" / "crates").glob("*/Cargo.toml"):
         package = _toml(path).get("package", {})
@@ -397,7 +397,7 @@ def _resolved_rust_requirement(
     inherited = workspace_dependencies.get(alias)
     if inherited is None:
         raise ConformanceError(
-            f"{path}: Foundation dependency {alias} is inherited but absent from workspace.dependencies"
+            f"{path}: xcss dependency {alias} is inherited but absent from workspace.dependencies"
         )
     return inherited
 
@@ -412,7 +412,7 @@ def _verify_cargo_lock(
         return
     lock_path = product_root / "Cargo.lock"
     if not lock_path.is_file():
-        raise ConformanceError(f"{lock_path}: Foundation Rust dependencies require a lock file")
+        raise ConformanceError(f"{lock_path}: xcss Rust dependencies require a lock file")
     lock = _toml(lock_path)
     entries = lock.get("package", [])
     if not isinstance(entries, list):
@@ -430,7 +430,7 @@ def _verify_cargo_lock(
         ]
         if len(matching) != 1:
             raise ConformanceError(
-                f"{lock_path}: expected one locked {package} {expected_version} from Foundation revision {expected_revision}"
+                f"{lock_path}: expected one locked {package} {expected_version} from xcss revision {expected_revision}"
             )
 
 
@@ -443,7 +443,7 @@ def _verify_npm_lock(
         return
     lock_path = package_path.parent / "package-lock.json"
     if not lock_path.is_file():
-        raise ConformanceError(f"{lock_path}: Foundation Web dependencies require a lock file")
+        raise ConformanceError(f"{lock_path}: xcss Web dependencies require a lock file")
     packages = _json(lock_path).get("packages", {})
     if not isinstance(packages, dict):
         raise ConformanceError(f"{lock_path}: invalid packages object")
@@ -457,7 +457,7 @@ def _verify_npm_lock(
             or not locked["integrity"].startswith("sha512-")
         ):
             raise ConformanceError(
-                f"{lock_path}: {dependency} is not locked to the declared Foundation asset with SHA-512 integrity"
+                f"{lock_path}: {dependency} is not locked to the declared xcss asset with SHA-512 integrity"
             )
 
 
@@ -524,7 +524,7 @@ def _discover_web_package(product_root: Path, configured: Path | None) -> Path |
             candidates.append(path)
     if len(candidates) > 1:
         raise ConformanceError(
-            "multiple Foundation Web package manifests found; select web_root in xcss-layout.toml"
+            "multiple xcss Web package manifests found; select web_root in xcss-layout.toml"
         )
     return candidates[0] if candidates else None
 
@@ -563,7 +563,7 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
     observed_revisions: set[str] = set()
     observed_rust_packages: set[str] = set()
     observed_web_requirements: dict[Path, dict[str, str]] = {}
-    foundation_packages = _foundation_package_names(foundation_root)
+    foundation_packages = _xcss_package_names(foundation_root)
     workspace_dependencies = _workspace_dependencies(product_root)
     expected_version = manifest["foundation"]["version"]
     expected_revision = manifest["foundation"]["git_rev"]
@@ -584,10 +584,10 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
             if alias in used_aliases:
                 observed_rust_packages.add(dependency)
             if not isinstance(resolved, dict):
-                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use the exact Foundation Git source"))
+                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use the exact xcss Git source"))
                 continue
             if resolved.get("git") != FOUNDATION_GIT_URL or "path" in resolved:
-                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} does not use the canonical Foundation Git source"))
+                findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} does not use the canonical xcss Git source"))
             revision = resolved.get("rev")
             if not isinstance(revision, str) or REVISION.fullmatch(revision) is None:
                 findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} lacks a full git rev"))
@@ -623,14 +623,14 @@ def verify_source(product_root: Path, foundation_root: Path) -> dict[str, Any]:
                     expected_slug,
                     expected_version,
                 ):
-                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use its v{expected_version} Foundation release asset"))
+                    findings.append(("immutable-foundation-dependencies", f"{path}: {dependency} must use its v{expected_version} xcss release asset"))
                     continue
                 observed_versions.add(expected_version)
                 observed_web_requirements.setdefault(path, {})[dependency] = requirement
     if observed_versions and observed_versions != {expected_version}:
-        findings.append(("single-foundation-release", f"observed Foundation versions {sorted(observed_versions)} differ from manifest {expected_version}"))
+        findings.append(("single-foundation-release", f"observed xcss versions {sorted(observed_versions)} differ from manifest {expected_version}"))
     if observed_revisions and observed_revisions != {expected_revision}:
-        findings.append(("single-foundation-release", f"observed Foundation revisions differ from manifest {expected_revision}"))
+        findings.append(("single-foundation-release", f"observed xcss revisions differ from manifest {expected_revision}"))
     try:
         _verify_cargo_lock(
             product_root,
@@ -719,7 +719,7 @@ def verify_web(product_root: Path, foundation_root: Path) -> dict[str, Any]:
         raise ConformanceError(f"{package_path}: Web Profile requires a package manifest")
     package = _json(package_path)
     expected_version = manifest["foundation"]["version"]
-    foundation_packages = _foundation_package_names(foundation_root)
+    foundation_packages = _xcss_package_names(foundation_root)
     requirements: dict[str, str] = {}
     for section in ("dependencies", "devDependencies", "optionalDependencies"):
         dependencies = package.get(section, {})
@@ -728,7 +728,7 @@ def verify_web(product_root: Path, foundation_root: Path) -> dict[str, Any]:
                 if dependency not in foundation_packages:
                     continue
                 if not isinstance(requirement, str):
-                    raise ConformanceError(f"{package_path}: invalid Foundation dependency {dependency}")
+                    raise ConformanceError(f"{package_path}: invalid xcss dependency {dependency}")
                 match = FOUNDATION_RELEASE_URL.fullmatch(requirement)
                 expected_slug = dependency.removeprefix("@xcss/")
                 if match is None or match.groups() != (
@@ -737,7 +737,7 @@ def verify_web(product_root: Path, foundation_root: Path) -> dict[str, Any]:
                     expected_version,
                 ):
                     raise ConformanceError(
-                        f"{package_path}: {dependency} must use its v{expected_version} Foundation release asset"
+                        f"{package_path}: {dependency} must use its v{expected_version} xcss release asset"
                     )
                 requirements[dependency] = requirement
     _verify_npm_lock(package_path, requirements, expected_version)
@@ -796,7 +796,7 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
         context = f"consumer registry.repositories[{index}]"
         if not isinstance(repository, dict):
             raise ConformanceError(f"{context}: expected a table")
-        expected = {"product", "url", "commit", "foundation_version", "profiles", "capabilities", "packages", "status", "exceptions"}
+        expected = {"product", "url", "commit", "xcss_version", "profiles", "capabilities", "packages", "status", "exceptions"}
         _exact_keys(repository, expected, expected, context)
         product = repository["product"]
         if not isinstance(product, str) or IDENTIFIER.fullmatch(product) is None or product in seen:
@@ -806,9 +806,9 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
             raise ConformanceError(f"{context}: repository URL must be an HTTPS GitHub URL")
         if REVISION.fullmatch(str(repository["commit"])) is None:
             raise ConformanceError(f"{context}: commit must be 40 lowercase hex characters")
-        version = repository["foundation_version"]
+        version = repository["xcss_version"]
         if version is not None and (not isinstance(version, str) or SEMVER.fullmatch(version) is None):
-            raise ConformanceError(f"{context}: invalid Foundation version")
+            raise ConformanceError(f"{context}: invalid xcss version")
         profiles = _string_list(repository["profiles"], f"{context}.profiles")
         capabilities = _string_list(repository["capabilities"], f"{context}.capabilities")
         if not set(profiles) <= set(profile_catalog):
@@ -832,7 +832,7 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
             {
                 "product": product,
                 "commit": repository["commit"],
-                "foundation_version": version,
+                "xcss_version": version,
                 "profiles": sorted(profiles),
                 "capabilities": sorted(capabilities),
                 "packages": sorted(packages),
@@ -845,16 +845,16 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
         "$schema": "./consumer-matrix.schema.json",
         "format": "xcss.consumer-matrix.v1",
         "platform_generation": 1,
-        "foundation_version": _foundation_version(foundation_root),
+        "xcss_version": _xcss_version(foundation_root),
         "consumers": entries,
     }
 
 
-def _foundation_version(foundation_root: Path) -> str:
+def _xcss_version(foundation_root: Path) -> str:
     cargo = _toml(foundation_root / "Cargo.toml")
     version = cargo.get("workspace", {}).get("package", {}).get("version")
     if not isinstance(version, str) or SEMVER.fullmatch(version) is None:
-        raise ConformanceError("Cargo.toml: invalid Foundation workspace version")
+        raise ConformanceError("Cargo.toml: invalid xcss workspace version")
     return version
 
 
@@ -872,19 +872,19 @@ def verify_foundation(foundation_root: Path) -> dict[str, Any]:
     schema_profiles = set(schema["properties"]["components"]["items"]["properties"]["profile"]["enum"])
     if schema_profiles != set(profiles):
         raise ConformanceError("xcss-product Schema profile enum is stale")
-    own_packages = _foundation_package_names(foundation_root)
+    own_packages = _xcss_package_names(foundation_root)
     for path in sorted((foundation_root / "rust" / "crates").glob("*/Cargo.toml")):
         cargo = _toml(path)
         for alias, requirement in _walk_dependency_tables(cargo):
             dependency = _dependency_name(alias, requirement)
             if isinstance(requirement, dict) and "git" in requirement:
                 raise ConformanceError(
-                    f"{path}: Foundation must not use Git dependency {alias!r} ({dependency!r})"
+                    f"{path}: xcss must not use Git dependency {alias!r} ({dependency!r})"
                 )
             if isinstance(requirement, dict) and "path" in requirement:
                 dependency_root = (path.parent / requirement["path"]).resolve(strict=True)
                 if not dependency_root.is_relative_to(foundation_root.resolve()) or dependency not in own_packages:
                     raise ConformanceError(
-                        f"{path}: path dependency {alias!r} ({dependency!r}) is outside Foundation ownership"
+                        f"{path}: path dependency {alias!r} ({dependency!r}) is outside xcss ownership"
                     )
     return {"profiles": sorted(profiles), "capabilities": sorted(capabilities)}

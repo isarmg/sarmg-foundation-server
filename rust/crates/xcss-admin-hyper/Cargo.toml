@@ -1,6 +1,6 @@
 [package]
 name = "xcss-admin-hyper"
-description = "Hyper body and peer adapter for the current Foundation administrator routes"
+description = "Hyper body and peer adapter for the current xcss administrator routes"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

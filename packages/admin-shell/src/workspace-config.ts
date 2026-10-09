@@ -31,7 +31,7 @@ export function resolveWorkspaceConfig(input: Partial<WorkspaceConfig> = {}): Wo
     || !result.fontFamily.trim()
     || !Number.isInteger(result.instanceNameMaxCharacters)
     || result.instanceNameMaxCharacters < 1 || result.instanceNameMaxCharacters > 32) {
-    throw new TypeError("Invalid Foundation workspace configuration");
+    throw new TypeError("Invalid xcss workspace configuration");
   }
   return Object.freeze(result);
 }

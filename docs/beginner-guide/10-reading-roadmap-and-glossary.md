@@ -17,7 +17,7 @@ admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何�
 
 ### 第四阶段：发布与消费者
 
-读`foundation_policy.py`、package artifact工具、release实现和tests，再读consumer matrix与各产品采用点。最后
+读`xcss_policy.py`、package artifact工具、release实现和tests，再读consumer matrix与各产品采用点。最后
 读workflow，验证权限和命令是否与文档一致。
 
 ## 10.2 按问题找入口
@@ -57,7 +57,7 @@ admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何�
 9. Web guard、private transport Session和UI Session；
 10. 后续mutation的CSRF路径。
 
-每一步写出Foundation保证、产品保证和一个负例。
+每一步写出xcss保证、产品保证和一个负例。
 
 ## 10.4 端到端练习二：SQLite current identity
 
@@ -100,8 +100,8 @@ admin-web源码和tests。
 
 | 术语 | 本项目中的精确含义 |
 |---|---|
-| build-time dependency | 编译/打包时取得并进入产品制品，生产不在线调用Foundation |
-| consumer | 直接采用至少一个Foundation组件的真实产品仓库 |
+| build-time dependency | 编译/打包时取得并进入产品制品，生产不在线调用xcss |
+| consumer | 直接采用至少一个xcss组件的真实产品仓库 |
 | current-only | 一个发布只接受一个当前合同，不含历史fallback |
 | wire contract | 跨进程/语言传输的字段、类型、边界和语义 |
 | candidate | 通过基本结构但尚未被权威认证/业务校验的不可信输入 |
@@ -133,7 +133,7 @@ admin-web源码和tests。
 
 ## 10.9 学成后的评审能力
 
-你应该能拒绝以下提案并给出具体理由：“让Foundation保存所有产品Session”“为了方便接受缺Origin”“泛型T
+你应该能拒绝以下提案并给出具体理由：“让xcss保存所有产品Session”“为了方便接受缺Origin”“泛型T
 已经验证JSON”“Server也顺便支持ARM best effort”“把Xczs重写React才算统一”“把csrf放sessionStorage”
 “发现missing DB就自动create”“release只要SHA256SUMS不用文件集合”“暂时保留旧字段以后再删”。
 

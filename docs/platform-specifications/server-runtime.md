@@ -3,11 +3,11 @@
 生产服务通过 `ServerRuntime::builder` 注册产品身份、当前 Schema identity、健康检查、数值诊断探针和
 后台任务，最后调用 `runtime.serve(HttpServer, product_service)`。这是公开 HTTP 启动入口。
 `HttpServer` 持有 `BoundListeners`、`ProcessSignals`、`Http1Limits`、关闭预算及可选 `LifecycleParticipant`。
-产品 Service 可以在 Axum Router 之前验证原始 URI；进程信号监听与公共连接关闭循环由 Foundation 负责。
+产品 Service 可以在 Axum Router 之前验证原始 URI；进程信号监听与公共连接关闭循环由 xcss 负责。
 
 ## 生命周期
 
-- Foundation revision 必须是完整的 40 位 Git commit；Schema 的产品和版本必须与 descriptor 一致。
+- xcss revision 必须是完整的 40 位 Git commit；Schema 的产品和版本必须与 descriptor 一致。
 - 健康和诊断探针并行读取，每项最多 2 秒；调用期间不持有诊断状态锁。panic/超时标记失败或 unavailable。
 - 关键任务意外退出使服务 unhealthy 并启动关闭；Degrading 任务退出标记 degraded；BestEffort 不影响 readiness。
 - 启动前的关闭请求不会丢失。正常关闭完成的任务标记 stopped；硬超时不执行 `abort_all()`，不假装未完成任务已经停止。
@@ -23,7 +23,7 @@
 所有监听共享配额，先等待内核可读状态再取得许可，接受用户态 socket 前必须拥有许可。空闲监听不预占容量。
 默认 HTTP/1 请求头期限 10 秒、缓冲 64 KiB、socket 写入空闲 30 秒。接受错误使用 50 ms 至 1 s 的有界退避，关闭可立即打断。
 连接许可随实际 socket/升级后 I/O 对象存在，不随 Handler Future 返回而释放。Body 仍为流式。
-Foundation 不认识产品路径、上传 ID、文件操作表或数据目录。`LifecycleParticipant` 只负责业务排空和最后关闭状态，不负责进程信号。
+xcss 不认识产品路径、上传 ID、文件操作表或数据目录。`LifecycleParticipant` 只负责业务排空和最后关闭状态，不负责进程信号。
 
 ## HTTP 所有权
 
@@ -49,4 +49,4 @@ Axum 和 Hyper 的管理员协议使用 `xcss-testkit::assert_administrator_http
 
 `PLATFORM_RESERVED_PATHS` 导出健康路径及管理员认证命名空间。文件服务必须只读预检冲突，保留实际路径/子树；不能无理由禁用整个 `/api` 目录。
 
-`server-filesystem` 仅接受 Axum Adapter，保持原生内嵌 Web、静态管理员及内存 Session。该 Profile 的 `durable-operations` 也可由经验证的产品文件操作登记表实现，不要求把文件提交语义改成 Foundation 通用任务表。
+`server-filesystem` 仅接受 Axum Adapter，保持原生内嵌 Web、静态管理员及内存 Session。该 Profile 的 `durable-operations` 也可由经验证的产品文件操作登记表实现，不要求把文件提交语义改成 xcss 通用任务表。

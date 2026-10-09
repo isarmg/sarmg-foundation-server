@@ -42,8 +42,8 @@ jobs:
       - name: Enforce workflow and release identity policy
         run: |
           python3 scripts/check-workflow-supply-chain.py
-          python3 scripts/check-foundation.py
-          python3 scripts/xcss-conformance.py verify-foundation
+          python3 scripts/check-xcss.py
+          python3 scripts/xcss-conformance.py verify-xcss
       - name: Install exact Rust toolchain
         run: rustup toolchain install 1.99.0 --profile minimal --component rustfmt,clippy
       - name: Prove the server target gate rejects non-canonical targets

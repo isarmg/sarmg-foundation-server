@@ -87,7 +87,7 @@ test("default appearance preserves failure handling, login/logout, theme and mod
   expect(errors).toEqual([]);
 });
 
-test("header-to-content and content-to-subheading spacing use one Foundation default", async ({ page }) => {
+test("header-to-content and content-to-subheading spacing use one xcss default", async ({ page }) => {
   await api(page); await page.goto("/");
   await page.getByLabel("Username", { exact: true }).fill("admin");
   await page.getByLabel("Password", { exact: true }).fill("correct-password");

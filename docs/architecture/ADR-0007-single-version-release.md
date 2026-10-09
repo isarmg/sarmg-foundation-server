@@ -1,11 +1,11 @@
-# ADR-0007：Foundation 单版本发布策略
+# ADR-0007：xcss 单版本发布策略
 
 - 状态：Accepted
 - 日期：2026-09-02
 
 ## 决策
 
-所有 Foundation Rust crate、npm package、Profile、Schema、工具和测试以一个 Foundation 版本发布。正式
+所有 xcss Rust crate、npm package、Profile、Schema、工具和测试以一个 xcss 版本发布。正式
 消费者同时固定精确版本与完整 40 位 Git revision；Web 使用对应 release 的不可变、已校验制品。
 
 ## 后果

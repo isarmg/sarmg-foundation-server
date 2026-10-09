@@ -1,6 +1,6 @@
 # 单管理员账户自助更新
 
-Foundation 管理面只有一个活动管理员。唯一浏览器账户修改接口是
+xcss 管理面只有一个活动管理员。唯一浏览器账户修改接口是
 `POST /api/v1/platform/administrators/self`，由 Core、Store、Axum/Hyper 和 admin-web 共同实现。
 
 ```json

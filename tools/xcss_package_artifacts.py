@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
 
-CLI_VERSION = "0.5.0"
+CLI_VERSION = "1.0.0"
 MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_TARBALL_BYTES = 64 * 1024 * 1024
 PACKAGE_NAME = re.compile(r"@xcss/[a-z][a-z0-9-]*")
@@ -138,7 +138,7 @@ class Package:
         name = manifest.get("name")
         version = manifest.get("version")
         if not isinstance(name, str) or PACKAGE_NAME.fullmatch(name) is None:
-            raise PackagePolicyError(f"{manifest_path}: invalid @sarmg package name")
+            raise PackagePolicyError(f"{manifest_path}: invalid @xcss package name")
         if not isinstance(version, str) or SEMVER.fullmatch(version) is None:
             raise PackagePolicyError(f"{manifest_path}: invalid semantic version")
         if manifest.get("private") is True:

@@ -11,7 +11,7 @@ use axum::{
 use serde::de::DeserializeOwned;
 use xcss_error::{ErrorEnvelope, RequestId};
 
-/// Apply the same bounded correlation and error policy as Foundation's native
+/// Apply the same bounded correlation and error policy as xcss's native
 /// transport. Install this outside product input/authentication middleware.
 pub async fn request_context_middleware(request: Request, next: Next) -> Response {
     use tower::ServiceExt;

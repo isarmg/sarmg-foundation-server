@@ -2,13 +2,13 @@
 
 ## 1. 这套教程解决什么问题
 
-Foundation 同时包含 Rust、TypeScript、React、Vite、CSS、JSON Schema、SQLite 和 Python 发布工具。初学者
+xcss 同时包含 Rust、TypeScript、React、Vite、CSS、JSON Schema、SQLite 和 Python 发布工具。初学者
 最容易犯的错误不是语法错误，而是把共享 primitive 当成完整产品能力：例如认为一个 TypeScript type 已经
 验证网络 JSON，认为通用 SQLite pool 已经保证文件安全，或者把共享管理员 Session 当成中央账户服务。
 
 本教程从边界开始，再逐层进入源码、测试、发布和真实消费者。读完后应能：
 
-- 解释为什么 Foundation 是 build-time dependency 而不是在线服务；
+- 解释为什么 xcss 是 build-time dependency 而不是在线服务；
 - 正确区分管理面唯一 `admin` 角色与设备/Client/媒体资源等数据面概念；
 - 把管理员 username、密码、Argon2id、token、same-origin、CSRF 组合进产品而不削弱规则；
 - 区分 TypeScript type、runtime guard、JSON Schema、fixture 与 Rust serde validation；
@@ -65,7 +65,7 @@ React/Vite管理Web（Xczs除外）
 }
 ```
 
-数据库通常无需 `role` 列，wire 中的 `admin` 是固定常量。设备 credential、Host 配对、移动端 API key、
+数据库通常无需 `role` 列，wire 中的 `admin` 是固定常量。设备 credential、xsoc 配对、移动端 API key、
 摄像头凭据和资源字段 `role=primary/thumbnail` 仍可存在，但不是管理 RBAC。
 
 ### 4.2 Server 只有 AMD64 GNU/Linux
@@ -75,8 +75,8 @@ Windows、macOS 和32位目标。这个限制不能误加到 xsoc Client、Andro
 
 ### 4.3 Web 统一，业务模块可保留明确边界
 
-Host、Media、Sentinel、Sunshine 的管理 Web 位于 `web`，使用精确 React/Vite/TypeScript/Node基线。
-Xczs 也采用 `web-react-admin`：登录、导航和页面骨架由 React/Foundation 渲染，文件列表与上传控制器
+xsos、xszs、xcos、xscs 的管理 Web 位于 `web`，使用精确 React/Vite/TypeScript/Node基线。
+Xczs 也采用 `web-react-admin`：登录、导航和页面骨架由 React/xcss 渲染，文件列表与上传控制器
 保留原生 ES modules，并通过独占 DOM 区域组合。它与其他产品使用相同管理员 wire、username/密码/token
 和 Server 端同源/CSRF 规则。
 
@@ -111,5 +111,5 @@ const value = await response.json() as AdministratorSession;
 
 你能画出一次管理员 login 从 raw headers、strict JSON、username/密码策略、Argon2、Session persistence到React
 状态的完整路径；能解释每一层还缺什么产品责任；能用一个正例和至少四类负例评审新合同；能从真实tgz
-而不是workspace import验证package；能指出为何Xczs、客户端多架构和Foundation无Server是合理差异；能在
+而不是workspace import验证package；能指出为何Xczs、客户端多架构和xcss无Server是合理差异；能在
 不添加兼容代码的前提下设计一次新当前版本。

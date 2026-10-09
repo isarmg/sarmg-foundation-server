@@ -1,4 +1,4 @@
-"""Repository-wide checks for one self-contained Foundation release."""
+"""Repository-wide checks for one self-contained xcss release."""
 
 from __future__ import annotations
 
@@ -66,21 +66,21 @@ KNOWN_PACKAGES = {
 RUST_PACKAGES = tuple(
     sorted(name for name in KNOWN_PACKAGES if not name.startswith("@"))
 )
-class FoundationPolicyError(RuntimeError):
+class XcssPolicyError(RuntimeError):
     """The repository does not describe one internally consistent release."""
 
 
 def _regular_file(path: Path) -> None:
     metadata = path.lstat()
     if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
-        raise FoundationPolicyError(f"{path}: must be one regular, unlinked file")
+        raise XcssPolicyError(f"{path}: must be one regular, unlinked file")
 
 
 def read_audited_root_license(path: Path) -> bytes:
     _regular_file(path)
     content = path.read_bytes()
     if hashlib.sha256(content).hexdigest() != APACHE_2_LICENSE_SHA256:
-        raise FoundationPolicyError(
+        raise XcssPolicyError(
             f"{path}: content differs from the audited Apache-2.0 text"
         )
     return content
@@ -89,7 +89,7 @@ def read_audited_root_license(path: Path) -> bytes:
 def require_license_copy(path: Path, expected: bytes) -> None:
     _regular_file(path)
     if path.read_bytes() != expected:
-        raise FoundationPolicyError(
+        raise XcssPolicyError(
             f"{path}: content differs from the audited root LICENSE"
         )
 
@@ -99,9 +99,9 @@ def _json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (UnicodeError, json.JSONDecodeError) as error:
-        raise FoundationPolicyError(f"{path}: invalid UTF-8 JSON: {error}") from error
+        raise XcssPolicyError(f"{path}: invalid UTF-8 JSON: {error}") from error
     if not isinstance(value, dict):
-        raise FoundationPolicyError(f"{path}: expected an object")
+        raise XcssPolicyError(f"{path}: expected an object")
     return value
 
 
@@ -110,12 +110,12 @@ def _toml(path: Path) -> dict[str, Any]:
     try:
         return tomllib.loads(path.read_text(encoding="utf-8"))
     except (UnicodeError, tomllib.TOMLDecodeError) as error:
-        raise FoundationPolicyError(f"{path}: invalid UTF-8 TOML: {error}") from error
+        raise XcssPolicyError(f"{path}: invalid UTF-8 TOML: {error}") from error
 
 
 def _exact_keys(value: dict[str, Any], expected: set[str], context: str) -> None:
     if set(value) != expected:
-        raise FoundationPolicyError(
+        raise XcssPolicyError(
             f"{context}: keys differ: missing={sorted(expected - set(value))}, "
             f"unknown={sorted(set(value) - expected)}"
         )
@@ -137,14 +137,14 @@ def check_dependency_boundaries(root: Path) -> None:
             if isinstance(declared, dict) and declared.get("workspace") is True:
                 requirement = workspace_dependencies.get(dependency)
                 if requirement is None:
-                    raise FoundationPolicyError(f"{path}: unknown workspace dependency {dependency}")
+                    raise XcssPolicyError(f"{path}: unknown workspace dependency {dependency}")
                 origin = root
             else:
                 origin = path.parent
             package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
             internal = package in RUST_PACKAGES
             if package.startswith(("xcss-", "xcsc-")) and not internal:
-                raise FoundationPolicyError(f"{path}: dependency {package} is outside Foundation Server")
+                raise XcssPolicyError(f"{path}: dependency {package} is outside xcss")
             if internal:
                 expected = root / "rust" / "crates" / package
                 if (
@@ -154,11 +154,11 @@ def check_dependency_boundaries(root: Path) -> None:
                     or (origin / requirement["path"]).resolve() != expected
                     or "git" in requirement
                 ):
-                    raise FoundationPolicyError(
+                    raise XcssPolicyError(
                         f"{path}: internal {package} must use its workspace crate path and ={CURRENT_VERSION}"
                     )
             elif isinstance(requirement, dict) and "path" in requirement:
-                raise FoundationPolicyError(f"{path}: external local dependency {package} is not self-contained")
+                raise XcssPolicyError(f"{path}: external local dependency {package} is not self-contained")
 
     manifests = [root / "Cargo.toml", *sorted((root / "rust" / "crates").glob("*/Cargo.toml"))]
     for path in manifests:
@@ -189,14 +189,14 @@ def check_dependency_boundaries(root: Path) -> None:
                         package = alias.group(1)
                 internal = package in KNOWN_PACKAGES and package.startswith("@xcss/")
                 if package.startswith("@xcss/") and not internal:
-                    raise FoundationPolicyError(f"{path}: dependency {package} is outside Foundation Server")
+                    raise XcssPolicyError(f"{path}: dependency {package} is outside xcss")
                 expected = CURRENT_VERSION if section == "peerDependencies" else f"workspace:{CURRENT_VERSION}"
                 if internal and (dependency != package or requirement != expected):
-                    raise FoundationPolicyError(f"{path}: internal {package} must use {expected} without an alias")
+                    raise XcssPolicyError(f"{path}: internal {package} must use {expected} without an alias")
                 if not internal and isinstance(requirement, str) and (
                     requirement.startswith(("file:", "link:", "workspace:", "./", "../", "/"))
                 ):
-                    raise FoundationPolicyError(f"{path}: external local dependency {package} is not self-contained")
+                    raise XcssPolicyError(f"{path}: external local dependency {package} is not self-contained")
 
 
 def check_versions(root: Path) -> None:
@@ -204,32 +204,32 @@ def check_versions(root: Path) -> None:
     root_license_bytes = read_audited_root_license(root_license)
 
     readme = (root / "README.md").read_text(encoding="utf-8")
-    if f"| Foundation 版本 | `{CURRENT_VERSION}` |" not in readme:
-        raise FoundationPolicyError("README.md: Foundation version table is stale")
+    if f"| xcss 版本 | `{CURRENT_VERSION}` |" not in readme:
+        raise XcssPolicyError("README.md: xcss version table is stale")
     if f'version = "={CURRENT_VERSION}"' not in readme:
-        raise FoundationPolicyError("README.md: Rust consumer version example is stale")
+        raise XcssPolicyError("README.md: Rust consumer version example is stale")
     if f"`v{CURRENT_VERSION}` tag" not in readme:
-        raise FoundationPolicyError("README.md: release tag example is stale")
+        raise XcssPolicyError("README.md: release tag example is stale")
 
     root_package = _json(root / "package.json")
     if root_package.get("version") != CURRENT_VERSION:
-        raise FoundationPolicyError("package.json: workspace version differs from policy")
+        raise XcssPolicyError("package.json: workspace version differs from policy")
     if root_package.get("engines", {}).get("node") != f">={NODE_VERSION} <27":
-        raise FoundationPolicyError("package.json: Node engine is not the current exact major line")
+        raise XcssPolicyError("package.json: Node engine is not the current exact major line")
     if root_package.get("packageManager") != f"pnpm@{PNPM_VERSION}":
-        raise FoundationPolicyError("package.json: packageManager differs from the current pnpm version")
+        raise XcssPolicyError("package.json: packageManager differs from the current pnpm version")
     if (root / ".node-version").read_text(encoding="utf-8").strip() != NODE_VERSION:
-        raise FoundationPolicyError(".node-version differs from the current Node version")
+        raise XcssPolicyError(".node-version differs from the current Node version")
 
     cargo = _toml(root / "Cargo.toml")
     workspace_package = cargo.get("workspace", {}).get("package", {})
     if workspace_package.get("version") != CURRENT_VERSION:
-        raise FoundationPolicyError("Cargo workspace version differs from policy")
+        raise XcssPolicyError("Cargo workspace version differs from policy")
     if workspace_package.get("rust-version") != RUST_VERSION.removesuffix(".0"):
-        raise FoundationPolicyError("Cargo rust-version differs from policy")
+        raise XcssPolicyError("Cargo rust-version differs from policy")
     toolchain = _toml(root / "rust-toolchain.toml")
     if toolchain.get("toolchain", {}).get("channel") != RUST_VERSION:
-        raise FoundationPolicyError("rust-toolchain.toml differs from policy")
+        raise XcssPolicyError("rust-toolchain.toml differs from policy")
 
     package_roots = sorted((root / "packages").glob("*/package.json"))
     observed_web: set[str] = set()
@@ -237,32 +237,32 @@ def check_versions(root: Path) -> None:
         manifest = _json(path)
         name = manifest.get("name")
         if not isinstance(name, str) or name not in KNOWN_PACKAGES:
-            raise FoundationPolicyError(f"{path}: unknown package {name!r}")
+            raise XcssPolicyError(f"{path}: unknown package {name!r}")
         observed_web.add(name)
         if manifest.get("version") != CURRENT_VERSION:
-            raise FoundationPolicyError(f"{path}: version must be {CURRENT_VERSION}")
+            raise XcssPolicyError(f"{path}: version must be {CURRENT_VERSION}")
         expected_license = "OFL-1.1" if name == "@xcss/web-fonts" else "Apache-2.0"
         if manifest.get("license") != expected_license:
-            raise FoundationPolicyError(f"{path}: license must be {expected_license}")
+            raise XcssPolicyError(f"{path}: license must be {expected_license}")
         if manifest.get("engines", {}).get("node") != f">={NODE_VERSION} <27":
-            raise FoundationPolicyError(f"{path}: Node engine differs from policy")
+            raise XcssPolicyError(f"{path}: Node engine differs from policy")
         for section in ("dependencies", "devDependencies", "optionalDependencies"):
             dependencies = manifest.get(section, {})
             if not isinstance(dependencies, dict):
-                raise FoundationPolicyError(f"{path}.{section}: expected an object")
+                raise XcssPolicyError(f"{path}.{section}: expected an object")
             for dependency, requirement in dependencies.items():
                 if dependency.startswith("@xcss/") and requirement != f"workspace:{CURRENT_VERSION}":
-                    raise FoundationPolicyError(
+                    raise XcssPolicyError(
                         f"{path}: internal {dependency} must use workspace:{CURRENT_VERSION}"
                     )
         for dependency, requirement in manifest.get("peerDependencies", {}).items():
             if dependency.startswith("@xcss/") and requirement != CURRENT_VERSION:
-                raise FoundationPolicyError(
+                raise XcssPolicyError(
                     f"{path}: internal peer {dependency} must be exactly {CURRENT_VERSION}"
                 )
     expected_web = {name for name in KNOWN_PACKAGES if name.startswith("@xcss/")}
     if observed_web != expected_web:
-        raise FoundationPolicyError(
+        raise XcssPolicyError(
             f"publishable Web package set differs: {sorted(observed_web)}"
         )
 
@@ -272,45 +272,45 @@ def check_versions(root: Path) -> None:
         if dependency.startswith("@types/") and dependency != "@types/node":
             continue
         if toolchain_development.get(dependency) != expected:
-            raise FoundationPolicyError(
+            raise XcssPolicyError(
                 f"packages/web-toolchain/package.json: {dependency} must be exactly {expected}"
             )
     toolchain_peers = toolchain.get("peerDependencies", {})
     for dependency in ("@vitejs/plugin-react", "react", "react-dom", "vite"):
         expected = WEB_TOOLCHAIN_DEV_DEPENDENCIES[dependency]
         if toolchain_peers.get(dependency) != expected:
-            raise FoundationPolicyError(
+            raise XcssPolicyError(
                 f"packages/web-toolchain/package.json peer {dependency} must be exactly {expected}"
             )
 
     members = set(cargo.get("workspace", {}).get("members", []))
     expected_members = {f"rust/crates/{name}" for name in RUST_PACKAGES}
     if members != expected_members:
-        raise FoundationPolicyError(f"Rust workspace members differ: {sorted(members)}")
+        raise XcssPolicyError(f"Rust workspace members differ: {sorted(members)}")
     for member in sorted(members):
         manifest_path = root / member / "Cargo.toml"
         manifest = _toml(manifest_path)
         package = manifest.get("package", {})
         if package.get("name") != Path(member).name or package.get("version") != {"workspace": True}:
-            raise FoundationPolicyError(f"{manifest_path}: crate identity is not workspace-owned")
+            raise XcssPolicyError(f"{manifest_path}: crate identity is not workspace-owned")
         if package.get("license") != {"workspace": True} or "license-file" in package:
-            raise FoundationPolicyError(
+            raise XcssPolicyError(
                 f"{manifest_path}: crate must inherit the Apache-2.0 SPDX expression"
             )
         crate_license = root / member / "LICENSE"
         require_license_copy(crate_license, root_license_bytes)
         if manifest.get("lints") != {"workspace": True}:
-            raise FoundationPolicyError(f"{manifest_path}: workspace lints are not enabled")
+            raise XcssPolicyError(f"{manifest_path}: workspace lints are not enabled")
         for section in ("dependencies", "dev-dependencies", "build-dependencies"):
             dependencies = manifest.get(section, {})
             for dependency, requirement in dependencies.items():
                 package = requirement.get("package", dependency) if isinstance(requirement, dict) else dependency
                 if package.startswith("xcsc-") or package == "xcsc-mobile-ffi":
-                    raise FoundationPolicyError(f"{manifest_path}: Server must not depend on Client package {package}")
+                    raise XcssPolicyError(f"{manifest_path}: Server must not depend on Client package {package}")
                 if dependency not in KNOWN_PACKAGES or dependency.startswith("@"):
                     continue
                 if not isinstance(requirement, dict) or requirement.get("version") != f"={CURRENT_VERSION}":
-                    raise FoundationPolicyError(
+                    raise XcssPolicyError(
                         f"{manifest_path}: internal {dependency} must pin ={CURRENT_VERSION}"
                     )
 
@@ -318,6 +318,6 @@ def check_versions(root: Path) -> None:
 def check_repository(root: Path) -> None:
     root = root.resolve(strict=True)
     if root == Path(root.anchor):
-        raise FoundationPolicyError("refusing to check a filesystem root")
+        raise XcssPolicyError("refusing to check a filesystem root")
     check_dependency_boundaries(root)
     check_versions(root)

@@ -2,7 +2,7 @@
 
 ## 2.1 为什么必须固定到 patch 版本
 
-Foundation 的产物会进入多个产品。Rust、Node、TypeScript、React或Vite的一个patch变化都可能影响编译、
+xcss 的产物会进入多个产品。Rust、Node、TypeScript、React或Vite的一个patch变化都可能影响编译、
 类型、bundle、lock或package内容。这里不使用“我的版本更高所以应该兼容”的假设，而把工具链当成发布
 输入。
 
@@ -16,7 +16,7 @@ Foundation 的产物会进入多个产品。Rust、Node、TypeScript、React或V
 | React/DOM | `19.3.0` | `packages/admin-web/package.json` |
 | Vite/plugin | `8.3.3` / `6.1.2` | `packages/admin-web/package.json` |
 
-消费者Web使用npm并不冲突：Foundation内部pnpm只管理monorepo；共享断言统一Node/React/Vite/TypeScript，
+消费者Web使用npm并不冲突：xcss内部pnpm只管理monorepo；共享断言统一Node/React/Vite/TypeScript，
 不要求产品改包管理器。
 
 ## 2.2 安装Rust
@@ -84,12 +84,12 @@ git diff --stat
 ```
 
 上层通过不能替代下层。例如TypeScript源码能编译，并不能证明`package.json#exports`指向真实文件；
-Foundation单测通过，也不能证明Sunshine仍强制上游TLS或Media release的二进制内嵌了正确Web资源。
+xcss单测通过，也不能证明Sunshine仍强制上游TLS或Media release的二进制内嵌了正确Web资源。
 
 ## 2.6 Repository policy
 
 ```bash
-python3 scripts/check-foundation.py
+python3 scripts/check-xcss.py
 ```
 
 它会检查版本、工作区组件、精确内部依赖、工具链和取消名称。consumer matrix 是独立接入证据，

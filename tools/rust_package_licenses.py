@@ -1,11 +1,11 @@
-"""Verify that every Foundation Rust package distributes its audited license."""
+"""Verify that every xcss Rust package distributes its audited license."""
 
 from __future__ import annotations
 
 import subprocess
 from pathlib import Path
 
-from foundation_policy import RUST_PACKAGES
+from xcss_policy import RUST_PACKAGES
 
 
 MAX_PACKAGE_LIST_BYTES = 1024 * 1024

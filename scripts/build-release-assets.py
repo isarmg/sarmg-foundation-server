@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build one verified, deterministic Foundation release asset tree."""
+"""Build one verified, deterministic xcss release asset tree."""
 
 from __future__ import annotations
 
@@ -20,12 +20,12 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
-from foundation_policy import (  # noqa: E402
+from xcss_policy import (  # noqa: E402
     CURRENT_VERSION,
     NODE_VERSION,
     PNPM_VERSION,
     RUST_VERSION,
-    FoundationPolicyError,
+    XcssPolicyError,
     check_repository,
 )
 from xcss_package_artifacts import (  # noqa: E402
@@ -246,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         build(arguments.output, arguments.source_revision, arguments.tag, arguments.target)
         return 0
     except (
-        FoundationPolicyError,
+        XcssPolicyError,
         PackagePolicyError,
         PolicyError,
         ReleaseBuildError,

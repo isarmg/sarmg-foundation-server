@@ -2,7 +2,7 @@
 
 ## 11.1 正式版资源来自可执行文件
 
-Foundation `0.10.0` 的 `xcss-web-assets` 生成资源表、确定性 JSON 清单和 SHA-256 摘要。每个资源先
+xcss `0.10.0` 的 `xcss-web-assets` 生成资源表、确定性 JSON 清单和 SHA-256 摘要。每个资源先
 快照到 Cargo 的 `OUT_DIR`，再通过 `include_bytes!` 编译，保证清单与最终字节一致。产品正式 HTTP
 处理器使用编译资源；发行目录携带清单用于核对，不携带另一份 raw Web。字体和许可证同样进入清单。
 
@@ -30,7 +30,7 @@ Server component 的 `xcss-product.toml` capabilities 增加 `embedded-web`。�
 这些都是声明，不能是 shell 命令。路径必须规范、相对且留在仓库中，不得通过 `..`、反斜线或链接
 逃逸。输出目录必须与源码目录分开；根 Web 使用 `directory: "."` 时，仍应给它专用输出目录。
 选定的 Cargo package 同时在 `[dependencies]` 和 `[build-dependencies]` 中声明同一版本的
-`xcss-web-assets`，遵循 Foundation 完整 revision 与精确版本规则。
+`xcss-web-assets`，遵循 xcss 完整 revision 与精确版本规则。
 
 产品 `build.rs` 中调用 `xcss_web_assets::build::generate(root)`，`root` 优先使用
 `XCSS_WEB_DIST`，本地默认使用声明的 dist。runtime 包含
@@ -40,7 +40,7 @@ Axum 用 `response.map(axum::body::Body::from)`；Hyper 用
 
 ## 11.3 使用共同构建入口
 
-安装锁定的 Foundation Web 包后，在产品根目录执行本地 bin：
+安装锁定的 xcss Web 包后，在产品根目录执行本地 bin：
 
 ```bash
 ./web/node_modules/.bin/xcss-build-server --mode development
@@ -75,7 +75,7 @@ python3 scripts/xcss-conformance.py verify-source --product-root /absolute/produ
 python3 scripts/xcss-conformance.py verify-web --product-root /absolute/product
 ```
 
-上述命令从 Foundation 仓库运行，验证声明与依赖。正式包还需执行产品的发行树验证和实际 HTTP
+上述命令从 xcss 仓库运行，验证声明与依赖。正式包还需执行产品的发行树验证和实际 HTTP
 资源验收，覆盖 MIME、GET/HEAD、缓存、错路径以及篡改拒绝。源码检查通过不会自动表示发布树已验证。
 
-历史不可变 Foundation 版本仍可被检查，报告采用其声明版本对应的规则，不声称它已采用 0.10.0 合同。
+历史不可变 xcss 版本仍可被检查，报告采用其声明版本对应的规则，不声称它已采用 0.10.0 合同。

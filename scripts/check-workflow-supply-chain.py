@@ -404,7 +404,7 @@ def validate_release_gates(source: str, lines: list[Line]) -> None:
     if not is_release_workflow(source):
         return
     required = [
-        "python3 scripts/xcss-conformance.py verify-foundation",
+        "python3 scripts/xcss-conformance.py verify-xcss",
         "pnpm build",
         "pnpm exec playwright install --with-deps chromium firefox",
         "pnpm test:web:built",

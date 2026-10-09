@@ -30,7 +30,7 @@ createXcssAdminApplication({
 `InstanceHeaderActions` 将消费者传入的新建、刷新动作放入右上角，随后是语言、主题、退出和账号设置。
 `InstancePageNavigation` 提供 `instances`、`details`、`logs` 三页状态和本地化标签，
 通过 `navigate` 回调通知产品切换页面，`detailsDisabled` 控制详细信息入口是否可用。
-Foundation 管理页面提供全宽内容区域。页面内容、选中实例、导航状态及对象的业务含义均由产品负责。
+xcss 管理页面提供全宽内容区域。页面内容、选中实例、导航状态及对象的业务含义均由产品负责。
 创建动作没有传入时不显示“+”，不虚构产品不支持的 API。
 `InstanceNameField` 与 `validInstanceName` 按 Unicode 字符计数（与 Rust `chars()` 一致），
 名称按 Rust `str::trim` 的 Unicode White_Space 规则去除首尾空白后为 1–32 字符；原始输入的任何位置均禁止 ASCII/C1 控制字符和孤立代理项。消费者可配置 1–32 的整数上限。
@@ -53,14 +53,14 @@ SVG 高度使用 `1em` 匹配文字，点击区域高 44px，窄屏仅导航区�
 
 服务端平台路由对 `/api/v1/platform/diagnostics` 的匿名及已登录请求均返回 404；
 登录、权限、Request ID、健康检查、内部任务监督及日志不受影响。
-产品直接使用精确 Git revision 固定的 Foundation Runtime 路由入口。
-实例创建、配对、文件操作等业务行为由消费者回调和协议定义，Foundation 不按产品名称分支。
+产品直接使用精确 Git revision 固定的 xcss Runtime 路由入口。
+实例创建、配对、文件操作等业务行为由消费者回调和协议定义，xcss 不按产品名称分支。
 
 ## 当前不可变包分发
 
 当前源码版本见根 README；各产品采用的版本与验收状态由消费者矩阵记录。
 Rust 使用精确版本与完整 Git revision，Web 使用正式 Release tarball URL 和 lockfile integrity。
-Shell、字体、主题及语言模块直接来自这些包；独立构建不需要同级 Foundation 源码。
+Shell、字体、主题及语言模块直接来自这些包；独立构建不需要同级 xcss 源码。
 历史独立构建及发行证据见 [0.7.0 记录](../consumers/axum-0.7.0-evidence.md)与 [0.7.1 记录](../consumers/react-filesystem-0.7.1-evidence.md)。
 
 后续变更仍须发布新不可变版本、更新消费者锁图并复验，不覆盖旧制品；消费者只使用同一个 Shell Context。

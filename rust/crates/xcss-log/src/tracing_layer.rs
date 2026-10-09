@@ -24,7 +24,7 @@ const MAX_FIELDS: usize = 32;
 const MAX_FIELD_BYTES: usize = 2048;
 
 #[derive(Clone)]
-pub struct FoundationStructuredLayer {
+pub struct XcssStructuredLayer {
     service: Arc<str>,
     rejected: Arc<AtomicU64>,
     output: Arc<Mutex<Sink>>,
@@ -37,7 +37,7 @@ enum Sink {
     File(crate::RotatingLogFile),
 }
 
-impl FoundationStructuredLayer {
+impl XcssStructuredLayer {
     pub fn new(service: &str) -> Result<Self, LogError> {
         identifier(service)?;
         Ok(Self {
@@ -174,7 +174,7 @@ impl Visit for Captured {
     }
 }
 
-impl<S> Layer<S> for FoundationStructuredLayer
+impl<S> Layer<S> for XcssStructuredLayer
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
@@ -306,7 +306,7 @@ mod tests {
     #[test]
     fn tracing_events_inherit_scope_and_safe_fields_without_legacy_error_messages() {
         let output = Output(Arc::default());
-        let layer = FoundationStructuredLayer::new("example")
+        let layer = XcssStructuredLayer::new("example")
             .unwrap()
             .with_writer(output.clone());
         let subscriber = tracing_subscriber::registry().with(layer.clone());
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn common_events_keep_registered_templates_and_reject_unknown_names() {
         let output = Output(Arc::default());
-        let layer = FoundationStructuredLayer::new("example")
+        let layer = XcssStructuredLayer::new("example")
             .unwrap()
             .with_writer(output.clone());
         let subscriber = tracing_subscriber::registry().with(layer.clone());
@@ -390,7 +390,7 @@ mod tests {
     fn installed_layer_switches_to_a_bounded_custom_file_and_counts_sink_failure() {
         use std::{fs, os::unix::fs::PermissionsExt};
         let output = Output(Arc::default());
-        let layer = FoundationStructuredLayer::new("example")
+        let layer = XcssStructuredLayer::new("example")
             .unwrap()
             .with_writer(output.clone());
         let subscriber = tracing_subscriber::registry().with(layer.clone());

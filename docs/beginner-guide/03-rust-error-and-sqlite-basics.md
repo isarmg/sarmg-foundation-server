@@ -85,7 +85,7 @@ expected digest，再使用constant-time equality。
 cookie name、空值和同一行重复名称。
 
 框架adapter还必须保证raw Cookie header field line本身只有一条。如果框架先把多行合并再只传一个字符串，
-Foundation无法知道原请求是否歧义。这是“library contract”和“framework integration”必须一起测试的例子。
+xcss无法知道原请求是否歧义。这是“library contract”和“framework integration”必须一起测试的例子。
 
 ## 3.6 Same-origin逐步解析
 
@@ -110,7 +110,7 @@ assert_eq!(verified.port(), 443);
 scheme与authority；模式决定https/http；解析DNS/IPv4/bracketed IPv6和端口；HTTP开发模式双方必须真实
 loopback；最后比较规范化authority。
 
-生产behind proxy时，产品必须在可信代理边界形成一个外部有效Host。Foundation不读取X-Forwarded-Host，
+生产behind proxy时，产品必须在可信代理边界形成一个外部有效Host。xcss不读取X-Forwarded-Host，
 也不会在Host与`:authority`冲突时挑一个。
 
 ## 3.7 CSRF

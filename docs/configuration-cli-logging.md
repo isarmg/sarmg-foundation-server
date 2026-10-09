@@ -42,7 +42,7 @@ Windows `RotatingLogFile::create_private(directory,stem,retention)` 在已经过
 
 Windows writer 独占租约持续至 sink 关闭，写入前重新验证固定目录、writer 和 active file 的 ACL、类型、链接数及长度。任何存储错误都使该 sink 拒绝后续追加，产品需报告安全日志错误。每条成功写入先完成 bounded 序列化，再写入并 `sync_all`；坏记录不写，半条 I/O 失败不会被查询解释为成功。
 
-可选 `tracing` feature 的 `FoundationStructuredLayer` 复用 typed records，继承 span 的结构化关联字段，隐藏 legacy 文本和内部错误链；未知普通事件用安全产品 diagnostic 模板，未知 common 事件拒绝。`with_writer` 与 `with_rotating_file` 构造 sink；`set_rotating_file(&self, sink)` 可在已安装 subscriber 中、完整运行前提校验后切换共享输出。`rejected_count` 包含字段/记录拒绝和 writer 错误，产品必须观测并表达日志降级或失败。
+可选 `tracing` feature 的 `XcssStructuredLayer` 复用 typed records，继承 span 的结构化关联字段，隐藏 legacy 文本和内部错误链；未知普通事件用安全产品 diagnostic 模板，未知 common 事件拒绝。`with_writer` 与 `with_rotating_file` 构造 sink；`set_rotating_file(&self, sink)` 可在已安装 subscriber 中、完整运行前提校验后切换共享输出。`rejected_count` 包含字段/记录拒绝和 writer 错误，产品必须观测并表达日志降级或失败。
 
 ## 验证边界
 

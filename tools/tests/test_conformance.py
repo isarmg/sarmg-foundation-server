@@ -62,7 +62,7 @@ class ConformanceTests(unittest.TestCase):
         web = product / "web"
         web.mkdir()
         (web / "package.json").write_text(json.dumps({"name": "fixture-web", "scripts": {"build": "vite build"}}))
-        (product / "foundation-web-build.json").write_text(json.dumps({
+        (product / "xcss-web-build.json").write_text(json.dumps({
             "format": 1,
             "web": {"directory": "web", "script": "build", "dist": "dist"},
             "rust": {"manifest": "Cargo.toml", "package": "fixture", "binary": "fixture", "source_revision_env": "SOURCE_REVISION"},
@@ -96,16 +96,16 @@ class ConformanceTests(unittest.TestCase):
             verify_source(product, ROOT)
             result = verify_web(product, ROOT)
             self.assertEqual(result["build"]["mode"], "embedded")
-            (product / "foundation-web-build.json").unlink()
+            (product / "xcss-web-build.json").unlink()
             for check in (verify_source, verify_web):
-                with self.assertRaisesRegex(ConformanceError, "requires foundation-web-build.json"):
+                with self.assertRaisesRegex(ConformanceError, "requires xcss-web-build.json"):
                     check(product, ROOT)
 
     def test_build_declaration_rejects_path_escape_symlinks_and_source_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
             self.embedded_fixture(product)
-            path = product / "foundation-web-build.json"
+            path = product / "xcss-web-build.json"
             valid = json.loads(path.read_text())
             for section, key, invalid in (
                 ("web", "directory", "../outside"),
@@ -168,7 +168,7 @@ class ConformanceTests(unittest.TestCase):
 product = "new-product"
 url = "https://github.com/example/new-product"
 commit = "0123456789abcdef0123456789abcdef01234567"
-foundation_version = "0.9.0"
+xcss_version = "0.9.0"
 profiles = ["offline-tool"]
 capabilities = ["explicit-paths", "private-state", "restore-journal", "linux-openat2"]
 packages = ["xcss-error"]
@@ -215,7 +215,7 @@ exceptions = []
                 '[package]\nname="fixture"\nversion="0.1.0"\n'
                 '[dependencies]\nxcss-error="0.5"\n'
             )
-            with self.assertRaisesRegex(ConformanceError, "exact Foundation Git source"):
+            with self.assertRaisesRegex(ConformanceError, "exact xcss Git source"):
                 verify_source(product, ROOT)
 
     def test_release_check_distinguishes_source_inspection_from_publication_gate(self) -> None:
@@ -303,7 +303,7 @@ capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server
 
     def test_cli_reports_machine_readable_result(self) -> None:
         completed = subprocess.run(
-            [sys.executable, str(ROOT / "scripts" / "xcss-conformance.py"), "verify-foundation"],
+            [sys.executable, str(ROOT / "scripts" / "xcss-conformance.py"), "verify-xcss"],
             check=True,
             capture_output=True,
             text=True,

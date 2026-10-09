@@ -12,12 +12,12 @@ for (const name of sources) {
   const source = await readFile(new URL(`../src/${name}`, root), "utf8");
   assert.ok(!source.includes('from "@xcss/admin-shell"'), "Use one shared Shell/context implementation throughout this product");
 }
-console.log("Reviewed Foundation Shell snapshot verified");
-const policy = JSON.parse(await readFile(new URL("../../../foundation/platform-router.json", root), "utf8").catch(error => { if (error.code === "ENOENT") return "null"; throw error; }));
+console.log("Reviewed xcss Shell snapshot verified");
+const policy = JSON.parse(await readFile(new URL("../../../xcss/platform-router.json", root), "utf8").catch(error => { if (error.code === "ENOENT") return "null"; throw error; }));
 if (policy) {
-  const router = await readFile(new URL("../../../foundation/platform_router.rs", root));
-  assert.equal(createHash("sha256").update(router).digest("hex"), policy.sha256, "Foundation platform router snapshot");
+  const router = await readFile(new URL("../../../xcss/platform_router.rs", root));
+  assert.equal(createHash("sha256").update(router).digest("hex"), policy.sha256, "xcss platform router snapshot");
   assert.equal(policy.diagnostics, false);
   assert.ok(!router.toString().includes("get(diagnostics"));
-  console.log("Diagnostics-free Foundation platform router verified");
+  console.log("Diagnostics-free xcss platform router verified");
 }

@@ -42,8 +42,8 @@ jobs:
       - name: Enforce workflow supply-chain policy
         run: |
           python3 scripts/check-workflow-supply-chain.py
-          python3 scripts/check-foundation.py
-          python3 scripts/xcss-conformance.py verify-foundation
+          python3 scripts/check-xcss.py
+          python3 scripts/xcss-conformance.py verify-xcss
           python3 -m unittest discover -s tools/tests -p 'test_*.py'
       - name: Install exact Rust toolchain
         run: rustup toolchain install 1.99.0 --profile minimal --component rustfmt,clippy

@@ -78,16 +78,16 @@ test("a declaration pointing at tracked source is rejected before the Web comman
   const source = join(directory, "web", "src", "page.js");
   writeFileSync(source, "keep this authored source");
   const declaration = { format: 1, web: { directory: "web", script: "must-not-run", dist: "src" }, rust: { manifest: "Cargo.toml", package: "example", binary: "example", source_revision_env: "SOURCE_REVISION" } };
-  writeFileSync(join(directory, "foundation-web-build.json"), JSON.stringify(declaration));
+  writeFileSync(join(directory, "xcss-web-build.json"), JSON.stringify(declaration));
   execFileSync("git", ["init", "--quiet", directory]);
   execFileSync("git", ["-C", directory, "add", "."]);
   execFileSync("git", ["-C", directory, "-c", "user.name=fixture", "-c", "user.email=fixture@example.invalid", "commit", "--quiet", "-m", "fixture"]);
-  assert.throws(() => buildWebServer(join(directory, "foundation-web-build.json"), { mode: "development", webOnly: true, noInstall: true }), /tracked source files/);
+  assert.throws(() => buildWebServer(join(directory, "xcss-web-build.json"), { mode: "development", webOnly: true, noInstall: true }), /tracked source files/);
   assert.equal(readFileSync(source, "utf8"), "keep this authored source");
 }));
 test("the actual build CLI orders Web before Cargo, accepts a development archive and emits only its executable path", () => fixture(directory => {
   const declaration = { format: 1, web: { directory: ".", script: "build", dist: "dist" }, rust: { manifest: "Cargo.toml", package: "example", binary: "example", source_revision_env: "SOURCE_REVISION" } };
-  writeFileSync(join(directory, "foundation-web-build.json"), JSON.stringify(declaration));
+  writeFileSync(join(directory, "xcss-web-build.json"), JSON.stringify(declaration));
   writeFileSync(join(directory, "package.json"), JSON.stringify({ scripts: { build: "node build-fixture.mjs" } }));
   writeFileSync(join(directory, "Cargo.toml"), '[package]\nname="example"\nversion="1.0.0"\n');
   writeFileSync(join(directory, "build-fixture.mjs"), `import {mkdirSync,writeFileSync,appendFileSync} from 'node:fs';
@@ -103,7 +103,7 @@ if(process.env.SOURCE_REVISION!=='unbound')process.exit(3);appendFileSync('calls
 console.log(JSON.stringify({reason:'compiler-artifact',target:{name:'example',kind:['bin']},executable:${JSON.stringify(executable)}}));`);
   chmodSync(join(command, "cargo"), 0o755);
   const cli = new URL("../dist/server-cli.js", import.meta.url);
-  const output = execFileSync(process.execPath, [fileURLToPath(cli), "--config", join(directory, "foundation-web-build.json"), "--mode", "development", "--no-install"], { cwd: directory, env: { ...process.env, PATH: `${command}:${process.env.PATH}` }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  const output = execFileSync(process.execPath, [fileURLToPath(cli), "--config", join(directory, "xcss-web-build.json"), "--mode", "development", "--no-install"], { cwd: directory, env: { ...process.env, PATH: `${command}:${process.env.PATH}` }, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   assert.equal(output, `${executable}\n`);
   assert.equal(readFileSync(join(directory, "calls"), "utf8"), "web\ncargo\n");
 }));

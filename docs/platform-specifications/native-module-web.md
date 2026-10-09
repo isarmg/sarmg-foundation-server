@@ -1,6 +1,6 @@
 # 原生嵌入式 Web Profile
 
-`web-embedded-native` 由 Foundation 拥有原生 ESM 管理员客户端、当前合同、设计 token、Maple 字体和构建策略。产品只保留原生业务页面与 HTTP/XHR 业务协议 Adapter，不引入 React。
+`web-embedded-native` 由 xcss 拥有原生 ESM 管理员客户端、当前合同、设计 token、Maple 字体和构建策略。产品只保留原生业务页面与 HTTP/XHR 业务协议 Adapter，不引入 React。
 
 `@xcss/web-toolchain/native` 提供唯一 Vite 配置：ES 输出、保留公开入口、相对资源 URL、外置字体、无 source map、单资源 256 KiB 硬预算。默认产物为 `platform.js`、`platform.css` 及字体和许可证；产品可以从官方字体包的 `OFL.txt` 导出引用，构建时必须包含许可证。产品不能复制平台源码到自己的 vendor 目录。
 
@@ -10,6 +10,6 @@
 
 登录操作必须有 pending 防重复提交，结束时清除密码，失败时恢复可操作状态并将焦点返回密码。显示固定安全提示及经平台验证的 Request ID，不显示任意异常正文。CSP 使用同源外置 ESM/CSS/font，不允许内联脚本或 eval。
 
-适用产品的业务上传协议仍归产品。401 可在响应头阶段结束并取消未读正文；403 必须有有界正文和有效 Foundation ErrorEnvelope 后才能按 `auth.csrf_rejected` 处理，不得恢复产品私有认证响应头或错误码。
+适用产品的业务上传协议仍归产品。401 可在响应头阶段结束并取消未读正文；403 必须有有界正文和有效 xcss ErrorEnvelope 后才能按 `auth.csrf_rejected` 处理，不得恢复产品私有认证响应头或错误码。
 
 此能力只管理文档内状态。登录请求、Session shape 校验和 CSRF 处理均通过共享管理员客户端执行。

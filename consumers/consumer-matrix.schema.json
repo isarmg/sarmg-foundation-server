@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://schemas.sarmg.org/foundation/consumer-matrix.v1.schema.json",
+  "$id": "https://schemas.sarmg.org/xcss/consumer-matrix.v1.schema.json",
   "title": "Generated xcss consumer matrix",
   "type": "object",
   "additionalProperties": false,
@@ -8,7 +8,7 @@
     "$schema",
     "format",
     "platform_generation",
-    "foundation_version",
+    "xcss_version",
     "consumers"
   ],
   "properties": {
@@ -21,7 +21,7 @@
     "platform_generation": {
       "const": 1
     },
-    "foundation_version": {
+    "xcss_version": {
       "$ref": "#/$defs/version"
     },
     "consumers": {
@@ -48,7 +48,7 @@
       "required": [
         "product",
         "commit",
-        "foundation_version",
+        "xcss_version",
         "profiles",
         "capabilities",
         "packages",
@@ -63,7 +63,7 @@
           "type": "string",
           "pattern": "^[0-9a-f]{40}$"
         },
-        "foundation_version": {
+        "xcss_version": {
           "anyOf": [
             {
               "$ref": "#/$defs/version"

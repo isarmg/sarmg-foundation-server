@@ -1,4 +1,6 @@
-# Foundation Server 0.11.0 unsafe 审查
+> 项目名称已规范化，版本、提交、摘要及验收状态保持历史记录，不作为当前验收证据。未经规范化的原始文本仅保存在本次工作区审计备份中；本文件不是逐字原始记录。
+
+# xcss 0.11.0 unsafe 审查
 
 审查范围为本仓库 owned Rust 源码及 Windows 原生测试，目标工具链 Rust 1.99.0、SQLx 0.9.0、唯一 native SQLite 0.37.0、windows-sys 0.61.2。源码完整 revision、测试日志和实际 CI run 随发行收据记录；本文件随同该 revision 封存，不以词频代替逐函数判断。第三方驱动内部 unsafe 不属于本仓库 owned 源码，依赖来源和版本由 Cargo.lock 固定。
 

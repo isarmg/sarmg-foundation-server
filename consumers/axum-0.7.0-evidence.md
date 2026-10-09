@@ -1,8 +1,10 @@
+> 项目名称已规范化，版本、提交、摘要及验收状态保持历史记录，不作为当前验收证据。未经规范化的原始文本仅保存在本次工作区审计备份中；本文件不是逐字原始记录。
+
 # Axum 0.7.0 消费者验证证据
 
 这是 0.7.0 阶段记录。Xczs 后续引入 React 和正式 0.7.1 的结果见 [React 文件服务记录](react-filesystem-0.7.1-evidence.md)。
 
-目标平台：`x86_64-unknown-linux-gnu`。Foundation 正式 revision：
+目标平台：`x86_64-unknown-linux-gnu`。xcss 正式 revision：
 `77e7ad7af8e1bf62432bd6bdd8fa9aff54cb39d1`，不可变版本 `v0.7.0`。
 
 平台 [CI](https://github.com/isarmg/xcss/actions/runs/34037708626)
@@ -20,14 +22,14 @@ Rust 源码/清单/锁文件与完成消费者本地测试的候选
 | xscs | workspace/all-targets 编译；`cargo test --lib`，31 通过；正式 0.7.0 npm 包构建 | [CI 通过](https://github.com/isarmg/xscs/actions/runs/34038340939) |
 | xsos | workspace/all-targets 编译；`cargo test -p xsos --lib`，44 通过；正式 npm 包构建 | [CI 通过](https://github.com/isarmg/xsos/actions/runs/34038344244) |
 | xcos | all-targets 编译；`cargo test --bin xcos`，48 通过、1 个显式忽略；正式 npm 包构建 | [CI 通过](https://github.com/isarmg/xcos/actions/runs/34038352976) |
-| Media Backup | workspace/all-targets 编译；`cargo test -p xszs --bin xszs`，52 通过；正式 npm 包构建；更新当前 89 项 Web 资源合同 | [完整 CI 通过](https://github.com/isarmg/media-backup/actions/runs/34039177910)，含实际 server archive、Android 编译和未签名 iOS；不发布新的移动端版本 |
-| Xczs RAM | 全量 all-targets/all-features Rust 635 通过、1 个显式忽略基准另行执行通过；原始 socket 合同；真实 release 硬期限非零退出和 SIGABRT 上传恢复通过；完整 Chromium/Firefox 浏览器矩阵及覆盖率通过 | [完整 CI 通过](https://github.com/isarmg/xczs-ram/actions/runs/34039807581)；本地 `./scripts/check.sh` 通过；本阶段正式包 E2E 因宿主夹具缺少 Web 构建失败，修复和 React 后续复验见新记录 |
+| xszs | workspace/all-targets 编译；`cargo test -p xszs --bin xszs`，52 通过；正式 npm 包构建；更新当前 89 项 Web 资源合同 | [完整 CI 通过](https://github.com/isarmg/xszs/actions/runs/34039177910)，含实际 server archive、Android 编译和未签名 iOS；不发布新的移动端版本 |
+| xczs | 全量 all-targets/all-features Rust 635 通过、1 个显式忽略基准另行执行通过；原始 socket 合同；真实 release 硬期限非零退出和 SIGABRT 上传恢复通过；完整 Chromium/Firefox 浏览器矩阵及覆盖率通过 | [完整 CI 通过](https://github.com/isarmg/xczs/actions/runs/34039807581)；本地 `./scripts/check.sh` 通过；本阶段正式包 E2E 因宿主夹具缺少 Web 构建失败，修复和 React 后续复验见新记录 |
 
 本地构建使用 `CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0` 降低缓存占用，未修改断言、业务限额、release panic 策略或覆盖率门槛。临时测试根及状态与真实实例完全隔离。
 
 ## 正式平台制品
 
-全部来自 [Foundation v0.7.0 Release](https://github.com/isarmg/xcss/releases/tag/v0.7.0)，消费者 npm lock 另固定 SHA-512 integrity。
+全部来自 [xcss v0.7.0 Release](https://github.com/isarmg/xcss/releases/tag/v0.7.0)，消费者 npm lock 另固定 SHA-512 integrity。
 
 | 制品 | SHA-256 |
 | --- | --- |
@@ -40,4 +42,4 @@ Xczs 本阶段未发布，不宣称在本阶段完成 A14；最终制品摘要�
 
 ## 例外收窄
 
-删除五个过时的 `local-platform-stack` 例外。四个控制平面仅保留源扫描器对 Composer 生成 SQL 的识别限制；Media Backup 另外保留嵌套 schema 目录的定位限制。Xczs 仅保留未知认证子路径的拒绝路由、测试 Cookie 常量被文本扫描误判的识别限制。不再豁免实际认证、Runtime、策略、自建 Schema 或多版本混用。具体理由及规则见各产品新的例外文件。
+删除五个过时的 `local-platform-stack` 例外。四个控制平面仅保留源扫描器对 Composer 生成 SQL 的识别限制；xszs 另外保留嵌套 schema 目录的定位限制。Xczs 仅保留未知认证子路径的拒绝路由、测试 Cookie 常量被文本扫描误判的识别限制。不再豁免实际认证、Runtime、策略、自建 Schema 或多版本混用。具体理由及规则见各产品新的例外文件。

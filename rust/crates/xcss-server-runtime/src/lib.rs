@@ -46,7 +46,7 @@ pub const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(30);
 pub struct ProductDescriptor {
     pub id: String,
     pub version: String,
-    pub foundation_revision: String,
+    pub xcss_revision: String,
     pub profile: String,
     pub capabilities: Vec<String>,
 }
@@ -66,13 +66,10 @@ impl ProductDescriptor {
                 return Err(Error::InvalidDescriptor(label));
             }
         }
-        if self.foundation_revision.len() != 40
-            || !self
-                .foundation_revision
-                .bytes()
-                .all(|b| b.is_ascii_hexdigit())
+        if self.xcss_revision.len() != 40
+            || !self.xcss_revision.bytes().all(|b| b.is_ascii_hexdigit())
         {
-            return Err(Error::InvalidDescriptor("foundation_revision"));
+            return Err(Error::InvalidDescriptor("xcss_revision"));
         }
         Ok(())
     }
@@ -389,7 +386,7 @@ pub async fn wait_for_shutdown(shutdown: &mut watch::Receiver<bool>) {
 }
 
 /// Create a route-only runtime handle. Servers that already own their socket
-/// lifecycle can adopt the Foundation HTTP surface before moving workers into
+/// lifecycle can adopt the xcss HTTP surface before moving workers into
 /// [`ServerRuntime`]. No background task is left unsupervised by this helper.
 pub fn platform_handle(product: ProductDescriptor) -> Result<RuntimeHandle, Error> {
     product.validate()?;
@@ -522,7 +519,7 @@ struct PlatformState {
     handle: RuntimeHandle,
 }
 
-/// Compose the Foundation-owned auth, health and readiness routes.
+/// Compose the xcss-owned auth, health and readiness routes.
 /// Request IDs are installed once by `serve`, outside product URI validation.
 /// No administrator diagnostics endpoint is provided. Product routes must be merged separately.
 pub fn platform_router<Store>(
@@ -592,7 +589,7 @@ fn request_error(status: StatusCode, code: &'static str, request_id: &str) -> Re
     );
     response
         .extensions_mut()
-        .insert(xcss_admin_axum::FoundationErrorResponse);
+        .insert(xcss_admin_axum::XcssErrorResponse);
     response
 }
 
@@ -791,7 +788,7 @@ mod tests {
         ProductDescriptor {
             id: "example".into(),
             version: "1.0.0".into(),
-            foundation_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            xcss_revision: "0123456789abcdef0123456789abcdef01234567".into(),
             profile: "server-control-plane".into(),
             capabilities: vec!["server-runtime".into()],
         }
@@ -1030,7 +1027,7 @@ mod tests {
     fn revision_requires_a_full_immutable_commit() {
         let mut product = descriptor();
         assert!(product.validate().is_ok());
-        product.foundation_revision.truncate(7);
+        product.xcss_revision.truncate(7);
         assert!(product.validate().is_err());
     }
 

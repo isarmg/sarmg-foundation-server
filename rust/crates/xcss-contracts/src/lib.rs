@@ -26,7 +26,7 @@ pub use xcss_schema_identity::{Error as SchemaIdentityError, SchemaIdentity};
 /// Largest integer represented exactly by every supported JSON consumer.
 pub const MAX_SAFE_JSON_INTEGER: u64 = 9_007_199_254_740_991;
 
-/// The only current product role. Foundation contains no viewer/operator role.
+/// The only current product role. xcss contains no viewer/operator role.
 pub const ADMINISTRATOR_ROLE: &str = "admin";
 
 pub const ADMIN_LOGIN_PATH: &str = "/api/v1/auth/login";

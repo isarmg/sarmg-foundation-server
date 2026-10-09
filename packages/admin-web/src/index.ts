@@ -235,7 +235,7 @@ export function createAdministratorApiClient(
             { generation, csrfToken, sessionAtDispatch: null },
           );
         } catch (error) {
-          // Only a Foundation invalid-session response confirms that this
+          // Only a xcss invalid-session response confirms that this
           // target is gone. Keep its in-memory CSRF context for other failures.
           if (!(error instanceof ApiClientError && error.status === 401
             && error.code === "auth.session_required")) throw error;

@@ -102,7 +102,7 @@ impl AccountFile {
         };
         let initializing = saved.is_none();
         let records = saved.unwrap_or(configured);
-        // Reuse all Foundation identity, username and password-hash validation.
+        // Reuse all xcss identity, username and password-hash validation.
         StaticAdministratorStore::new(records.clone())?;
         if initializing {
             file.save(&records)?;

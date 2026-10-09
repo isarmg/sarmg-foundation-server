@@ -27,7 +27,7 @@ async function assertPlainBackground(page, dark = false) {
   assert.equal(await page.locator("body").evaluate(body => getComputedStyle(body).visibility), "hidden");
 }
 
-if (process.argv.length < 3) throw new Error("Pass explicit product roots or a Foundation font source directory");
+if (process.argv.length < 3) throw new Error("Pass explicit product roots or a xcss font source directory");
 for (const argument of process.argv.slice(2)) {
   const path = resolve(argument);
   const source = await readFile(join(path, "fonts.css")).then(() => true, error => {
@@ -40,7 +40,7 @@ for (const argument of process.argv.slice(2)) {
   if (!source) {
     const snapshot = join(path, "web/fonts");
     for (const name of ["ready.js", "ready.d.ts", "boot.css", "startup.json"]) {
-      assert.ok((await readFile(join(snapshot, name))).equals(await readFile(join(canonicalFonts, name))), `${argument}: startup snapshot differs from Foundation (${name})`);
+      assert.ok((await readFile(join(snapshot, name))).equals(await readFile(join(canonicalFonts, name))), `${argument}: startup snapshot differs from xcss (${name})`);
     }
     for (const name of xczs ? ["index.html", "login.html", "tags.html"] : ["index.html"]) {
       const html = await readFile(join(path, "web", name), "utf8");
