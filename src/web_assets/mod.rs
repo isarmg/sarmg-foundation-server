@@ -21,7 +21,7 @@ use std::{
 pub mod build;
 
 /// Inventory format identity. Its canonical compact JSON bytes are hashed verbatim.
-pub const MANIFEST_FORMAT: &str = "xcss-web-assets-v1";
+pub const MANIFEST_FORMAT: &str = "web-assets-v1";
 const MAX_ASSET_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_FILES: usize = 16_384;

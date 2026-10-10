@@ -99,7 +99,7 @@ def check_dependency_boundaries(root: Path) -> None:
             if value is None:
                 raise XcssPolicyError(f"{path}: unknown workspace dependency {alias}")
             name = value.get("package", alias) if isinstance(value, dict) else alias
-            if name in {"xcss", "xcsc"} or name.startswith(("xcss-", "xcsc-")):
+            if name == "xcss" or name.startswith("xcss-"):
                 raise XcssPolicyError(f"{path}: {name} is outside the single xcss package boundary")
             if isinstance(value, dict) and "path" in value:
                 raise XcssPolicyError(f"{path}: external local dependency {name} is not self-contained")
@@ -121,7 +121,7 @@ def check_dependency_boundaries(root: Path) -> None:
                     match = re.fullmatch(r"npm:((?:@[^/]+/)?[^@]+)(?:@.*)?", value)
                     if match:
                         name = match.group(1)
-                if name.startswith(("@xcss/", "@xcsc/")):
+                if name.startswith("@xcss/"):
                     raise XcssPolicyError(f"{path}: {name} is outside the single Web package boundary")
                 if isinstance(value, str) and value.startswith(("file:", "link:", "workspace:", "./", "../", "/")):
                     raise XcssPolicyError(f"{path}: external local dependency {name} is not self-contained")

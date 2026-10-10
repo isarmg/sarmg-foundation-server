@@ -1,4 +1,4 @@
-CREATE TABLE _xcss_operations (
+CREATE TABLE _common_operations (
     operation_id TEXT PRIMARY KEY NOT NULL,
     namespace TEXT NOT NULL,
     target_key TEXT NOT NULL,
@@ -25,17 +25,17 @@ CREATE TABLE _xcss_operations (
     CHECK (updated_at_micros >= created_at_micros)
 );
 
-CREATE INDEX _xcss_operations_claimable
-    ON _xcss_operations(namespace, not_before_micros, created_at_micros, operation_id)
+CREATE INDEX _common_operations_claimable
+    ON _common_operations(namespace, not_before_micros, created_at_micros, operation_id)
     WHERE state = 'pending';
 
-CREATE UNIQUE INDEX _xcss_operations_active_target
-    ON _xcss_operations(namespace, target_key)
+CREATE UNIQUE INDEX _common_operations_active_target
+    ON _common_operations(namespace, target_key)
     WHERE state IN ('running', 'unknown');
 
-CREATE TABLE _xcss_operation_audit_outbox (
+CREATE TABLE _common_operation_audit_outbox (
     event_id TEXT PRIMARY KEY NOT NULL,
-    operation_id TEXT NOT NULL REFERENCES _xcss_operations(operation_id) ON DELETE RESTRICT,
+    operation_id TEXT NOT NULL REFERENCES _common_operations(operation_id) ON DELETE RESTRICT,
     from_state TEXT NOT NULL,
     to_state TEXT NOT NULL,
     payload_json TEXT NOT NULL,
@@ -43,6 +43,6 @@ CREATE TABLE _xcss_operation_audit_outbox (
     delivered_at_micros INTEGER
 );
 
-CREATE INDEX _xcss_operation_audit_outbox_pending
-    ON _xcss_operation_audit_outbox(created_at_micros, event_id)
+CREATE INDEX _common_operation_audit_outbox_pending
+    ON _common_operation_audit_outbox(created_at_micros, event_id)
     WHERE delivered_at_micros IS NULL;

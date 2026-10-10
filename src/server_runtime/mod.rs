@@ -46,7 +46,7 @@ pub const SHUTDOWN_DRAIN_TIMEOUT: Duration = Duration::from_secs(30);
 pub struct ProductDescriptor {
     pub id: String,
     pub version: String,
-    pub xcss_revision: String,
+    pub common_revision: String,
     pub profile: String,
     pub capabilities: Vec<String>,
 }
@@ -66,10 +66,10 @@ impl ProductDescriptor {
                 return Err(Error::InvalidDescriptor(label));
             }
         }
-        if self.xcss_revision.len() != 40
-            || !self.xcss_revision.bytes().all(|b| b.is_ascii_hexdigit())
+        if self.common_revision.len() != 40
+            || !self.common_revision.bytes().all(|b| b.is_ascii_hexdigit())
         {
-            return Err(Error::InvalidDescriptor("xcss_revision"));
+            return Err(Error::InvalidDescriptor("common_revision"));
         }
         Ok(())
     }
@@ -791,7 +791,7 @@ mod tests {
         ProductDescriptor {
             id: "example".into(),
             version: "1.0.0".into(),
-            xcss_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            common_revision: "0123456789abcdef0123456789abcdef01234567".into(),
             profile: "server-control-plane".into(),
             capabilities: vec!["server-runtime".into()],
         }
@@ -1031,7 +1031,7 @@ mod tests {
     fn revision_requires_a_full_immutable_commit() {
         let mut product = descriptor();
         assert!(product.validate().is_ok());
-        product.xcss_revision.truncate(7);
+        product.common_revision.truncate(7);
         assert!(product.validate().is_err());
     }
 

@@ -143,7 +143,7 @@ pub async fn read_platform_metadata(pool: &SqlitePool) -> Result<PlatformMetadat
                 typeof(platform_schema_revision), platform_schema_revision, \
                 typeof(profile), profile, \
                 typeof(created_at_micros), created_at_micros \
-         FROM _xcss_platform_metadata ORDER BY singleton",
+         FROM _common_platform_metadata ORDER BY singleton",
     )
     .fetch_all(pool)
     .await?;
@@ -191,7 +191,7 @@ pub async fn initialize_current_platform_metadata(
     let created_at_micros = i64::try_from(created_at_micros)
         .map_err(|_| Error::PlatformTimestampOutOfRange { created_at_micros })?;
     sqlx::query(
-        "INSERT INTO _xcss_platform_metadata(\
+        "INSERT INTO _common_platform_metadata(\
            singleton,platform_generation,platform_schema_revision,profile,created_at_micros\
          ) VALUES(1,?,?,?,?)",
     )
@@ -224,7 +224,7 @@ pub async fn require_current_platform_metadata(
 
 async fn validate_platform_table(pool: &SqlitePool) -> Result<(), Error> {
     let ddl: Option<String> = sqlx::query_scalar(
-        "SELECT sql FROM sqlite_schema WHERE type='table' AND name='_xcss_platform_metadata'",
+        "SELECT sql FROM sqlite_schema WHERE type='table' AND name='_common_platform_metadata'",
     )
     .fetch_optional(pool)
     .await?;
@@ -371,7 +371,7 @@ mod tests {
             .await?;
         sqlx::raw_sql(PLATFORM_METADATA_DDL).execute(&pool).await?;
         sqlx::query(
-            "INSERT INTO _xcss_platform_metadata(\
+            "INSERT INTO _common_platform_metadata(\
                singleton, platform_generation, platform_schema_revision, profile, created_at_micros\
              ) VALUES(1, 1, 1, ?, 7)",
         )

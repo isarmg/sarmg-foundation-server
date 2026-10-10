@@ -41,7 +41,7 @@ pub(super) async fn execute(
         .max(context.now_micros);
     let timestamp = to_i64(now).map_err(ManagementError::Store)?;
     let authorized: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM _xcss_admin_sessions s JOIN _xcss_administrators a ON a.administrator_id=s.administrator_id WHERE s.session_id=? AND s.administrator_id=? AND s.csrf_hash=? AND s.revoked_at_micros IS NULL AND s.idle_expires_at_micros>? AND s.absolute_expires_at_micros>? AND a.active=1 AND a.session_version=s.administrator_session_version)"
+        "SELECT EXISTS(SELECT 1 FROM _common_admin_sessions s JOIN _common_administrators a ON a.administrator_id=s.administrator_id WHERE s.session_id=? AND s.administrator_id=? AND s.csrf_hash=? AND s.revoked_at_micros IS NULL AND s.idle_expires_at_micros>? AND s.absolute_expires_at_micros>? AND a.active=1 AND a.session_version=s.administrator_session_version)"
     ).bind(context.identity.session_id.as_str()).bind(context.identity.administrator_id.as_str())
         .bind(context.identity.csrf_hash.as_slice()).bind(timestamp).bind(timestamp)
         .fetch_one(&mut *transaction).await.map_err(storage_error)?;
@@ -62,7 +62,7 @@ pub(super) async fn execute(
                     .map_err(|_| ManagementError::InvalidInput)?;
             }
             let id = &context.identity.administrator_id;
-            let changed = sqlx::query("UPDATE _xcss_administrators SET username=?, password_hash=COALESCE(?, password_hash), session_version=session_version+1, updated_at_micros=? WHERE administrator_id=? AND active=1 AND password_hash=?")
+            let changed = sqlx::query("UPDATE _common_administrators SET username=?, password_hash=COALESCE(?, password_hash), session_version=session_version+1, updated_at_micros=? WHERE administrator_id=? AND active=1 AND password_hash=?")
                 .bind(&username).bind(password_hash).bind(timestamp).bind(id.as_str()).bind(expected_password_hash)
                 .execute(&mut *transaction).await.map_err(storage_error)?.rows_affected();
             if changed != 1 {
@@ -178,7 +178,7 @@ mod tests {
     }
 
     async fn create(fixture: &Fixture, name: &str) -> AdministratorRecord {
-        sqlx::query("INSERT INTO _xcss_administrators(administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros) SELECT ?, ?, password_hash, 1, 1, created_at_micros+1, updated_at_micros FROM _xcss_administrators WHERE username='admin'")
+        sqlx::query("INSERT INTO _common_administrators(administrator_id, username, password_hash, active, session_version, created_at_micros, updated_at_micros) SELECT ?, ?, password_hash, 1, 1, created_at_micros+1, updated_at_micros FROM _common_administrators WHERE username='admin'")
             .bind(format!("fixture-{name}")).bind(name).execute(fixture.service.store().pool()).await.unwrap();
         fixture
             .service
@@ -192,9 +192,9 @@ mod tests {
     async fn logical_snapshot(pool: &SqlitePool) -> Vec<Vec<Vec<String>>> {
         let mut snapshot = Vec::new();
         for table in [
-            "_xcss_administrators",
-            "_xcss_admin_sessions",
-            "_xcss_security_audit_events",
+            "_common_administrators",
+            "_common_admin_sessions",
+            "_common_security_audit_events",
         ] {
             let columns: Vec<String> =
                 sqlx::query_scalar("SELECT name FROM pragma_table_info(?) ORDER BY cid")
@@ -237,8 +237,8 @@ mod tests {
         store.validate_all_administrators().await.unwrap();
         assert_eq!(before, logical_snapshot(store.pool()).await);
         for statement in [
-            "UPDATE _xcss_administrators SET active=0",
-            "UPDATE _xcss_administrators SET active=1, password_hash='invalid-phc'",
+            "UPDATE _common_administrators SET active=0",
+            "UPDATE _common_administrators SET active=1, password_hash='invalid-phc'",
         ] {
             sqlx::query(statement).execute(store.pool()).await.unwrap();
             let before = logical_snapshot(store.pool()).await;
@@ -293,7 +293,7 @@ mod tests {
             .await
             .unwrap();
         let random = crate::admin_auth::random_token().unwrap();
-        sqlx::query("UPDATE _xcss_admin_sessions SET csrf_hash=? WHERE token_hash=?")
+        sqlx::query("UPDATE _common_admin_sessions SET csrf_hash=? WHERE token_hash=?")
             .bind(crate::admin_auth::token_hash(&random).as_slice())
             .bind(crate::admin_auth::token_hash(&login.session_token).as_slice())
             .execute(f.service.store().pool())
@@ -327,7 +327,7 @@ mod tests {
     async fn login_waits_for_writer_then_revalidates_account() {
         let f = fixture().await;
         let store = f.service.store();
-        let row = sqlx::query("SELECT session_id, administrator_id, token_hash, csrf_hash, administrator_session_version, created_at_micros, last_seen_at_micros, idle_expires_at_micros, absolute_expires_at_micros, revoked_at_micros FROM _xcss_admin_sessions LIMIT 1")
+        let row = sqlx::query("SELECT session_id, administrator_id, token_hash, csrf_hash, administrator_session_version, created_at_micros, last_seen_at_micros, idle_expires_at_micros, absolute_expires_at_micros, revoked_at_micros FROM _common_admin_sessions LIMIT 1")
             .fetch_one(store.pool()).await.unwrap();
         let mut session = session_from_row(&row, 0).unwrap();
         session.session_id = Identifier::new("queued-login").unwrap();
@@ -350,7 +350,7 @@ mod tests {
             .unwrap(),
         };
         let mut writer = store.pool().begin_with("BEGIN IMMEDIATE").await.unwrap();
-        sqlx::query("UPDATE _xcss_administrators SET session_version=session_version+1")
+        sqlx::query("UPDATE _common_administrators SET session_version=session_version+1")
             .execute(&mut *writer)
             .await
             .unwrap();
@@ -365,7 +365,7 @@ mod tests {
             pending.await,
             Err(Error::AdministratorNotEligible)
         ));
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _xcss_admin_sessions")
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _common_admin_sessions")
             .fetch_one(store.pool())
             .await
             .unwrap();
@@ -377,7 +377,7 @@ mod tests {
         let f = fixture().await;
         let store = f.service.store();
         for index in 0..3 {
-            sqlx::query("INSERT INTO _xcss_admin_sessions SELECT ?,administrator_id,?,csrf_hash,administrator_session_version,created_at_micros,last_seen_at_micros,idle_expires_at_micros,absolute_expires_at_micros,last_seen_at_micros FROM _xcss_admin_sessions LIMIT 1")
+            sqlx::query("INSERT INTO _common_admin_sessions SELECT ?,administrator_id,?,csrf_hash,administrator_session_version,created_at_micros,last_seen_at_micros,idle_expires_at_micros,absolute_expires_at_micros,last_seen_at_micros FROM _common_admin_sessions LIMIT 1")
                 .bind(format!("expired-{index}")).bind(vec![index; 32]).execute(store.pool()).await.unwrap();
         }
         let audits = logical_snapshot(store.pool()).await.pop().unwrap();
@@ -423,7 +423,7 @@ mod tests {
             "updated correct password",
             &account.password_hash
         ));
-        let active: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _xcss_admin_sessions WHERE administrator_id=? AND revoked_at_micros IS NULL")
+        let active: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _common_admin_sessions WHERE administrator_id=? AND revoked_at_micros IS NULL")
             .bind(original.as_str()).fetch_one(f.service.store().pool()).await.unwrap();
         assert_eq!(active, 0);
         assert!(matches!(
@@ -432,7 +432,7 @@ mod tests {
                 .await,
             Err(ManagementError::Unauthorized)
         ));
-        let events: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _xcss_security_audit_events WHERE action='administrator.account_updated'").fetch_one(f.service.store().pool()).await.unwrap();
+        let events: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _common_security_audit_events WHERE action='administrator.account_updated'").fetch_one(f.service.store().pool()).await.unwrap();
         assert_eq!(events, 1);
     }
 
@@ -494,7 +494,7 @@ mod tests {
         let old = f.context.identity.csrf_hash;
         let current = [42; 32];
         let timestamp = now();
-        sqlx::query("UPDATE _xcss_admin_sessions SET csrf_hash=? WHERE session_id=?")
+        sqlx::query("UPDATE _common_admin_sessions SET csrf_hash=? WHERE session_id=?")
             .bind(current.as_slice())
             .bind(id.as_str())
             .execute(store.pool())
@@ -519,7 +519,7 @@ mod tests {
                 .unwrap()
         );
         let stored: Vec<u8> =
-            sqlx::query_scalar("SELECT csrf_hash FROM _xcss_admin_sessions WHERE session_id=?")
+            sqlx::query_scalar("SELECT csrf_hash FROM _common_admin_sessions WHERE session_id=?")
                 .bind(id.as_str())
                 .fetch_one(store.pool())
                 .await
@@ -536,7 +536,7 @@ mod tests {
     #[tokio::test]
     async fn account_audit_failure_rolls_back_password_identity_and_session_revocation() {
         let f = fixture().await;
-        sqlx::raw_sql("CREATE TRIGGER reject_audit BEFORE INSERT ON _xcss_security_audit_events BEGIN SELECT RAISE(ABORT, 'injected audit failure'); END;")
+        sqlx::raw_sql("CREATE TRIGGER reject_audit BEFORE INSERT ON _common_security_audit_events BEGIN SELECT RAISE(ABORT, 'injected audit failure'); END;")
             .execute(f.service.store().pool()).await.unwrap();
         assert!(matches!(
             f.service
@@ -562,7 +562,7 @@ mod tests {
             &original.password_hash
         ));
         let revoked: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _xcss_admin_sessions WHERE revoked_at_micros IS NOT NULL",
+            "SELECT COUNT(*) FROM _common_admin_sessions WHERE revoked_at_micros IS NOT NULL",
         )
         .fetch_one(f.service.store().pool())
         .await
@@ -590,7 +590,7 @@ mod tests {
                 .await
                 .unwrap()
         );
-        let row: (i64, i64) = sqlx::query_as("SELECT last_seen_at_micros, idle_expires_at_micros FROM _xcss_admin_sessions WHERE session_id=?").bind(id.as_str()).fetch_one(store.pool()).await.unwrap();
+        let row: (i64, i64) = sqlx::query_as("SELECT last_seen_at_micros, idle_expires_at_micros FROM _common_admin_sessions WHERE session_id=?").bind(id.as_str()).fetch_one(store.pool()).await.unwrap();
         assert_eq!(row, ((timestamp + 100) as i64, (deadline + 100) as i64));
     }
 }

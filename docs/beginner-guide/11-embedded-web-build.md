@@ -6,7 +6,7 @@ xcss `1.0.0` 的 `xcss::web_assets` 生成资源表、确定性 JSON 清单和 S
 快照到 Cargo 的 `OUT_DIR`，再通过 `include_bytes!` 编译，保证清单与最终字节一致。产品正式 HTTP
 处理器使用编译资源；发行目录携带清单用于核对，不携带另一份 raw Web。字体和许可证同样进入清单。
 
-资源清单格式为 `xcss-web-assets-v1`，文件按路径排序，绑定路径、MIME、大小和 SHA-256。摘要只计算
+资源清单格式为 `web-assets-v1`，文件按路径排序，绑定路径、MIME、大小和 SHA-256。摘要只计算
 canonical JSON bytes，不包含 CLI 打印时添加的换行。产品二进制提供无需配置、无业务副作用的
 `web-assets` 命令。实际产物验收将该清单与本次前端输出逐个比较，能够发现旧 dist、遗漏和编译后改动。
 

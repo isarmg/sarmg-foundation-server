@@ -26,7 +26,7 @@ pub use crate::sqlite::{
 };
 pub use crate::state_file::{INSTANCE_LOCK_FILE, MAINTENANCE_LOCK_FILE, MAINTENANCE_PENDING_FILE};
 
-pub const SERVICE_IDENTITY_HEADER: &str = "x-xcss-service";
+pub const SERVICE_IDENTITY_HEADER: &str = "x-service";
 pub const STATUS_TIMEOUT: Duration = Duration::from_secs(3);
 pub const MAX_STATUS_BYTES: usize = 4096;
 

@@ -33,7 +33,7 @@ impl SqliteAdministratorStore {
             return Err(Error::IntegerRange);
         }
         let now = to_i64(now_micros)?;
-        let deleted = sqlx::query("DELETE FROM _xcss_admin_sessions WHERE rowid IN (SELECT rowid FROM _xcss_admin_sessions ORDER BY rowid LIMIT ?) AND (revoked_at_micros IS NOT NULL OR idle_expires_at_micros<=? OR absolute_expires_at_micros<=?)")
+        let deleted = sqlx::query("DELETE FROM _common_admin_sessions WHERE rowid IN (SELECT rowid FROM _common_admin_sessions ORDER BY rowid LIMIT ?) AND (revoked_at_micros IS NOT NULL OR idle_expires_at_micros<=? OR absolute_expires_at_micros<=?)")
             .bind(i64::from(limit)).bind(now).bind(now).execute(&self.pool).await?;
         Ok(deleted.rows_affected())
     }
@@ -45,7 +45,7 @@ impl SqliteAdministratorStore {
         let rows = sqlx::query(
             "SELECT administrator_id, username, password_hash, active, session_version, \
                     created_at_micros, updated_at_micros, last_login_at_micros \
-             FROM _xcss_administrators ORDER BY administrator_id LIMIT 2",
+             FROM _common_administrators ORDER BY administrator_id LIMIT 2",
         )
         .fetch_all(&self.pool)
         .await?;
@@ -76,7 +76,7 @@ impl AdministratorStore for SqliteAdministratorStore {
     }
 
     async fn administrator_count(&self) -> Result<u64, Error> {
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _xcss_administrators")
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _common_administrators")
             .fetch_one(&self.pool)
             .await?;
         u64::try_from(count).map_err(|_| Error::IntegerRange)
@@ -90,7 +90,7 @@ impl AdministratorStore for SqliteAdministratorStore {
         let row = sqlx::query(
             "SELECT administrator_id, username, password_hash, active, session_version, \
                     created_at_micros, updated_at_micros, last_login_at_micros \
-             FROM _xcss_administrators WHERE username = ?",
+             FROM _common_administrators WHERE username = ?",
         )
         .bind(username)
         .fetch_optional(&self.pool)
@@ -108,8 +108,8 @@ impl AdministratorStore for SqliteAdministratorStore {
                     s.idle_expires_at_micros, s.absolute_expires_at_micros, s.revoked_at_micros, \
                     a.administrator_id, a.username, a.password_hash, a.active, a.session_version, \
                     a.created_at_micros, a.updated_at_micros, a.last_login_at_micros \
-             FROM _xcss_admin_sessions s \
-             JOIN _xcss_administrators a ON a.administrator_id = s.administrator_id \
+             FROM _common_admin_sessions s \
+             JOIN _common_administrators a ON a.administrator_id = s.administrator_id \
              WHERE s.token_hash = ?",
         )
         .bind(token_hash.as_slice())
@@ -132,14 +132,14 @@ impl AdministratorStore for SqliteAdministratorStore {
         administrator.validate()?;
         require_action(&event, SecurityAction::AdministratorCreated)?;
         let mut transaction = self.pool.begin_with("BEGIN IMMEDIATE").await?;
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _xcss_administrators")
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM _common_administrators")
             .fetch_one(&mut *transaction)
             .await?;
         if count != 0 {
             return Err(Error::AdministratorAlreadyExists);
         }
         sqlx::query(
-            "INSERT INTO _xcss_administrators(\
+            "INSERT INTO _common_administrators(\
                 administrator_id, username, password_hash, active, session_version, \
                 created_at_micros, updated_at_micros, last_login_at_micros\
              ) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
@@ -171,7 +171,7 @@ impl AdministratorStore for SqliteAdministratorStore {
         require_action(&events[1], SecurityAction::AdministratorSessionsRevoked)?;
         let mut transaction = self.pool.begin().await?;
         let changed = sqlx::query(
-            "UPDATE _xcss_administrators SET password_hash=?, session_version=session_version+1, updated_at_micros=? WHERE administrator_id=?",
+            "UPDATE _common_administrators SET password_hash=?, session_version=session_version+1, updated_at_micros=? WHERE administrator_id=?",
         )
         .bind(password_hash)
         .bind(to_i64(now_micros)?)
@@ -194,7 +194,7 @@ impl AdministratorStore for SqliteAdministratorStore {
             .await?;
         let mut transaction = self.pool.begin_with("BEGIN IMMEDIATE").await?;
         let current: Option<(i64, i64)> = sqlx::query_as(
-            "SELECT active, session_version FROM _xcss_administrators WHERE administrator_id=?",
+            "SELECT active, session_version FROM _common_administrators WHERE administrator_id=?",
         )
         .bind(login.session.administrator_id.as_str())
         .fetch_optional(&mut *transaction)
@@ -216,7 +216,7 @@ impl AdministratorStore for SqliteAdministratorStore {
             login.session.created_at_micros,
         )
         .await?;
-        sqlx::query("UPDATE _xcss_administrators SET last_login_at_micros=?, updated_at_micros=? WHERE administrator_id=?")
+        sqlx::query("UPDATE _common_administrators SET last_login_at_micros=?, updated_at_micros=? WHERE administrator_id=?")
             .bind(to_i64(login.session.created_at_micros)?)
             .bind(to_i64(login.session.created_at_micros)?)
             .bind(login.session.administrator_id.as_str())
@@ -238,8 +238,8 @@ impl AdministratorStore for SqliteAdministratorStore {
             return Ok(false);
         }
         let changed = sqlx::query(
-            "UPDATE _xcss_admin_sessions SET last_seen_at_micros=MAX(last_seen_at_micros,?), idle_expires_at_micros=MAX(idle_expires_at_micros,?) \
-             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND created_at_micros<=? AND absolute_expires_at_micros>=? AND EXISTS (SELECT 1 FROM _xcss_administrators a WHERE a.administrator_id=_xcss_admin_sessions.administrator_id AND a.active=1 AND a.session_version=_xcss_admin_sessions.administrator_session_version)",
+            "UPDATE _common_admin_sessions SET last_seen_at_micros=MAX(last_seen_at_micros,?), idle_expires_at_micros=MAX(idle_expires_at_micros,?) \
+             WHERE session_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? AND csrf_hash=? AND created_at_micros<=? AND absolute_expires_at_micros>=? AND EXISTS (SELECT 1 FROM _common_administrators a WHERE a.administrator_id=_common_admin_sessions.administrator_id AND a.active=1 AND a.session_version=_common_admin_sessions.administrator_session_version)",
         )
         .bind(to_i64(now_micros)?)
         .bind(to_i64(idle_expires_at_micros)?)
@@ -261,7 +261,7 @@ impl AdministratorStore for SqliteAdministratorStore {
     ) -> Result<(), Error> {
         require_action(&event, SecurityAction::SessionRevoked)?;
         let mut transaction = self.pool.begin().await?;
-        let changed = sqlx::query("UPDATE _xcss_admin_sessions SET revoked_at_micros=? WHERE session_id=? AND revoked_at_micros IS NULL")
+        let changed = sqlx::query("UPDATE _common_admin_sessions SET revoked_at_micros=? WHERE session_id=? AND revoked_at_micros IS NULL")
             .bind(to_i64(now_micros)?).bind(session_id.as_str()).execute(&mut *transaction).await?;
         if changed.rows_affected() != 1 {
             return Err(Error::SessionNotActive);
@@ -321,7 +321,7 @@ async fn insert_session(
     transaction: &mut Transaction<'_, Sqlite>,
     session: &SessionRecord,
 ) -> Result<(), Error> {
-    sqlx::query("INSERT INTO _xcss_admin_sessions(session_id, administrator_id, token_hash, csrf_hash, administrator_session_version, created_at_micros, last_seen_at_micros, idle_expires_at_micros, absolute_expires_at_micros, revoked_at_micros) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    sqlx::query("INSERT INTO _common_admin_sessions(session_id, administrator_id, token_hash, csrf_hash, administrator_session_version, created_at_micros, last_seen_at_micros, idle_expires_at_micros, absolute_expires_at_micros, revoked_at_micros) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(session.session_id.as_str()).bind(session.administrator_id.as_str()).bind(session.token_hash.as_slice()).bind(session.csrf_hash.as_slice())
         .bind(to_i64(session.administrator_session_version)?).bind(to_i64(session.created_at_micros)?).bind(to_i64(session.last_seen_at_micros)?)
         .bind(to_i64(session.idle_expires_at_micros)?).bind(to_i64(session.absolute_expires_at_micros)?).bind(optional_i64(session.revoked_at_micros)?)
@@ -334,10 +334,10 @@ async fn enforce_session_caps(
     session: &SessionRecord,
     now: u64,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE _xcss_admin_sessions SET revoked_at_micros=? WHERE session_id IN (SELECT session_id FROM _xcss_admin_sessions WHERE administrator_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? ORDER BY created_at_micros DESC, session_id DESC LIMIT -1 OFFSET ?)")
+    sqlx::query("UPDATE _common_admin_sessions SET revoked_at_micros=? WHERE session_id IN (SELECT session_id FROM _common_admin_sessions WHERE administrator_id=? AND revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? ORDER BY created_at_micros DESC, session_id DESC LIMIT -1 OFFSET ?)")
         .bind(to_i64(now)?).bind(session.administrator_id.as_str()).bind(to_i64(now)?).bind(to_i64(now)?).bind(i64::try_from(SESSIONS_PER_ADMINISTRATOR).map_err(|_| Error::IntegerRange)?)
         .execute(&mut **transaction).await?;
-    sqlx::query("UPDATE _xcss_admin_sessions SET revoked_at_micros=? WHERE session_id IN (SELECT session_id FROM _xcss_admin_sessions WHERE revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? ORDER BY created_at_micros DESC, session_id DESC LIMIT -1 OFFSET ?)")
+    sqlx::query("UPDATE _common_admin_sessions SET revoked_at_micros=? WHERE session_id IN (SELECT session_id FROM _common_admin_sessions WHERE revoked_at_micros IS NULL AND idle_expires_at_micros>? AND absolute_expires_at_micros>? ORDER BY created_at_micros DESC, session_id DESC LIMIT -1 OFFSET ?)")
         .bind(to_i64(now)?).bind(to_i64(now)?).bind(to_i64(now)?).bind(i64::try_from(SESSIONS_GLOBAL).map_err(|_| Error::IntegerRange)?)
         .execute(&mut **transaction).await?;
     Ok(())
@@ -348,7 +348,7 @@ async fn revoke_administrator_sessions(
     administrator_id: &Identifier,
     now: u64,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE _xcss_admin_sessions SET revoked_at_micros=? WHERE administrator_id=? AND revoked_at_micros IS NULL")
+    sqlx::query("UPDATE _common_admin_sessions SET revoked_at_micros=? WHERE administrator_id=? AND revoked_at_micros IS NULL")
         .bind(to_i64(now)?).bind(administrator_id.as_str()).execute(&mut **transaction).await?;
     Ok(())
 }
@@ -358,7 +358,7 @@ async fn insert_audit(
     event: &SecurityAuditEvent,
 ) -> Result<(), Error> {
     event.validate()?;
-    sqlx::query("INSERT INTO _xcss_security_audit_events(event_id, action, outcome, actor_administrator_id, subject_digest, request_id, detail_json, occurred_at_micros) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
+    sqlx::query("INSERT INTO _common_security_audit_events(event_id, action, outcome, actor_administrator_id, subject_digest, request_id, detail_json, occurred_at_micros) VALUES(?, ?, ?, ?, ?, ?, ?, ?)")
         .bind(event.event_id.as_str()).bind(event.action.as_str()).bind(event.outcome.as_str())
         .bind(event.actor_administrator_id.as_ref().map(Identifier::as_str)).bind(event.subject_digest.as_ref().map(<[u8; DIGEST_BYTES]>::as_slice))
         .bind(event.request_id.as_deref()).bind(&event.detail_json).bind(to_i64(event.occurred_at_micros)?)
@@ -547,7 +547,7 @@ mod tests {
             active
         );
         let audit_count: i64 =
-            sqlx::query_scalar("SELECT count(*) FROM _xcss_security_audit_events")
+            sqlx::query_scalar("SELECT count(*) FROM _common_security_audit_events")
                 .fetch_one(&pool)
                 .await?;
         assert_eq!(audit_count, 3);

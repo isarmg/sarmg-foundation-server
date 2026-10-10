@@ -320,7 +320,7 @@ impl SqliteOperationStore {
     /// Unmaterialized audit records, without reading their product payloads.
     pub async fn pending_audit_count(&self) -> Result<u64, Error> {
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _xcss_operation_audit_outbox WHERE delivered_at_micros IS NULL",
+            "SELECT COUNT(*) FROM _common_operation_audit_outbox WHERE delivered_at_micros IS NULL",
         )
         .fetch_one(&self.pool)
         .await
@@ -331,7 +331,7 @@ impl SqliteOperationStore {
     /// Pending execution, in-flight work and indeterminate work blocking a target.
     pub async fn active_operation_count(&self) -> Result<u64, Error> {
         let count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM _xcss_operations WHERE state IN ('pending','running','unknown')",
+            "SELECT COUNT(*) FROM _common_operations WHERE state IN ('pending','running','unknown')",
         )
         .fetch_one(&self.pool)
         .await
@@ -385,7 +385,7 @@ impl SqliteOperationStore {
             return Ok(EnqueueOutcome::Existing(existing));
         }
         let inserted = sqlx::query(
-            "INSERT INTO _xcss_operations(\
+            "INSERT INTO _common_operations(\
              operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,\
              request_payload,state,attempt,max_attempts,not_before_micros,created_at_micros,updated_at_micros\
              ) VALUES(?,?,?,?,?,?,?,'pending',0,?,?,?,?)",
@@ -518,9 +518,9 @@ impl SqliteOperationStore {
         let mut savepoint = transaction.begin().await.map_err(storage)?;
         let result = async {
             let candidate: Option<String> = sqlx::query_scalar(
-                "SELECT o.operation_id FROM _xcss_operations o \
+                "SELECT o.operation_id FROM _common_operations o \
                  WHERE o.namespace=? AND o.state='pending' AND o.not_before_micros<=? \
-                   AND NOT EXISTS (SELECT 1 FROM _xcss_operations active \
+                   AND NOT EXISTS (SELECT 1 FROM _common_operations active \
                      WHERE active.namespace=o.namespace AND active.target_key=o.target_key \
                        AND active.state IN ('running','unknown')) \
                  ORDER BY o.not_before_micros,o.created_at_micros,o.operation_id LIMIT 1",
@@ -550,12 +550,12 @@ impl SqliteOperationStore {
                 },
             )?;
             let updated = sqlx::query(
-                "UPDATE _xcss_operations SET state='running',attempt=?,lease_owner=?,\
+                "UPDATE _common_operations SET state='running',attempt=?,lease_owner=?,\
                  lease_expiry_micros=?,updated_at_micros=? \
                  WHERE operation_id=? AND state='pending' AND attempt=? \
-                   AND NOT EXISTS (SELECT 1 FROM _xcss_operations active \
-                     WHERE active.namespace=_xcss_operations.namespace \
-                       AND active.target_key=_xcss_operations.target_key \
+                   AND NOT EXISTS (SELECT 1 FROM _common_operations active \
+                     WHERE active.namespace=_common_operations.namespace \
+                       AND active.target_key=_common_operations.target_key \
                        AND active.state IN ('running','unknown'))",
             )
             .bind(i64::from(current.operation.attempt))
@@ -811,12 +811,12 @@ impl SqliteOperationStore {
             .then(|| current.operation.error_code.clone())
             .flatten();
         let sql = if expected_claim.is_some() {
-            "UPDATE _xcss_operations SET state=?,attempt=?,not_before_micros=?,lease_owner=?,\
+            "UPDATE _common_operations SET state=?,attempt=?,not_before_micros=?,lease_owner=?,\
              lease_expiry_micros=?,error_code=?,resolution_code=?,result_payload=COALESCE(?,result_payload),\
              updated_at_micros=? WHERE operation_id=? AND state=? AND attempt=? \
              AND lease_owner=? AND lease_expiry_micros=? AND lease_expiry_micros>?"
         } else {
-            "UPDATE _xcss_operations SET state=?,attempt=?,not_before_micros=?,lease_owner=?,\
+            "UPDATE _common_operations SET state=?,attempt=?,not_before_micros=?,lease_owner=?,\
              lease_expiry_micros=?,error_code=?,resolution_code=?,result_payload=COALESCE(?,result_payload),\
              updated_at_micros=? WHERE operation_id=? AND state=? AND attempt=?"
         };
@@ -865,7 +865,7 @@ impl SqliteOperationStore {
         now_micros: i64,
     ) -> Result<u64, Error> {
         let ids: Vec<String> = sqlx::query_scalar(
-            "SELECT operation_id FROM _xcss_operations WHERE namespace=? AND state='running' \
+            "SELECT operation_id FROM _common_operations WHERE namespace=? AND state='running' \
              ORDER BY operation_id",
         )
         .bind(namespace)
@@ -898,7 +898,7 @@ impl SqliteOperationStore {
         if namespace.is_empty() || now_micros < 0 {
             return Err(Error::InvalidRecord);
         }
-        let rows = sqlx::query("SELECT * FROM _xcss_operations WHERE namespace=? AND state='running' AND lease_expiry_micros<=? ORDER BY lease_expiry_micros,operation_id LIMIT 128")
+        let rows = sqlx::query("SELECT * FROM _common_operations WHERE namespace=? AND state='running' AND lease_expiry_micros<=? ORDER BY lease_expiry_micros,operation_id LIMIT 128")
             .bind(namespace).bind(now_micros).fetch_all(&self.pool).await.map_err(storage)?;
         let mut recovered = 0;
         for row in rows {
@@ -921,7 +921,7 @@ impl SqliteOperationStore {
         }
         let rows = sqlx::query(
             "SELECT event_id,operation_id,from_state,to_state,payload_json,created_at_micros \
-             FROM _xcss_operation_audit_outbox WHERE delivered_at_micros IS NULL \
+             FROM _common_operation_audit_outbox WHERE delivered_at_micros IS NULL \
              ORDER BY created_at_micros,event_id LIMIT ?",
         )
         .bind(i64::from(limit))
@@ -964,7 +964,7 @@ impl SqliteOperationStore {
             return Err(Error::InvalidRecord);
         }
         let result = sqlx::query(
-            "UPDATE _xcss_operation_audit_outbox SET delivered_at_micros=? \
+            "UPDATE _common_operation_audit_outbox SET delivered_at_micros=? \
              WHERE event_id=? AND delivered_at_micros IS NULL",
         )
         .bind(delivered_at_micros)
@@ -1002,7 +1002,7 @@ async fn write_audit_raw(
 ) -> Result<(), Error> {
     let payload = serde_json::json!({"from":from,"to":to}).to_string();
     sqlx::query(
-        "INSERT INTO _xcss_operation_audit_outbox(\
+        "INSERT INTO _common_operation_audit_outbox(\
          event_id,operation_id,from_state,to_state,payload_json,created_at_micros\
          ) VALUES(?,?,?,?,?,?)",
     )
@@ -1018,9 +1018,9 @@ async fn write_audit_raw(
     Ok(())
 }
 
-const SELECT_OPERATION_BY_ID: &str = "SELECT operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,request_payload,result_payload,state,attempt,max_attempts,not_before_micros,lease_owner,lease_expiry_micros,error_code,resolution_code,created_at_micros,updated_at_micros FROM _xcss_operations WHERE operation_id=?";
-const SELECT_OPERATION_BY_IDEMPOTENCY: &str = "SELECT operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,request_payload,result_payload,state,attempt,max_attempts,not_before_micros,lease_owner,lease_expiry_micros,error_code,resolution_code,created_at_micros,updated_at_micros FROM _xcss_operations WHERE namespace=? AND idempotency_digest=?";
-const SELECT_LATEST_OPERATION_FOR_TARGET: &str = "SELECT operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,request_payload,result_payload,state,attempt,max_attempts,not_before_micros,lease_owner,lease_expiry_micros,error_code,resolution_code,created_at_micros,updated_at_micros FROM _xcss_operations WHERE namespace=? AND target_key=? ORDER BY created_at_micros DESC,operation_id DESC LIMIT 1";
+const SELECT_OPERATION_BY_ID: &str = "SELECT operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,request_payload,result_payload,state,attempt,max_attempts,not_before_micros,lease_owner,lease_expiry_micros,error_code,resolution_code,created_at_micros,updated_at_micros FROM _common_operations WHERE operation_id=?";
+const SELECT_OPERATION_BY_IDEMPOTENCY: &str = "SELECT operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,request_payload,result_payload,state,attempt,max_attempts,not_before_micros,lease_owner,lease_expiry_micros,error_code,resolution_code,created_at_micros,updated_at_micros FROM _common_operations WHERE namespace=? AND idempotency_digest=?";
+const SELECT_LATEST_OPERATION_FOR_TARGET: &str = "SELECT operation_id,namespace,target_key,action,idempotency_digest,request_fingerprint,request_payload,result_payload,state,attempt,max_attempts,not_before_micros,lease_owner,lease_expiry_micros,error_code,resolution_code,created_at_micros,updated_at_micros FROM _common_operations WHERE namespace=? AND target_key=? ORDER BY created_at_micros DESC,operation_id DESC LIMIT 1";
 
 async fn get_by_id_in(
     transaction: &mut Transaction<'_, Sqlite>,
@@ -1432,7 +1432,7 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
-        sqlx::raw_sql("CREATE TRIGGER reject_audit BEFORE INSERT ON _xcss_operation_audit_outbox BEGIN SELECT RAISE(FAIL, 'injected'); END;")
+        sqlx::raw_sql("CREATE TRIGGER reject_audit BEFORE INSERT ON _common_operation_audit_outbox BEGIN SELECT RAISE(FAIL, 'injected'); END;")
             .execute(&store.pool).await.unwrap();
         let mut tx = store.pool.begin().await.unwrap();
         assert!(

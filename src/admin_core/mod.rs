@@ -944,8 +944,8 @@ pub fn session_cookie_name(
 ) -> Result<String, Error> {
     require_product_id(product_id)?;
     let prefix = match mode {
-        AdministratorOriginMode::ProductionHttps => "__Host-xcss-",
-        AdministratorOriginMode::LoopbackDevelopmentHttp => "xcss-",
+        AdministratorOriginMode::ProductionHttps => "__Host-admin-",
+        AdministratorOriginMode::LoopbackDevelopmentHttp => "admin-",
     };
     Ok(format!("{prefix}{product_id}-session"))
 }
@@ -1077,7 +1077,7 @@ mod tests {
             )
             .unwrap(),
             format!(
-                "__Host-xcss-example-product-session={token}; Path=/; HttpOnly; Secure; SameSite=Strict"
+                "__Host-admin-example-product-session={token}; Path=/; HttpOnly; Secure; SameSite=Strict"
             )
         );
         assert!(

@@ -319,7 +319,7 @@ mod tests {
         let runtime = ServerRuntime::builder(ProductDescriptor {
             id: "fixture".into(),
             version: "1.0.0".into(),
-            xcss_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            common_revision: "0123456789abcdef0123456789abcdef01234567".into(),
             profile: "server-filesystem".into(),
             capabilities: vec![],
         })
@@ -362,7 +362,7 @@ mod tests {
         let runtime = ServerRuntime::builder(ProductDescriptor {
             id: "fixture".into(),
             version: "1.0.0".into(),
-            xcss_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            common_revision: "0123456789abcdef0123456789abcdef01234567".into(),
             profile: "server-filesystem".into(),
             capabilities: vec![],
         })
@@ -419,7 +419,7 @@ mod tests {
         let runtime = ServerRuntime::builder(ProductDescriptor {
             id: "fixture".into(),
             version: "1.0.0".into(),
-            xcss_revision: "0123456789abcdef0123456789abcdef01234567".into(),
+            common_revision: "0123456789abcdef0123456789abcdef01234567".into(),
             profile: "server-filesystem".into(),
             capabilities: vec![],
         })

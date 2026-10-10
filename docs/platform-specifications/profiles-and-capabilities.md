@@ -9,7 +9,4 @@ Profile，并声明该 Profile 的全部必选 Capability；只能追加 Profile
 产品清单不得声明 Argon2 参数、Session 超时、Cookie 属性、管理员表名、CSRF Header、Server Rust 版本、
 React/Vite 版本或正式 Server target。这些只能由 Profile/平台政策决定。产品差异不得进入 Profile 名称；
 无法用通用运行形态表达的差异属于产品 Adapter 或业务 Schema。
-离线客户端维护能力和全部 Client、移动端 Profile 由独立 xcsc 拥有，不属于本仓；
-管理 Server 的 Web Profile 仍属于本仓；管理 Client/客户端自身的 Web 由 Client 仓库定义。混合产品另用 `xcsc-client.toml` 声明客户端能力。
-
-当前检查明确拒绝以 `x??c` 命名的客户端（包含 xssc）声明消费 xcss，即使其运行于 Linux AMD64 或伪报 Server Profile。通用测试 fixture 标识不被误当产品角色。
+管理 Server 的 Web 使用 `web-react-admin` 或 `web-embedded-native`，并与相应的 Server 组件一起声明。

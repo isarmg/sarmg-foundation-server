@@ -161,8 +161,6 @@ def verify_manifest(product_root: Path, foundation_root: Path) -> dict[str, Any]
     product_id = manifest["product_id"]
     if manifest["format"] != 1 or not isinstance(product_id, str) or IDENTIFIER.fullmatch(product_id) is None:
         raise ConformanceError("product manifest: invalid format or product_id")
-    if re.fullmatch(r"x[a-z]{2}c", product_id):
-        raise ConformanceError(f"{product_id}: client products cannot consume server-only xcss; use xcsc")
     foundation = manifest["foundation"]
     if not isinstance(foundation, dict):
         raise ConformanceError("product manifest.foundation: expected a table")
@@ -527,21 +525,9 @@ def _discover_web_package(product_root: Path, configured: Path | None) -> Path |
 def _source_files(product_root: Path, suffixes: set[str]) -> Iterable[Path]:
     import os
 
-    # Routing metadata only: client behavior is checked by the Client repository.
-    # Never import its policy or require that repository for Server verification.
-    client_roots: set[Path] = set()
-    client_manifest = product_root / "xcsc-client.toml"
-    if client_manifest.is_file():
-        for relative in _toml(client_manifest).get("source_roots", []):
-            if not isinstance(relative, str) or Path(relative).is_absolute() or ".." in Path(relative).parts:
-                raise ConformanceError("client source routing must use relative directories")
-            root = (product_root / relative).resolve(strict=True)
-            if root == product_root.resolve() or not root.is_relative_to(product_root.resolve()):
-                raise ConformanceError("client source routing must not hide the product root")
-            client_roots.add(root)
     ignored = {".git", "node_modules", "target", "dist", "release"}
     for directory, directories, files in os.walk(product_root, followlinks=False):
-        directories[:] = sorted(name for name in directories if name not in ignored and (Path(directory) / name).resolve() not in client_roots)
+        directories[:] = sorted(name for name in directories if name not in ignored)
         for name in sorted(files):
             path = Path(directory) / name
             if path.is_file() and path.suffix in suffixes:
@@ -798,8 +784,6 @@ def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
         if not isinstance(product, str) or IDENTIFIER.fullmatch(product) is None or product in seen:
             raise ConformanceError(f"{context}: invalid or duplicate product")
         seen.add(product)
-        if re.fullmatch(r"x[a-z]{2}c", product):
-            raise ConformanceError(f"{context}: client products cannot be registered as xcss consumers; use xcsc")
         if not isinstance(repository["url"], str) or not repository["url"].startswith("https://github.com/"):
             raise ConformanceError(f"{context}: repository URL must be an HTTPS GitHub URL")
         if REVISION.fullmatch(str(repository["commit"])) is None:

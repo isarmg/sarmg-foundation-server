@@ -251,17 +251,6 @@ exceptions = []
             with self.assertRaisesRegex(ConformanceError, "web_profile is not allowed"):
                 verify_manifest(product, ROOT)
 
-    def test_canonical_clients_cannot_claim_server_ownership(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            product = Path(directory)
-            for identifier in ("xssc", "xsoc", "xscc", "xszc", "xcsc", "xcoc", "xzzc"):
-                (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace("fixture-product", identifier))
-                with self.subTest(product=identifier), self.assertRaisesRegex(ConformanceError, "client products cannot consume server-only"):
-                    verify_manifest(product, ROOT)
-            # General fixture identifiers remain valid; role enforcement uses canonical project identities.
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
-            verify_manifest(product, ROOT)
-
     def test_offline_client_profile_is_not_a_server_consumption_entry(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
@@ -269,26 +258,24 @@ exceptions = []
             with self.assertRaisesRegex(ConformanceError, "unknown Profile"):
                 verify_manifest(product, ROOT)
 
-    def test_client_profile_is_rejected(self) -> None:
+    def test_unknown_server_profile_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace("server-filesystem", "desktop-client"))
+            (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace("server-filesystem", "unknown-profile"))
             with self.assertRaisesRegex(ConformanceError, "unknown Profile"):
                 verify_manifest(product, ROOT)
 
-    def test_server_checks_do_not_govern_client_web_sources(self) -> None:
+    def test_server_checks_cover_nested_server_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
             (product / "xcss-product.toml").write_text(VALID_MANIFEST)
-            (product / "xcsc-client.toml").write_text('source_roots = ["client"]\n')
-            client = product / "client"
-            client.mkdir()
+            server = product / "server"
+            server.mkdir()
             source = '.route("/api/v1/auth/login", handler)\nconst SESSION_COOKIE_NAME = "local";'
-            (client / "control.rs").write_text(source)
-            verify_source(product, ROOT)
-            (product / "server.rs").write_text(source)
+            (server / "control.rs").write_text(source)
             result = verify_source(product, ROOT)
             self.assertEqual(result["advisories"][0]["rule"], "foundation-route-ownership")
+            self.assertEqual(result["advisories"][0]["path"], str(server / "control.rs"))
 
     def test_schema_is_discovered_from_declared_layout_and_recomposed(self) -> None:
         manifest = '''format = 1

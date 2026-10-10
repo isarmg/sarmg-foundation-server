@@ -493,7 +493,7 @@ tree可复核；workflow最小权限；消费者改用不可变来源并独立�
 | FND-301 | 机器 CLI 错误、真实服务 readiness 身份核验、共同 HTTP 解析拒绝 | `xcss::server_cli`；单记录输出、HTTP parser/413/no-store、临时监听测试 |
 | FND-302 | 同目录运行/维护/诊断写锁、持久维护门和通用维护描述符借用 | `xcss::state_file`；真实 flock、inode、pending、显式release、持久维护门和真实owner/root权限测试 |
 | FND-303 | 当前 WAL/journal 代的只读临时数据库校验副本 | `xcss::sqlite::validation_snapshot`；源字节不变、writer busy、query-only与clone guard测试；仅独立诊断进程，不声明备份 |
-| FND-304 | 服务端结构化日志；客户端在xcsc独立拥有、公共事件模板、精确筛选和有界轮转 | `xcss::log`；UTC/脱敏/limits/query/真实rotation/tracing sink切换；跨平台原生验证由产品提供 |
+| FND-304 | 服务端结构化日志、公共事件模板、精确筛选和有界轮转 | `xcss::log`；UTC/脱敏/limits/query/真实rotation/tracing sink切换；GNU/Linux AMD64 原生验证与产品验收 |
 | FND-305 | 既有静态管理员只读检查、只在首次初始化写当前账户文件 | `xcss::admin_static`；当前格式与准确configured IDs、不创建文件、不改持久字节 |
 
 工作树能力不能借用不可变 v0.10.4 tag 的发布证据。正式版本、完整 revision、锁闭包、package/license清单和产品发行物需在受控发布时同步验收。API、适用边界和公共模块的实际消费入口见 [配置、CLI、锁与日志](configuration-cli-logging.md)。

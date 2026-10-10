@@ -83,7 +83,7 @@ export function verifyEmbeddedAssets(manifestBytes: string, directory: string): 
   if (manifestBytes.endsWith("\n")) manifestBytes = manifestBytes.slice(0, -1);
   const manifest = JSON.parse(manifestBytes) as { format?: string; files?: AssetFile[] };
   exactKeys(manifest, ["format", "files"]);
-  if (manifest.format !== "xcss-web-assets-v1" || !Array.isArray(manifest.files) || !manifest.files.length) throw new Error("Invalid compiled Web inventory");
+  if (manifest.format !== "web-assets-v1" || !Array.isArray(manifest.files) || !manifest.files.length) throw new Error("Invalid compiled Web inventory");
   if (JSON.stringify(manifest) !== manifestBytes) throw new Error("Compiled Web inventory is not canonical JSON");
   const root = realpathSync(directory);
   const actual = new Map<string, { size: number; sha256: string }>();

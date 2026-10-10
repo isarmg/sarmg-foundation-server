@@ -35,10 +35,10 @@ class DependencyBoundaryTests(unittest.TestCase):
     def test_repository_has_no_downstream_package_dependencies(self) -> None:
         check_dependency_boundaries(TOOLS.parent)
 
-    def test_rust_aliases_and_target_scopes_cannot_import_downstream_packages(self) -> None:
+    def test_rust_aliases_and_target_scopes_cannot_import_the_package_itself(self) -> None:
         for scope in ("dependencies", "dev-dependencies", "build-dependencies", "target.'cfg(unix)'.dependencies"):
             with self.subTest(scope=scope):
-                self.crate.write_text(f"[{scope}]\nlocal = {{ package = 'xcsc-core', version = '1' }}\n")
+                self.crate.write_text(f"[{scope}]\nlocal = {{ package = 'xcss', version = '1' }}\n")
                 with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
                     check_dependency_boundaries(self.root)
 
@@ -66,16 +66,16 @@ class DependencyBoundaryTests(unittest.TestCase):
         with self.assertRaisesRegex(XcssPolicyError, "package boundary"):
             check_dependency_boundaries(self.root)
 
-    def test_web_root_and_package_aliases_cannot_import_downstream(self) -> None:
+    def test_web_root_and_aliases_cannot_import_the_package_itself_or_local_paths(self) -> None:
         child = self.root / "web/admin-ui/package.json"
         child.parent.mkdir(parents=True)
         child.write_text("{}")
         for path in (self.package, child):
             for scope in ("dependencies", "devDependencies", "optionalDependencies", "peerDependencies"):
                 for name, requirement in (
-                    ("@xcss/client-core", "1.0.0"),
-                    ("alias", "npm:@xcss/client-core@1.0.0"),
-                    ("alias", "npm:@xcss/client-core"),
+                    ("@xcss/web", "1.0.0"),
+                    ("alias", "npm:@xcss/web@1.0.0"),
+                    ("alias", "npm:@xcss/web"),
                     ("product", "file:../product"),
                     ("product", "link:../product"),
                 ):

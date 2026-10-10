@@ -6,7 +6,7 @@
 
 ## 2. 当前发行身份与事实源
 
-1.0.0 发布账号设置内容块、可编辑日志日期范围和提前加载字体的启动逻辑。正式消费以发布后的完整源码 revision 与不可变资产为准；既有发行保持不变。xcss 物理合并为一个 Linux AMD64 Rust crate 与一个服务端管理 Web npm 包。跨平台客户端及 Windows 日志验证属于独立的 xcsc。详见[版本说明](releases/1.0.0.md)。
+1.0.0 发布账号设置内容块、可编辑日志日期范围和提前加载字体的启动逻辑。正式消费以发布后的完整源码 revision 与不可变资产为准；既有发行保持不变。xcss 物理合并为一个 Linux AMD64 Rust crate 与一个服务端管理 Web npm 包。详见[版本说明](releases/1.0.0.md)。
 
 | 项目 | 唯一当前值 | 权威位置 | 漂移时的处理 |
 |---|---|---|---|
@@ -23,7 +23,7 @@
 | Release tag | `v1.0.0` | Git tag | 一经发布不移动、不覆盖、不重建同版本 |
 
 xcss 是构建时服务端依赖库，不独立运行 daemon。整个 crate、Node 构建进程及 release identity 的目标均为
-`x86_64-unknown-linux-gnu`；客户端改用 xcsc，不能通过选用某个 xcss 内部模块绕开平台约束。
+`x86_64-unknown-linux-gnu`；全部内部模块共享这个平台约束。
 
 ### 3.1 必需工具
 
@@ -230,11 +230,11 @@ xcss = {
 | Server target 常量与检查 | `xcss::server_target` |
 | SQLx SQLite 服务 | `xcss::sqlite` |
 
-这些模块共享一个编译、版本、来源及许可证身份，不再各自发布。跨平台客户端及离线客户端工具使用 xcsc。
+这些模块共享一个编译、版本、来源及许可证身份，不再各自发布。
 
 | 故障 | 解释与处理 |
 |---|---|
-| `links=sqlite3` 冲突 | 错误地把 SQLx adapter 引入 rusqlite 工具；检查产品依赖图；客户端离线工具改用 xcsc 的独立中立模块 |
+| `links=sqlite3` 冲突 | 同一依赖图出现不兼容的 SQLite 链接身份；检查产品依赖图，统一为当前 SQLx adapter 对应的 SQLite 来源 |
 | Server 交叉 target compile_error | 当前 Server 只支持 GNU/Linux AMD64；不要绕过 gate |
 | `open_existing` missing | 路径或部署错误；不要改成隐式 create |
 | product_metadata mismatch | DDL/列/storage class 非当前合同；停止并定位来源 |
@@ -397,3 +397,78 @@ Release 在同一提交构建后执行 conformance、Chromium/Firefox 浏览器�
 包 smoke 的依赖准备允许联网，使用 manifest 精确 peers 与真实 tgz，在隔离目录执行 Node 导入、TypeScript 和 Vite JS/CSS 构建。运行时无注册表依赖。
 
 本次 1.0.0 重建已清空旧历史的 consumer 审计快照，初始登记表为空。后续登记需填入实际核验的提交与依赖版本，不复用旧报告或宣称尚未验证的 conforming。
+
+
+## 17. 固定数据接口调整后的重新部署
+
+1.0.0 使用[当前中立数据接口](configuration-cli-logging.md#当前固定数据接口)。程序只处理当前名称和当前
+schema，不提供旧字段、旧锁名、旧表名的兼容入口，也不自动迁移历史数据库。服务尚未部署时，直接按产品
+安装文档创建新的空状态目录并初始化即可。已部署服务按下面步骤离线处理。
+
+### 17.1 确认目标并停服
+
+先从对应产品文档和服务配置确认服务单元、状态目录及运行账户。下面变量必须填写为该产品的实际值；
+备份目录使用本次操作独有且尚未存在的绝对路径。
+
+```bash
+SERVICE_UNIT='填写实际服务单元，例如 product.service'
+STATE_DIR='填写实际状态目录的绝对路径'
+BACKUP_DIR='填写新备份目录的绝对路径'
+systemctl cat "$SERVICE_UNIT"
+sudo systemctl stop "$SERVICE_UNIT"
+systemctl is-active "$SERVICE_UNIT"
+```
+
+`systemctl cat` 展示实际启动命令、配置和覆盖项，用来核对操作对象。`stop` 正常停止服务；`is-active`
+应显示 `inactive` 或 `failed`，非零退出码在这个确认步骤是停服结果。还需关闭产品的离线维护工具、计划任务
+和其他写入进程，并确认服务不会自动重新启动。状态锁的新旧名称不同，不能让两种版本同时访问同一状态。
+
+### 17.2 保存完整离线备份
+
+```bash
+sudo install -d -m 0700 -- "$BACKUP_DIR"
+sudo tar --acls --xattrs --numeric-owner -cpf "$BACKUP_DIR/state-before-redeploy.tar" \
+  -C "$(dirname -- "$STATE_DIR")" "$(basename -- "$STATE_DIR")"
+sudo sha256sum "$BACKUP_DIR/state-before-redeploy.tar"
+sudo tar -tf "$BACKUP_DIR/state-before-redeploy.tar"
+```
+
+`install -d -m 0700` 创建仅管理员可读的备份目录；操作前确认该路径不存在。`tar` 以原 UID/GID、权限、ACL
+和扩展属性保存整个已停写状态目录，包括 SQLite 主库及仍存在的 WAL、journal、SHM 和产品配置。
+`sha256sum` 给备份生成完整性摘要，记录在维护记录中；`tar -tf` 只列出归档内容，用来核对目录与必要文件齐全。
+产品媒体文件等若位于状态目录之外，应按产品文档单独备份。凭据和用户数据随备份保密存放。
+
+### 17.3 在新目录重新初始化
+
+保留原状态目录和备份，不在原库上批量执行表名替换。按对应产品部署文档使用新的空私有状态目录，
+配置相同的服务运行账户，再执行该产品当前的初始化命令。初始化由当前程序创建 0700 目录、0600 文件、
+当前锁文件以及当前 schema；不要通过放宽 owner、mode、链接检查或手填 metadata 来让旧库通过启动。
+
+SQLite 指纹算法版本仍为 1：按 SQLite 的 BINARY 顺序读取 `(type,name,tbl_name,sql)`，排除 `sqlite_*`
+及 `product_metadata`，每个 UTF-8 字段以 u64 大端长度分帧后计算 SHA-256。公共表、索引及外键目标的名称
+变化会改变指纹；`ALTER TABLE` 还可能重写 DDL 的引号和原始文本。仅重命名表或替换
+`product_metadata.schema_sha256` 都不能保证库符合编译时的当前 schema。当前四分量身份、严格平台 DDL、
+存储类型、CHECK、外键和索引验证都继续生效。
+
+### 17.4 人工转移产品数据并重新建立管理会话
+
+先检查产品是否提供当前版本的导出/导入操作；按对应产品文档在离线环境转移业务内容到新 schema，
+核对数据数量、文件摘要、外键和产品业务约束。没有经过验证的导入工具时，保留原始备份并重新部署所需
+配置与业务内容，不直接整库覆盖新状态。管理员按当前初始化流程设置，浏览器重新登录建立新 Cookie；
+无需沿用原管理会话或手工复制 Session/CSRF token。
+
+### 17.5 验证并启服
+
+使用产品现有的只读配置校验、数据库身份校验和诊断命令，检查当前 application、application_version、
+schema_revision、schema_sha256 以及实际现场指纹。确认配置指向新状态目录、产品的发行身份和 Web
+资源清单摘要均与本次发布一致，然后启服：
+
+```bash
+sudo systemctl start "$SERVICE_UNIT"
+systemctl status "$SERVICE_UNIT" --no-pager
+sudo journalctl -u "$SERVICE_UNIT" -n 100 --no-pager
+```
+
+`start` 启动已经完成初始化和校验的当前版本；`status` 显示运行状态与启动结果；`journalctl` 查看该单元
+最近 100 条日志，确认 readiness、认证及业务任务无异常。继续运行产品文档中的实际状态查询和业务验收。
+若验证失败，停服后保存诊断输出并修复具体原因；原状态与备份在本次验收完成并达到产品保留期前保留。

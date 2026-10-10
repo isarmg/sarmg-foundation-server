@@ -31,7 +31,7 @@ function fixture(run) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "xcss-embedded 中文 acceptance-")));
   const html = "<!doctype html><title>current artifact</title>";
   writeFileSync(join(directory, "index.html"), html);
-  const manifest = JSON.stringify({ format: "xcss-web-assets-v1", files: [{ path: "index.html", content_type: "text/html; charset=utf-8", size: Buffer.byteLength(html), sha256: hash(html) }] });
+  const manifest = JSON.stringify({ format: "web-assets-v1", files: [{ path: "index.html", content_type: "text/html; charset=utf-8", size: Buffer.byteLength(html), sha256: hash(html) }] });
   try { run(directory, manifest); } finally { rmSync(directory, { recursive: true, force: true }); }
 }
 test("executable inventory accepts matching bytes and binds exact manifest", () => fixture((directory, manifest) => {
@@ -109,7 +109,7 @@ test("the actual build CLI orders Web before Cargo, accepts a development archiv
   writeFileSync(join(directory, "build-fixture.mjs"), `import {mkdirSync,writeFileSync,appendFileSync} from 'node:fs';
 mkdirSync(process.env.XCSS_WEB_DIST,{recursive:true});writeFileSync(process.env.XCSS_WEB_DIST+'/index.html','current build');appendFileSync('calls','web\\n');console.log('Web build progress');`);
   const executable = join(directory, "server-fixture.mjs");
-  const compiledInventory = JSON.stringify({ format: "xcss-web-assets-v1", files: [{ path: "index.html", content_type: "text/html; charset=utf-8", size: Buffer.byteLength("current build"), sha256: hash("current build") }] });
+  const compiledInventory = JSON.stringify({ format: "web-assets-v1", files: [{ path: "index.html", content_type: "text/html; charset=utf-8", size: Buffer.byteLength("current build"), sha256: hash("current build") }] });
   writeFileSync(executable, `#!${process.execPath}\nprocess.stdout.write(${JSON.stringify(compiledInventory)});`);
   chmodSync(executable, 0o755);
   const command = join(directory, "commands"); mkdirSync(command);

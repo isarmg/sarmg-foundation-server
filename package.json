@@ -23,8 +23,7 @@
     "typecheck": "node scripts/build-web.mjs && node scripts/check-web-types.mjs",
     "typecheck:built": "node scripts/check-web-types.mjs",
     "test": "node scripts/build-web.mjs && node scripts/test-web.mjs",
-    "test:built": "node scripts/test-web.mjs",
-    "test:consumer-patches": "node --test scripts/consumer-patches/test.mjs"
+    "test:built": "node scripts/test-web.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

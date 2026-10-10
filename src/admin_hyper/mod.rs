@@ -190,7 +190,7 @@ mod tests {
                 .unwrap()
                 .to_str()
                 .unwrap()
-                .starts_with("xcss-example-product-session=")
+                .starts_with("admin-example-product-session=")
         );
         assert!(HyperAdministratorRouter::owns_path(
             crate::contracts::ADMIN_LOGOUT_PATH

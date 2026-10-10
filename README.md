@@ -2,7 +2,7 @@
 
 xcss `1.0.0` 为 Xcss 的 Rust/Axum 服务和管理 Web 提供共享基础能力，包括管理员认证、SQLite 状态、Schema 身份、运行时生命周期、文件系统安全、秘密封装、统一错误合同、设计令牌和 React 管理组件。
 
-本仓库不包含任何具体产品，也不拥有产品业务协议。服务端产品统一依赖一个 Rust crate `xcss` 和一个 npm 包 `@xcss/web`，通过内部模块及公开子路径组合、配置和验收；Client 侧基础能力位于独立的 [xcsc](https://github.com/isarmg/xcsc)。
+本仓库不包含任何具体产品，也不拥有产品业务协议。服务端产品统一依赖一个 Rust crate `xcss` 和一个 npm 包 `@xcss/web`，通过内部模块及公开子路径组合、配置和验收。
 
 1.0.0 统一普通账号设置页与登录页主题、浅色黑字及图标尺寸，并修复窄屏长错误提示撑宽账号表单的问题。输入字段与报错区域分别布局，字体仍在页面显示前完整加载。详见[版本说明](docs/releases/1.0.0.md)和[账号设置](docs/web-account-settings.md)。
 

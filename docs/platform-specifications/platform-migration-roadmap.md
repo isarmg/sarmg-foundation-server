@@ -15,7 +15,6 @@ xcss 不依赖产品 crate，不按 `product_id` 分支，不提供产品名 Fea
 - Rust：管理员认证、当前 Schema 身份、SQLite、状态文件、运行时生命周期、文件系统安全、秘密封装、有限 HTTP 请求及操作状态机。
 - Web：管理员客户端、React Shell、原生 ESM 适配、UI、设计令牌、字体和构建工具链。
 - 工具：Schema Composer、源码与发行一致性检查、产品无关 Testkit 和消费者报告。
-- Client 和 Mobile FFI 由独立的 xcsc 定义，Server xcss 不导入这些实现。
 
 ## 接入验收
 

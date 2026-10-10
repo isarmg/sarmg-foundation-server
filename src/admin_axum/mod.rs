@@ -843,7 +843,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn successful_login_uses_xcss_cookie_and_contract() {
+    async fn successful_login_uses_admin_cookie_and_contract() {
         let response = router()
             .oneshot(request(
                 Method::POST,
@@ -859,7 +859,7 @@ mod tests {
             .unwrap()
             .to_str()
             .unwrap();
-        assert!(cookie.starts_with("xcss-example-product-session="));
+        assert!(cookie.starts_with("admin-example-product-session="));
         assert!(cookie.ends_with("; Path=/; HttpOnly; SameSite=Strict"));
         let body = to_bytes(response.into_body(), 8 * 1024).await.unwrap();
         let session: crate::contracts::AdministratorSession =

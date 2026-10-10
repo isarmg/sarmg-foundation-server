@@ -69,7 +69,7 @@ where
     F: Fn(Request<Body>) -> Fut,
     Fut: Future<Output = Response>,
 {
-    let cookie = format!("xcss-{product_id}-session={}", "A".repeat(43));
+    let cookie = format!("admin-{product_id}-session={}", "A".repeat(43));
     for separate_lines in [false, true] {
         let mut ambiguous = request(Method::POST, ADMIN_LOGIN_PATH, LOGIN_JSON);
         if separate_lines {
@@ -244,7 +244,7 @@ where
         .to_str()
         .unwrap()
         .to_owned();
-    assert!(cookie.starts_with(&format!("xcss-{product_id}-session=")));
+    assert!(cookie.starts_with(&format!("admin-{product_id}-session=")));
     assert!(cookie.ends_with("; Path=/; HttpOnly; SameSite=Strict"));
     let cookie = cookie.split(';').next().unwrap();
     let bytes = to_bytes(response.into_body(), 8192).await.unwrap();

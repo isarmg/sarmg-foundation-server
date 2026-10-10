@@ -95,7 +95,7 @@ TS对象用于无法解析CSS custom property的build-time代码或图表。sema
 
 ## 6.8 Rust消费者采用组件
 
-服务端统一声明一个 `xcss` crate，再按需要导入 `xcss::<module>`。跨平台客户端与离线客户端工具使用独立 xcsc；两仓不互相依赖。
+服务端统一声明一个 `xcss` crate，再按需要导入 `xcss::<module>`。这些模块共享软件版本、源码 revision 与 Linux AMD64 GNU 编译边界。
 
 本地path联调后改成xcss release commit完整rev与`version="=1.0.0"`。Git branch、短SHA和永久path都
 不能提供不可变来源。

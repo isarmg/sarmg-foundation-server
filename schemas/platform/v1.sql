@@ -1,4 +1,4 @@
-CREATE TABLE _xcss_platform_metadata (
+CREATE TABLE _common_platform_metadata (
     singleton                INTEGER PRIMARY KEY
                                       CHECK (singleton = 1),
     platform_generation      INTEGER NOT NULL

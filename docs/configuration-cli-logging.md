@@ -1,6 +1,6 @@
 # 公共配置、诊断、锁与日志
 
-本文描述0.11.0的公共实现。精确版本与不可变源码/资产分别记录，公开API只提供通用机制。
+本文描述1.0.0的公共实现。精确版本与不可变源码/资产分别记录，公开API只提供通用机制。
 
 ## 配置与入口
 
@@ -10,7 +10,7 @@
 
 Unix `read_private_file` 只读一个 700 私有目录中的 600 文件，要求当前用户所有、普通文件、单硬链接、无符号链接和稳定身份，读取上限 1 MiB。它不创建目录或锁文件。初始化与安全写入由产品显式执行，并复用既有文件安全实现。
 
-`xcss::server_cli` 提供机器错误输出、`CliError` 的安全 anyhow 边界和状态查询。机器错误 stdout 仅一个 `ErrorEnvelope` JSON 记录，失败退出码非零。`query_status` 在 3 秒和 4 KiB 边界内实际请求 `/readyz`，禁止代理和重定向，核对 `x-xcss-service` 及 HTTP 200/503 与 `ready` 的一致性。服务身份由产品外层 `service_identity_middleware` 注入。核心命令及业务成功条件由产品定义。
+`xcss::server_cli` 提供机器错误输出、`CliError` 的安全 anyhow 边界和状态查询。机器错误 stdout 仅一个 `ErrorEnvelope` JSON 记录，失败退出码非零。`query_status` 在 3 秒和 4 KiB 边界内实际请求 `/readyz`，禁止代理和重定向，核对 `x-service` 及 HTTP 200/503 与 `ready` 的一致性。服务身份由产品外层 `service_identity_middleware` 注入。核心命令及业务成功条件由产品定义。
 
 `ContractJson<T>`、`ContractQuery<T>`、`ContractPath<T>` 委托 Axum 的当前解析器，将拒绝转换为公共错误结构、安全 `details.reason` 与 `Cache-Control: no-store`。`MISSING_FIELD`、`UNKNOWN_FIELD`、`TYPE_MISMATCH`、`JSON_STRUCTURE`、语法、媒体类型、查询和路径错误分别表达，提交键名和值不进入错误响应；请求体超限保留 HTTP 413 和 `payload_too_large`。产品仍须使用当前 DTO 约束字段和业务语义；包装器不会自行补历史字段别名。
 
@@ -20,7 +20,28 @@ Unix `read_private_file` 只读一个 700 私有目录中的 600 文件，要求
 
 ## 一致的写入权
 
-`.xcss-maintenance-pending.json`的任何目录项都阻止正常运行和在线写探针，包括损坏文件或悬空链接。独占维护锁允许持有者处理该门；普通共享锁不绕过它。`release(self)`在业务资源全部关闭后显式unlock，异常退出由描述符关闭释放。
+`.state-maintenance-pending.json`的任何目录项都阻止正常运行和在线写探针，包括损坏文件或悬空链接。独占维护锁允许持有者处理该门；普通共享锁不绕过它。`release(self)`在业务资源全部关闭后显式unlock，异常退出由描述符关闭释放。
+
+## 当前固定数据接口
+
+公共状态协议使用下列中立名称。产品代码通过现有常量和构造函数读写同一合同，不接受另一组名字。
+
+| 接口 | 当前名称 | 作用 |
+|---|---|---|
+| 实例锁 | `.state-instance.lock` | 独占同一个状态目录的运行实例；锁文件 inode 持久保留 |
+| 维护锁 | `.state-maintenance.lock` | 日常运行共享持有、离线维护独占持有，协调写入权 |
+| 维护标记 | `.state-maintenance-pending.json` | 维护未完成时阻止正常启动，即使维护进程已退出 |
+| 原子写入临时文件 | `.state-atomic-{nonce}.tmp` | 在同一私有目录内准备替换；nonce 为 32 位小写十六进制随机值 |
+| HTTP 服务身份 | `x-service` | 响应绑定实际服务身份，状态命令严格核对 |
+| 生产管理会话 Cookie | `__Host-admin-{product}-session` | 按产品区分会话，保持 Path=/、HttpOnly、Secure、SameSite=Strict |
+| 回环开发会话 Cookie | `admin-{product}-session` | 仅用于明确的 HTTP 回环开发模式，保持其他会话与同源约束 |
+| 健康结果公共源码字段 | `common_revision` | 表示服务编译时绑定的公共依赖完整 40 位源码 revision |
+| 内嵌 Web 清单 format | `web-assets-v1` | 标识按路径排序、按 canonical JSON 原字节计算摘要的资源清单 |
+| 公共数据库对象 | `_common_*` | 公共平台、管理员、会话、审计和 durable operation 表及其索引的保留命名空间 |
+
+数据库 `product_metadata` 的四分量身份及其实际 schema 指纹继续精确校验，列名和数据约束保持当前定义。
+表和索引名也参与指纹，改名后的数据库需要当前代码生成的新 schema 和新摘要；仅修改元数据中的 hash
+不能代替结构验证。已有状态的处理步骤见[运维文档](operations.md#17-固定数据接口调整后的重新部署)。
 
 ## 只读数据库校验
 
@@ -30,21 +51,19 @@ Linux `xcss::sqlite::open_validation_snapshot` 对源主库及现有 WAL/journal
 
 ## 通用结构化日志
 
-`xcss::log` 是单体 xcss 的服务端日志模块，随整个 crate 受 Linux AMD64 GNU 门禁约束。跨平台 Client 使用 xcsc 自有日志模块，两仓互不依赖。`LogRecord` 使用 UTC RFC3339 毫秒时间、固定等级、service/component/event/message/scope、稳定实例 ID，以及可选 request/task/error 标识。公共事件来自 `CommonEvent` 的唯一等级和消息模板，产品事件必须使用传入服务命名空间。实例事件不能冒充 Server 初始化或生命周期事件。
+`xcss::log` 是单体 xcss 的服务端日志模块，随整个 crate 受 Linux AMD64 GNU 门禁约束。`LogRecord` 使用 UTC RFC3339 毫秒时间、固定等级、service/component/event/message/scope、稳定实例 ID，以及可选 request/task/error 标识。公共事件来自 `CommonEvent` 的唯一等级和消息模板，产品事件必须使用传入服务命名空间。实例事件不能冒充 Server 初始化或生命周期事件。
 
 秘密字段递归改为 configured 标志，带凭据 URL、普通文本中的凭据模式和控制字符经过统一处理。任意内部错误链不得作为普通业务 message 或自由属性传入。记录最多 16 KiB、消息最多 2 KiB；序列化在写入前完整检查，超限不产生半条记录。`query` 可精确筛选实例、scope、UTC 时间范围、最低等级、事件和 request/task ID，输入及结果有上限，坏记录明确失败。
 
-`emit_stderr` 显式写入 stderr，保留由实际捕获它的外部管理器决定。Windows SCM 的客户端日志行为由 xcsc 文档说明。`install_rotating_file(sink)` 只允许安装一次进程持久出口；`LogRecord::emit()` 和默认 tracing Layer 共同写入 typed sink，未安装时写 stderr。显式输出失败返回错误，tracing 失败计入 `rejected_count`，消费者必须处理。
+`emit_stderr` 显式写入 stderr，保留由实际捕获它的外部管理器决定。`install_rotating_file(sink)` 只允许安装一次进程持久出口；`LogRecord::emit()` 和默认 tracing Layer 共同写入 typed sink，未安装时写 stderr。显式输出失败返回错误，tracing 失败计入 `rejected_count`，消费者必须处理。
 
 Unix `RotatingLogFile` 使用既有 700 目录、600 单链接文件和一个 writer lock；默认单文件 8 MiB、4 个归档，共 40 MiB。`open(directory,stem,retention)` 使用 `stem.jsonl` 与 `stem.N.jsonl`；`open_file(active_path,retention)` 保留用户选择的确切文件名，归档为 `filename.N`。超出声明保留策略的既有归档、坏权限或链接会失败，启动不清理未知数据。
-
-Windows 私有目录、DACL、writer 租约与受限 token 的实现已由独立 xcsc 承接；xcss 不提供 Windows 编译或 Client 日志消费入口。
 
 可选 `tracing` feature 的 `XcssStructuredLayer` 复用 typed records，继承 span 的结构化关联字段，隐藏 legacy 文本和内部错误链；未知普通事件用安全产品 diagnostic 模板，未知 common 事件拒绝。`with_writer` 与 `with_rotating_file` 构造 sink；`set_rotating_file(&self, sink)` 可在已安装 subscriber 中、完整运行前提校验后切换共享输出。`rejected_count` 包含字段/记录拒绝和 writer 错误，产品必须观测并表达日志降级或失败。
 
 ## 验证边界
 
-公共测试覆盖严格配置分层、秘密不回显、真实flock互斥/显式释放/维护门、WAL 当前提交与源字节不变、HTTP 解析拒绝、精确日志筛选、实际文件轮转与 sink 身份变化。xcss 在 Linux AMD64 GNU 原生验证；Windows 原生验证属于 xcsc，对应跨平台客户端须独立验收。状态查询另用临时 HTTP 监听验证服务身份和实际 readiness。这些公共测试不替代产品独立构建、实际发行物和设备验证。
+公共测试覆盖严格配置分层、秘密不回显、真实flock互斥/显式释放/维护门、WAL 当前提交与源字节不变、HTTP 解析拒绝、精确日志筛选、实际文件轮转与 sink 身份变化。xcss 在 Linux AMD64 GNU 原生验证。状态查询另用临时 HTTP 监听验证服务身份和实际 readiness。这些公共测试不替代产品独立构建、实际发行物和设备验证。
 
 ## 行政维护权限桥（0.10.8）
 
