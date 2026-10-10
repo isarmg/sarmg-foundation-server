@@ -26,3 +26,36 @@
 标签、依赖更新或事故响应时以运维文档为准。任何文档示例若与当前公开导出入口不一致，应视为发布阻断。
 
 浏览器 WebSocket 使用 `require_administrator_websocket_origin` 验证完整 Origin/Host 列表；Fetch Metadata 可缺失，携带时仍必须是唯一的 `same-origin` 值。普通 HTTP 的校验入口继续要求该字段。应用认证与授权不由此握手校验替代。
+
+## 接入与发布约束
+
+xcss `1.0.0` 不拥有具体产品或业务协议。产品统一依赖一个 Rust crate 和一个 npm 包，按内部模块和公开子路径组合能力。Rust 必须同时固定精确版本与完整 Git 修订；Web 只使用同版不可变发行归档，并在锁文件中保留完整性摘要。
+
+产品根目录维护 `xcss-product.toml`；在 xcss 仓库运行来源检查：
+
+```sh
+python3 scripts/check-xcss.py
+python3 scripts/xcss-conformance.py report \
+  --product-root /absolute/path/to/product --json
+```
+
+`report` 是源码接入报告，只有找到并验证发布清单时，`release_verified` 才为 `true`。发布门禁须显式执行 `verify-release --require-published`，不能把缺少发布清单当作产物已验证。正式发行使用 `v1.0.0` 标签；消费者采用前须核对实际 CI、发布清单及不可变资产，既有标签与资产不覆盖。
+
+`xcss::web_assets` 统一生成可内嵌资源清单、SHA-256 身份和 Rust 资源表，提供 GET/HEAD、条件请求与显式开发目录模式。生产资源随可执行文件编译，开发目录模式可热更新，详见 [Web 资源 API](../src/web_assets/README.md)。[日期范围控件](web-date-range.md)支持独立编辑年月日、回车应用和非法数字标红；日志权限、服务器时区边界与范围查询由产品后端校验。
+
+[1.0.0 发布说明](releases/1.0.0.md)与[账号设置](web-account-settings.md)记录账号页和登录页主题、浅色黑字、图标尺寸、窄屏长错误布局及显示前完整字体加载要求。
+
+## 开发验证
+
+固定工具链为 Rust `1.99.0`、Node `26.7.0`、pnpm `10.34.6`。Rust crate 与 npm 构建输入只支持 Linux AMD64 GNU；浏览器客户端不受此限制。
+
+```sh
+python3 scripts/check-xcss.py
+cargo +1.99.0 fmt --all -- --check
+cargo +1.99.0 test --locked --all-targets --all-features
+cargo +1.99.0 clippy --locked --all-targets --all-features -- -D warnings
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm test
+```
+
+代码采用 [Apache License 2.0](../LICENSE)。
