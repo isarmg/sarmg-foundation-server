@@ -19,7 +19,7 @@ contracts、http-client、admin-web 等均为同一 `@xcss/web` 包的内部模�
 
 ```text
 工作树完全干净 + tag精确指向HEAD
-├─ package_release -> 1个 xcss-web-1.0.1.tgz
+├─ package_release -> 1个 xcss-web-1.0.2.tgz
 ├─ deterministic tool bundle
 ├─ state-contract.json
 ├─ hash(state contract) -> release-identity.json

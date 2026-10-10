@@ -9,8 +9,8 @@ xcss 是编译进产品的库。本文随 release-tool 归档提供，说明如�
 ```text
 release-tree.json
 artifacts/
-  xcss-web-1.0.1.tgz
-  xcss-release-tool-1.0.1.tar.gz
+  xcss-web-1.0.2.tgz
+  xcss-release-tool-1.0.2.tar.gz
   state-contract.json
   release-identity.json
   build-inventory.json
@@ -46,7 +46,7 @@ python3 scripts/xcss-release.py create /absolute/release/artifacts   --product "
 
 ## 在源码仓库构建发行
 
-使用 Linux x86_64 GNU、Rust `1.99.0`、Node `26.7.0` 和 pnpm `10.34.6`，按[开发指南](https://github.com/isarmg/xcss/blob/main/docs/development.md)完成检查。正式构建要求源码干净、版本一致、精确 `v1.0.1` 标签指向当前 HEAD，随后由发行工作流执行：
+使用 Linux x86_64 GNU、Rust `1.99.0`、Node `26.7.0` 和 pnpm `10.34.6`，按[开发指南](https://github.com/isarmg/xcss/blob/main/docs/development.md)完成检查。正式构建要求源码干净、版本一致、精确 `v1.0.2` 标签指向当前 HEAD，随后由发行工作流执行：
 
 ```sh
 python3 scripts/build-release-assets.py   --output "$RUNNER_TEMP/xcss-release"   --source-revision "$GITHUB_SHA"   --tag "$GITHUB_REF_NAME"

@@ -46,7 +46,7 @@ git diff --check
 python3 scripts/package-artifacts.py release --output release/npm
 ```
 
-产物为 `release/npm/xcss-web-1.0.1.tgz`，可用于本地产品接入验证。正式资产的源码绑定、标签和回下载检查见[发行工具操作](operations.md)。
+产物为 `release/npm/xcss-web-1.0.2.tgz`，可用于本地产品接入验证。正式资产的源码绑定、标签和回下载检查见[发行工具操作](operations.md)。
 
 ## 验证实际消费者
 
