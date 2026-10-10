@@ -24,12 +24,13 @@ test("loading an existing record clears obsolete required-field errors", async (
   await expect(page.getByTestId("saved-count")).toHaveText("2");
 });
 
-test("controlled instance names retain caller validation after an invalid submission", async ({ page }) => {
+test("controlled instance names retain caller validation after an invalid check", async ({ page }) => {
   await page.route("**/api/v1/**", route => route.fulfill({ json: { authenticated: true, user_id: "A".repeat(43), username: "admin", role: "admin", csrf_token: "A".repeat(43) } }));
   await page.goto("/?lang=en#validation");
   const name = page.getByRole("textbox", { name: "Instance name", exact: true });
   const save = page.getByRole("button", { name: "Save instance", exact: true });
-  await save.click();
+  // Dispatch invalid without a native validation popup intercepting the next click.
+  expect(await name.evaluate(element => element.checkValidity())).toBe(false);
   await expect.poll(() => name.evaluate(element => element.validity.customError)).toBe(true);
   await page.getByRole("button", { name: "Use whitespace name", exact: true }).click();
   await expect(name).toHaveValue(" ");
