@@ -62,10 +62,6 @@ web/<module>/
 
 dist/<module>/       根构建生成的统一输出，不是源码事实源
 
-consumers/
-├─ consumer-matrix.json
-└─ consumer-matrix.schema.json
-
 scripts/             用户/CI调用的稳定命令入口
 tools/               policy/release/package的实现和负例
 docs/                仅五类中文文档

@@ -30,7 +30,7 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 ├─ 消费者换成完整 Git rev / GitHub Release tgz
 ├─ 独立 checkout、无 sibling 仓库、完整产品门禁
 ├─ 产品断网运行编译后制品
-└─ 更新 consumer-matrix 的真实状态与 commit 证据
+└─ 在产品仓库记录本次源码、CI 与正式发行物的实际验收结果
 ```
 
 路径依赖只用于发布前联调。永久 sibling `path`/`file:` 会让独立仓库 CI、GitHub checkout 和复现构建
@@ -267,8 +267,8 @@ package.json + .node-version
 └─ 临时空目录 npm --ignore-scripts 安装并解析所有 export
 ```
 
-`contracts` 是 `http-client` 的精确 peer；`admin-web` 精确依赖 contracts/http-client 并以可选 peer 声明
-React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依赖 monorepo symlink 才能运行。
+`contracts`、`http-client`、`admin-web` 是同一个 `@xcss/web` 包中的内部模块，按公开子路径使用；
+包只为外部 React/Vite 入口声明精确的可选 peer。tarball 内不得保留 `workspace:`，也不得依赖 monorepo symlink 才能运行。
 
 ## 10. Design Token 变更流程
 
@@ -286,29 +286,23 @@ React/Vite 入口所需包。tarball 内不得保留 `workspace:`，也不得依
 不得因为多个产品都使用“按钮”就把完整组件、品牌、页面 shell 或主题存储移入 xcss。删除 token 时
 直接删除并升级消费者，不留下重复 CSS custom property alias。
 
-## 11. Consumer Matrix 流程
+## 11. 产品接入验收
 
-| 状态 | 含义 | 允许的证据 |
-|---|---|---|
-| `not-migrated` | 尚未进入目标 Profile 迁移 | 不得声称平台能力已通过 |
-| `migration-in-progress` | 正在完成纵向切片 | 必须列出当前证据和未完成项 |
-| `conforming` | 不可变来源、独立 checkout 和全部门禁通过 | 必须有完整 40 位验证 commit 且无例外 |
-| `non-conforming` | 已声明 Profile 但当前验证失败 | 保留真实失败状态，不伪装绿色 |
-| `temporary-exception` | 迁移期存在已登记例外 | 例外必须有期限且不得降低安全下限 |
+产品在自己的 manifest 和锁文件声明实际采用的公共依赖、完整源码 revision、Profile 与能力。
+发布后以同一源码 commit 进行独立 checkout、完整产品门禁和实际运行验收，核对正式资产的身份、
+平台、摘要以及嵌入资源。产品的 CI 与 Release 保存这次结果；失败、未执行及待验证项如实记录。
 
-`packages` 只列消费者直接采用的 xcss 组件，不能把传递依赖或相似本地实现算作已采用。消费者矩阵
-是独立的接入报告，不是 xcss 自身构建、测试或发布的前置条件；新增、删除或暂时失败的产品不会阻塞
-公共实现发布。需要更新报告时显式运行 `verify-consumers` 与 `generate-consumer-matrix --check`，产品行为验收仍
-在对应产品仓库完成。
+公共实现自己的构建和发布由上游质量门负责，产品业务行为由对应产品的测试负责。上游检查通过
+不能替代产品验收，旧记录也不能作为当前发布结果。
 
 ## 12. Release 流程
 
 ```text
 main 工作树完全干净
 ├─ 全部 Rust/Web/Python/package 门禁通过
-├─ Cargo/npm/policy 版本一致（消费者报告独立维护）
-├─ 21 个 Cargo package 均携带审核过的根 LICENSE
-├─ 创建唯一 annotated v0.10.3 tag
+├─ Cargo/npm/policy 版本一致
+├─ 唯一 Cargo package xcss 与 npm 包均携带审核过的根 LICENSE
+├─ 创建唯一 annotated v1.0.0 tag
 ├─ push tag 触发唯一 release job
 ├─ 再次运行全部门禁
 ├─ 生成 1 个 npm tgz
@@ -328,7 +322,7 @@ job `contents: read`；仅 tag-only release job 可用 `contents: write`。actio
 ### 13.1 删除清单
 
 删除一个公开能力时同步处理：Cargo member/dependency、npm workspace/dependency/peer/export、源码、测试、
-fixture、Schema、lockfile、package smoke、release inventory、consumer matrix、各产品调用和全部中文文档。
+fixture、Schema、lockfile、package smoke、release inventory、各产品调用和全部中文文档。
 不得留下 deprecated symbol、alias package、旧 CSS property 或永远不再调用的 parser。
 
 ### 13.2 持久状态变化

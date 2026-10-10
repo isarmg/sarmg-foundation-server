@@ -26,5 +26,5 @@ Adapter 单测覆盖全局上限、IPv4 映射、精确字节边界、虚拟时�
 静态管理员配置同时限制 1024 个账户且拒绝重复 administrator_id；不同 username 不能共享会话主体。
 
 登录在读取正文前拒绝重复 Cookie 字段行、重复当前 Session Cookie 以及无效当前 Token 形状，返回 `auth.invalid_cookie`，不设置新 Cookie。该规则由 Axum/Hyper 共享测试覆盖。登录失败预算按真实 socket IP（IPv4-mapped 地址规范化）和账户分别执行，不读取代理来源头；达到失败预算时返回 `auth.rate_limited` 和保守的完整平台窗口 `Retry-After`。
-消费者通过当前 Adapter 获取上述保护；采用的精确版本与验收状态见消费者矩阵。
+产品通过当前 Adapter 获取上述保护；采用的精确版本以其 manifest 和锁文件为准，验收结果由对应源码的实际 CI 与正式 Release 证明。
 共享测试验证平台合同，每个消费者还需更新依赖锁并运行真实路由、socket 和业务集成测试。

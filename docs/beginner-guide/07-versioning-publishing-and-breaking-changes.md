@@ -97,14 +97,14 @@ trigger只有`v*`tag push。action锁完整SHA，checkout不持久credential，r
 
 ```text
 发布前
-xcss代码/测试 -> 消费者本地path/file -> integration-pending
+xcss代码/测试 -> 产品本地path/file联调 -> 保存实际失败和通过结果
 
 发布
 immutable tag + assets
 
 发布后
 消费者rev/tgz + rebuilt lock -> independent checkout -> full CI/release/offline
- -> consumer commit -> matrix passing
+ -> 产品commit -> 对应正式CI、资产与实际运行验证
 ```
 
 只完成任一半都不够：没有发布前联调可能发布错误抽象；没有发布后验证则无法证明不可变依赖真实可用。
@@ -126,4 +126,4 @@ state contract、inventory、release-tree、消费者最终commit和验证结果
 2. 解释为何合并后内部模块不再声明 package 依赖，如何从单个包的公开子路径导入。
 3. 画出state contract、release identity、SHA256SUMS和release-tree的hash关系。
 4. 为一次失败release写处理方案，要求不移动tag/覆盖asset。
-5. 说明消费者本地path通过后为何仍不能把matrix标passing。
+5. 说明产品本地path构建通过为何仍不能代替正式Git/tgz来源的独立构建和发行验收。

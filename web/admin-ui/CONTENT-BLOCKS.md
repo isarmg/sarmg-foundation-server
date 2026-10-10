@@ -28,11 +28,11 @@
 
 ## 当前发行接入
 
-当前包版本见根 README，各消费者采用版本见消费者矩阵。
+当前包版本见根 README；各产品采用的版本以其 manifest、锁文件和完整源码 revision 为准。
 直接导入 `@xcss/web/admin-ui/styles.css`；包包含默认内容块 CSS。消费者固定 Release tarball URL 与 lockfile integrity，独立构建不需要同级 xcss 源码。
 
 xcss 只拥有这些展示类、默认 token 和无障碍行为。卡片里出现哪些字段、统计规则、实例操作、图表数据和业务事件由产品拥有；不得向本包加入产品 DTO、端点、错误码或产品名称分支。
 
 默认外观可由消费者自定义，不是对外部产品的强制品牌规则。字体由 `@xcss/web/web-fonts` 提供。
 后续变更必须发布新不可变包并更新消费者锁文件，不覆盖已有 tarball。
-表格内容边界的版本验收记录见 [0.8.5 Release](../../docs/releases/1.0.0.md)。
+当前表格内容边界与账号外观的版本说明见 [1.0.0 Release](../../docs/releases/1.0.0.md)。

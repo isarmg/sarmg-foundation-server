@@ -170,7 +170,7 @@ current mismatch和实际fingerprint drift。
 - Web是否把token写到storage或接受cross-origin？
 - 竞态中较旧response能否覆盖新state？
 - package测试是否从dist/tgz而非src/workspace验证？
-- consumer matrix证据是否真实？
+- 产品实际验收是否绑定同一源码 commit、完整依赖身份和正式发行资产？
 
 ## 8.11 提交边界
 

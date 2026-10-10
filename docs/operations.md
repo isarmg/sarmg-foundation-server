@@ -49,7 +49,7 @@ cargo metadata --locked --no-deps --format-version 1
 ### 3.2 可安全删除的缓存
 
 在确认目标是本仓具体目录后，可以删除并重建 `target/`、根 `node_modules/`、根 `dist/` 和临时
-release 输出。不可将 `Cargo.lock`、`pnpm-lock.yaml`、Schema、fixture、consumer matrix、文档或 Git tag
+release 输出。不可将 `Cargo.lock`、`pnpm-lock.yaml`、Schema、fixture、文档或 Git tag
 当缓存处理。不要对工作区根或未解析变量使用递归删除。
 
 ## 4. 统一质量门
@@ -76,7 +76,7 @@ git status --short
 
 失败后修复实际原因，从受影响层向下重跑；最终交付前再完整跑一次。禁止用以下方式“修复”失败：放宽
 strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提高到无界 body、删除竞态/攻击负例、添加
-旧字段 alias、跳过 tarball isolated install + TypeScript/Vite 或把消费者矩阵手改为 conforming。
+旧字段 alias、跳过 tarball isolated install + TypeScript/Vite 或把未通过的产品验收写成成功。
 
 ## 5. Repository Policy 运维
 
@@ -90,10 +90,6 @@ strict guard、接受另一套 Argon2 参数、忽略重复安全 header、提�
 - npm 的 `os`、`cpu`、`libc` 必须为 Linux、x64、glibc；CLI 和构建入口再次检查实际进程平台；
 - `admin-web` 的 React/Vite/TypeScript/type package 精确一致；
 - 源码和文档不存在已取消的项目/客户端名称。
-
-消费者矩阵是独立接入报告，不参与 `check-xcss.py`、xcss CI 或 Release 门禁。维护报告时另外
-运行 `python3 scripts/xcss-conformance.py verify-consumers` 与
-`python3 scripts/xcss-conformance.py generate-consumer-matrix --check`；产品行为验收仍在对应产品仓库完成。
 
 产品源码接入检查使用 `python3 scripts/xcss-conformance.py report --product-root <path> --json`。该报告会
 逐项标明 manifest、依赖、Schema、Web 与 release 状态；没有 release 清单时状态是 `not-checked` 且
@@ -243,22 +239,14 @@ xcss = {
 | checkpoint busy/incomplete | 仍有 reader/writer；进入产品定义的安全维护窗口后重试 |
 | integrity/FK violation | 数据库不可信；阻止运行/备份，保全现场并按产品流程处置 |
 
-## 9. Consumer Matrix 运维
+## 9. 产品消费来源与验收
 
-`consumers/consumer-matrix.json` 是追踪证据，不是发布宣传。字段解释：
+每个产品仓库的 `xcss-product.toml`、Cargo/npm manifest 和锁文件记录当前公共依赖的精确版本、完整
+revision、Profile、能力、官方 tarball URL 及摘要。实际结果以同一源码 commit 的独立构建、CI 与正式
+Release 为准。对照 tag 指向的源码、发行 manifest 和实际下载的资产，确认其平台和来源一致。
 
-| 字段 | 运维含义 |
-|---|---|
-| `product` | 6 个真实产品仓库之一的产品标识 |
-| `commit` | 本次评估采用的已提交消费者基线，必须是完整 SHA |
-| `xcss_version` | 该提交采用的 xcss 版本；未集成为 null |
-| `packages` | 直接采用的组件，不列传递依赖 |
-| `status` | not-migrated / migration-in-progress / conforming / non-conforming / temporary-exception |
-| `exceptions` | 非 conforming 状态对应的显式例外编号；conforming 必须为空 |
-
-发布前本地 path/file 联调最多标 `migration-in-progress`；xcss release 后，将消费者换成 Git rev/tgz、
-重建 lock、完整验证并提交，才能标 `conforming`。若 CI 后来失败，应真实标 `non-conforming`；存在有效迁移
-例外时标 `temporary-exception`，不能保留过期绿色状态。
+使用产品自己的运行、诊断和行为测试完成验收。上游公共库测试、另一个产品的结果或过去的记录不能
+替代当前产品的实际结果；遇到失败时保存失败输出并修复原因，再验证受影响的当前源码和产物。
 
 ## 10. CI 与供应链策略
 
@@ -331,7 +319,7 @@ release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool 
 4. 分别检查 全部包的真实 tgz 的 package name/version/exports，执行隔离目录正常 peer 安装；
 5. 将每个消费者的 Rust path 换为完整 Git rev、Web file 换为 release tgz URL；
 6. 重建消费者 lock，在独立 checkout 完成完整产品测试、发行解包和断网运行；
-7. 按产品提交并更新 consumer matrix 的真实 commit/status。
+7. 提交产品源码，并以相同 commit 的实际 CI、发行资产和运行验收保存本次结果。
 
 发布失败时不得移动 tag、覆盖 asset、删除 release 后重建同版本。修复源码，使用新的唯一当前版本发布。
 
@@ -355,17 +343,17 @@ release identity 恰好五字段并用 `state_contract_sha256` 绑定它。tool 
 
 每次依赖更新单独提交并记录：上游源码/公告、license、启用 feature/default、Rust MSRV/Node engine、native
 dependency、bundle/compile size、API 行为和消费者影响。更新顺序：xcss manifest/lock → xcss
-全门禁 → package tarball → consumer matrix 中所有采用者 → 独立产品 release 验证。若消费者仍调用被删
+全门禁 → package tarball → 从产品实际源码和依赖图定位采用者 → 独立产品 release 验证。若消费者仍调用被删
 API，应同步升级消费者；不得在 xcss 添加 alias 维持另一代。
 
 ### 15.1 通用处置
 
 1. 暂停 tag/package/release，撤销或轮换受影响的 GitHub/npm credential；
-2. 保全 workflow run、commit/tag、release metadata、asset digest、lockfile、consumer matrix和审计日志；
+2. 保全 workflow run、commit/tag、release metadata、asset digest、lockfile 和产品验收、审计日志；
 3. 确定漏洞组件、可达调用和所有消费者 commit；
 4. 在唯一当前源码中修复，完整验证并发布新不可变版本；
 5. 所有消费者更新精确依赖并重建产品制品；
-6. 更新 matrix 和事件记录，确认未泄露生产 Secret。
+6. 记录产品修复源码、实际 CI、正式发行身份和事件处理结果，确认未泄露生产 Secret。
 
 ### 15.2 认证 primitive 事件
 
@@ -382,10 +370,10 @@ API，应同步升级消费者；不得在 xcss 添加 alias 维持另一代。
 ## 16. 备份、保留与定期审计
 
 需要备份：Git 仓库及对象、annotated tag、GitHub Release metadata/assets、CI 配置、Cargo/pnpm lock、
-Schema/fixture、consumer matrix 和文档。registry cache、`node_modules`、`target`、`dist` 不是源码备份。
+Schema/fixture、产品实际 CI 与发行验收记录和文档。registry cache、`node_modules`、`target`、`dist` 不是源码备份。
 
 建议每个发布周期至少执行：从空缓存 locked install；全部包的真实 tgz 离线安装；release-tree 回下载验证；所有
-consumer matrix 项状态复核；完整 SHA action 与权限扫描；旧名称/current-only 扫描；管理员合同/Server
+当前产品来源、CI 和正式资产结果复核；完整 SHA action 与权限扫描；旧名称/current-only 扫描；管理员合同/Server
 target 跨产品抽查。xcss 无业务数据，所以不得把产品 backup 文件复制进本仓或 Release。
 
 ## 当前认证与发布验收
@@ -396,7 +384,6 @@ CSRF 由同会话 Token 稳定派生；不符合派生值的会话被拒绝，�
 Release 在同一提交构建后执行 conformance、Chromium/Firefox 浏览器验收，再构建发布树；失败必须阻止发布。
 包 smoke 的依赖准备允许联网，使用 manifest 精确 peers 与真实 tgz，在隔离目录执行 Node 导入、TypeScript 和 Vite JS/CSS 构建。运行时无注册表依赖。
 
-本次 1.0.0 重建已清空旧历史的 consumer 审计快照，初始登记表为空。后续登记需填入实际核验的提交与依赖版本，不复用旧报告或宣称尚未验证的 conforming。
 
 
 ## 17. 固定数据接口调整后的重新部署

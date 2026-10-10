@@ -1,7 +1,6 @@
 # xcss 文档总览
 
 当前源码版本与组件入口见 [根 README](../README.md)。
-[0.7.1 消费者证据](../consumers/react-filesystem-0.7.1-evidence.md)仅记录历史验收，不代表当前版本。主分支后续文档修订不改变已发布资产，既有不可变 tag 不会被改写。
 本目录描述当前接口。版本变化时，以源码、Cargo/npm manifest、Profile、JSON Schema、fixture、测试和发布 policy 为事实源，在同一变更中更新这里。
 
 | 分类 | 文档 | 适合回答的问题 |
@@ -21,7 +20,7 @@
 | 管理 Web 中英文 | [admin-web-language.md](admin-web-language.md) | 语言偏好、成对文案、协议值边界和双语验收 |
 | 持久管理员管理 | [administrator-management.md](platform-specifications/administrator-management.md) | 唯一管理 API、事务内授权、最后管理员保护、审计与右上角自助设置 |
 | 完整功能与取舍清单 | [feature-inventory-and-tradeoffs.md](feature-inventory-and-tradeoffs.md) | 每项能力的实现锚点、分类、复杂度、删除后果、验证和明确排除项 |
-| 运维文档 | [operations.md](operations.md) | 固定工具链、CI/package/release 运维、故障处置、消费者追踪和安全事件 |
+| 运维文档 | [operations.md](operations.md) | 固定工具链、CI/package/release 运维、故障处置、产品来源复核和安全事件 |
 
 阅读建议：初次参与先读仓库 README 和教程第 1～5 章；设计公共 API 时同时读工作流程与功能清单；准备
 tag、依赖更新或事故响应时以运维文档为准。任何文档示例若与当前 public export 不一致，应视为发布阻断。

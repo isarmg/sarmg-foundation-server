@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,7 +15,6 @@ sys.path.insert(0, str(TOOLS))
 
 from xcss_conformance import (  # noqa: E402
     ConformanceError,
-    generate_consumer_matrix,
     verify_foundation,
     verify_manifest,
     verify_release,
@@ -147,33 +145,6 @@ class ConformanceTests(unittest.TestCase):
         result = verify_foundation(ROOT)
         self.assertEqual(len(result["profiles"]), 4)
         self.assertIn("admin-persistent", result["capabilities"])
-
-    def test_consumer_registry_is_an_independent_reporting_contract(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            fixture = Path(directory)
-            shutil.copytree(ROOT / "profiles", fixture / "profiles")
-            (fixture / "Cargo.toml").write_text(
-                '[package]\nname="xcss"\nversion="0.9.0"\n'
-            )
-            (fixture / "package.json").write_text('{"name":"@xcss/web","version":"0.9.0"}')
-            consumers = fixture / "consumers"
-            consumers.mkdir()
-            (consumers / "repositories.toml").write_text(
-                '''format = 1
-[[repositories]]
-product = "new-product"
-url = "https://github.com/example/new-product"
-commit = "0123456789abcdef0123456789abcdef01234567"
-xcss_version = "0.9.0"
-profiles = ["server-filesystem"]
-capabilities = ["admin-static", "memory-sessions", "server-runtime", "server-health", "filesystem-root", "linux-openat2"]
-packages = ["xcss"]
-status = "conforming"
-exceptions = []
-'''
-            )
-            generated = generate_consumer_matrix(fixture)
-            self.assertEqual([item["product"] for item in generated["consumers"]], ["new-product"])
 
     def test_manifest_requires_profile_capabilities_and_immutable_revision(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -17,13 +17,6 @@ SEMVER = re.compile(
 )
 REVISION = re.compile(r"[0-9a-f]{40}")
 IDENTIFIER = re.compile(r"[a-z][a-z0-9-]{0,62}")
-MATRIX_STATUSES = {
-    "not-migrated",
-    "migration-in-progress",
-    "conforming",
-    "non-conforming",
-    "temporary-exception",
-}
 FOUNDATION_ROUTES = ("/api/v1/auth/", "/api/v1/platform/", "/healthz", "/readyz")
 FOUNDATION_GIT_URL = "https://github.com/isarmg/xcss.git"
 FOUNDATION_RELEASE_URL = re.compile(
@@ -759,93 +752,6 @@ def verify_release(
     if server_profiles and target != "x86_64-unknown-linux-gnu":
         raise ConformanceError(f"{existing[0]}: formal Server target is not canonical")
     return {"product": manifest["product_id"], "status": "verified", "path": str(existing[0])}
-
-
-def _registry(foundation_root: Path) -> list[dict[str, Any]]:
-    value = _toml(foundation_root / "consumers" / "repositories.toml")
-    _exact_keys(value, {"format", "repositories"}, {"format", "repositories"}, "consumer registry")
-    if value["format"] != 1 or not isinstance(value["repositories"], list):
-        raise ConformanceError("consumer registry: unsupported format")
-    return value["repositories"]
-
-
-def generate_consumer_matrix(foundation_root: Path) -> dict[str, Any]:
-    profile_catalog, capability_catalog = load_profiles(foundation_root)
-    known_packages = _xcss_package_names(foundation_root)
-    entries: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for index, repository in enumerate(_registry(foundation_root)):
-        context = f"consumer registry.repositories[{index}]"
-        if not isinstance(repository, dict):
-            raise ConformanceError(f"{context}: expected a table")
-        expected = {"product", "url", "commit", "xcss_version", "profiles", "capabilities", "packages", "status", "exceptions"}
-        _exact_keys(repository, expected, expected, context)
-        product = repository["product"]
-        if not isinstance(product, str) or IDENTIFIER.fullmatch(product) is None or product in seen:
-            raise ConformanceError(f"{context}: invalid or duplicate product")
-        seen.add(product)
-        if not isinstance(repository["url"], str) or not repository["url"].startswith("https://github.com/"):
-            raise ConformanceError(f"{context}: repository URL must be an HTTPS GitHub URL")
-        if REVISION.fullmatch(str(repository["commit"])) is None:
-            raise ConformanceError(f"{context}: commit must be 40 lowercase hex characters")
-        version = repository["xcss_version"]
-        if version is not None and (not isinstance(version, str) or SEMVER.fullmatch(version) is None):
-            raise ConformanceError(f"{context}: invalid xcss version")
-        profiles = _string_list(repository["profiles"], f"{context}.profiles")
-        capabilities = _string_list(repository["capabilities"], f"{context}.capabilities")
-        if not set(profiles) <= set(profile_catalog):
-            raise ConformanceError(f"{context}: unknown Profiles {sorted(set(profiles) - set(profile_catalog))}")
-        if not set(capabilities) <= capability_catalog:
-            raise ConformanceError(f"{context}: unknown capabilities {sorted(set(capabilities) - capability_catalog)}")
-        packages = repository["packages"]
-        if not isinstance(packages, list) or any(not isinstance(item, str) or not item for item in packages) or len(packages) != len(set(packages)):
-            raise ConformanceError(f"{context}.packages: invalid package list")
-        if not set(packages) <= known_packages:
-            raise ConformanceError(f"{context}: unknown packages {sorted(set(packages) - known_packages)}")
-        status = repository["status"]
-        if status not in MATRIX_STATUSES:
-            raise ConformanceError(f"{context}: invalid migration status")
-        exceptions = _string_list(repository["exceptions"], f"{context}.exceptions")
-        if status == "conforming" and (exceptions or version is None or not profiles):
-            raise ConformanceError(f"{context}: conforming evidence is incomplete")
-        if status == "temporary-exception" and not exceptions:
-            raise ConformanceError(f"{context}: temporary-exception requires exception ids")
-        entries.append(
-            {
-                "product": product,
-                "commit": repository["commit"],
-                "xcss_version": version,
-                "profiles": sorted(profiles),
-                "capabilities": sorted(capabilities),
-                "packages": sorted(packages),
-                "status": status,
-                "exceptions": sorted(exceptions),
-            }
-        )
-    entries.sort(key=lambda item: item["product"])
-    return {
-        "$schema": "./consumer-matrix.schema.json",
-        "format": "xcss.consumer-matrix.v1",
-        "platform_generation": 1,
-        "xcss_version": _xcss_version(foundation_root),
-        "consumers": entries,
-    }
-
-
-def _xcss_version(foundation_root: Path) -> str:
-    cargo = _toml(foundation_root / "Cargo.toml")
-    version = cargo.get("package", {}).get("version")
-    if not isinstance(version, str) or SEMVER.fullmatch(version) is None:
-        raise ConformanceError("Cargo.toml: invalid xcss package version")
-    return version
-
-
-def verify_consumer_registry(foundation_root: Path) -> dict[str, Any]:
-    generated = generate_consumer_matrix(foundation_root)
-    checked_in = _json(foundation_root / "consumers" / "consumer-matrix.json")
-    if checked_in != generated:
-        raise ConformanceError("consumer-matrix.json is stale; run generate-consumer-matrix")
-    return generated
 
 
 def verify_foundation(foundation_root: Path) -> dict[str, Any]:

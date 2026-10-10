@@ -388,10 +388,6 @@
 | FND-364 | admin-web有 login/logout/restore/401 的受控 Promise 竞态测试 | package tests | 保障 | 高 | 正常单请求通过但真实UI竞态失效 | controlled Promise/fetch交错；React client-switch 仍由消费者组件门禁验证 |
 | FND-365 | contracts用跨语言共享fixture | contracts tests/crate include | 保障 | 高 | Rust/TS/Schema理解不同当前合同 | valid/invalid全量执行 |
 | FND-366 | design token测试source/dist/value/scope | package test/scripts | 开发运维 | 中 | CSS发布漂移只能在视觉回归发现 | CSS静态与effective值测试 |
-| FND-367 | consumer matrix有机器Schema与policy | `consumers/*.json` | 开发运维 | 中 | 无法知道谁采用、是否真实通过 | exact keys、known set、status约束 |
-| FND-368 | `passing`必须有完整last_verified_commit | matrix policy | 保障 | 中 | 本地/过期结果被当发布证据 | null/短SHA负例 |
-| FND-369 | `not-integrated`证据必须为空 | matrix policy | 保障 | 低 | 状态与组件/版本自相矛盾 | adopted/packages/verified负例 |
-| FND-370 | package列表只记直接采用组件且unique | matrix Schema/policy | 开发运维 | 低 | 传递依赖冒充覆盖，影响评估失真 | duplicate/unknown负例 |
 | FND-371 | 中文文档限定五类并与源码同步 | README/docs结构 | 开发运维 | 中 | 新成员误用安全primitive或依赖陈旧示例 | 链接/API/版本/命令抽查 |
 | FND-372 | 功能台账逐项记录删除后果与验证边界 | 本文件 | 开发运维 | 中 | 删除共享能力时无法评估多仓库影响 | PR评审要求唯一ID同步 |
 
@@ -472,7 +468,7 @@ xcss::server_target（只由Server binary直接采用）
 
 删除任一“核心/保障”项前，必须提供：受影响消费者与调用点；当前替代；安全/资源/竞态负例的等价证明；
 持久状态与发布资产影响；不可变版本策略；每个产品的验证和回退计划。删除“建议保留/可选”项也必须先从
-consumer matrix 和真实源码确认无人依赖。
+实际产品源码、依赖图和调用点确认无人依赖。
 
 ## 18. 当前版本整体交付定义
 

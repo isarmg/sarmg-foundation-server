@@ -92,15 +92,14 @@ xcss单测通过，也不能证明Sunshine仍强制上游TLS或Media release的�
 python3 scripts/check-xcss.py
 ```
 
-它会检查版本、单体身份、内部模块边界、工具链和取消名称。consumer matrix 是独立接入证据，
-通过 `xcss-conformance` 检查。常见失败：
+它会检查版本、单体身份、内部模块边界、工具链和取消名称。产品接入通过 `xcss-conformance`
+检查其当前 manifest、来源、Schema、Web 和发行声明；实际行为由产品测试验收。常见失败：
 
 | 失败 | 不要做 | 正确做法 |
 |---|---|---|
 | version differs | 只改报错文件 | 找出版本变更范围并同步所有事实源 |
 | unknown member/package | 直接扩allowlist | 先完成共享能力准入和公开边界评审 |
 | internal dep not exact | 改成caret | 使用精确当前版本并更新lock |
-| matrix inconsistent | 手改passing | 完成真实不可变依赖验证后填证据 |
 | contains cancelled name | 绕过字符串扫描 | 修改真实身份、import、文档和资产名 |
 
 ## 2.7 Workflow policy
@@ -161,6 +160,6 @@ python3 -m unittest discover -s tools/tests -p 'test_*.py'
 
 1. 找出Node版本的至少四个事实源，解释为何只改`.node-version`不够。
 2. 说明`pnpm test`与package smoke分别能发现什么。
-3. 构造一个虚假的consumer matrix passing条目，预测policy会因哪些字段拒绝。
+3. 在产品的测试清单中把完整 Git revision 改成分支名，解释现有来源检查为何拒绝。
 4. 解释为何非AMD64 Server compile-fail是成功的负向测试，而不是“需要兼容”的bug。
 5. 列出可安全删除的四类生成物和不可删除的四类事实源。

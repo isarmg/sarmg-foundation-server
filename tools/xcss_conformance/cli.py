@@ -10,8 +10,6 @@ from typing import Any, Callable
 
 from .policy import (
     ConformanceError,
-    generate_consumer_matrix,
-    verify_consumer_registry,
     verify_foundation,
     verify_manifest,
     verify_release,
@@ -22,18 +20,6 @@ from .policy import (
 
 
 Check = Callable[[Path, Path], dict[str, Any]]
-
-
-def _write_matrix(root: Path, *, check: bool) -> dict[str, Any]:
-    generated = generate_consumer_matrix(root)
-    path = root / "consumers" / "consumer-matrix.json"
-    encoded = json.dumps(generated, ensure_ascii=False, indent=2) + "\n"
-    if check:
-        if not path.is_file() or json.loads(path.read_text(encoding="utf-8")) != generated:
-            raise ConformanceError("consumer-matrix.json is stale; run generate-consumer-matrix")
-    else:
-        path.write_text(encoded, encoding="utf-8")
-    return generated
 
 
 def _product_check(arguments: argparse.Namespace, check: Check) -> dict[str, Any]:
@@ -74,17 +60,10 @@ def main(argv: list[str] | None = None) -> int:
         if name == "report":
             child.add_argument("--json", action="store_true", dest="as_json")
     subparsers.add_parser("verify-xcss")
-    subparsers.add_parser("verify-consumers")
-    generate = subparsers.add_parser("generate-consumer-matrix")
-    generate.add_argument("--check", action="store_true")
     arguments = parser.parse_args(argv)
     try:
         if arguments.command == "verify-xcss":
             result = verify_foundation(arguments.xcss_root.resolve(strict=True))
-        elif arguments.command == "verify-consumers":
-            result = verify_consumer_registry(arguments.xcss_root.resolve(strict=True))
-        elif arguments.command == "generate-consumer-matrix":
-            result = _write_matrix(arguments.xcss_root.resolve(strict=True), check=arguments.check)
         elif arguments.command == "report":
             result, ok = _report(arguments)
             print(json.dumps(result, ensure_ascii=False, indent=2))

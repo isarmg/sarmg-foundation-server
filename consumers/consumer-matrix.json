@@ -1,7 +1,0 @@
-{
-  "$schema": "./consumer-matrix.schema.json",
-  "format": "xcss.consumer-matrix.v1",
-  "platform_generation": 1,
-  "xcss_version": "1.0.0",
-  "consumers": []
-}

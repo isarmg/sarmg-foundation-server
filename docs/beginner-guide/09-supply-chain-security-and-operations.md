@@ -80,7 +80,7 @@ Release metadata/provenance应与仓库证据一起保存。
 5. 发布新xcss不可变版本；
 6. 每个产品更新依赖、重建、测试并发布；
 7. 按产品运维策略撤销Session/轮换凭据；
-8. 更新consumer matrix与事件记录。
+8. 记录每个产品的修复源码、实际CI、正式发行身份和事件处理结果。
 
 不能依赖“库已经修复”结束事件，因为生产binary不会自动变化。
 
@@ -95,7 +95,7 @@ Release metadata/provenance应与仓库证据一起保存。
 
 确认公告对应的版本、启用feature、可达代码和native/transitive影响。修复顺序：xcss依赖/lock→全
 门禁→真实tgz→每个采用组件的consumer→产品release。没有采用受影响组件的消费者不应仅因传递猜测列入，
-consumer matrix帮助定位直接采用范围。
+产品当前源码、manifest和锁文件帮助定位实际采用范围。
 
 ## 9.10 Server target事件
 
@@ -120,7 +120,7 @@ Error Envelope details也不是内部诊断转储；raw上游body、SQL、PHC和
 - workflow policy和invalid fixture；
 - 唯一tgz的隔离install；
 - deterministic asset/release-tree；
-- consumer matrix状态与commit；
+- 产品当前源码、CI和正式发行资产身份；
 - 取消名称/current-only扫描；
 - 6个产品认证/Server target抽查；
 - 中文文档API示例与package exports抽查。
@@ -130,8 +130,7 @@ Error Envelope details也不是内部诊断转储；raw上游body、SQL、PHC和
 
 ## 9.13 备份
 
-保存Git objects、annotated tags、Release metadata/assets、workflow、lock、Schema/fixture、consumer matrix和
-文档。最好有与GitHub/registry独立的备份位置。`node_modules`、`target`、dist和registry cache不能替代源码
+保存Git objects、annotated tags、Release metadata/assets、workflow、lock、Schema/fixture、产品CI与正式发行验收结果和文档。最好有与GitHub/registry独立的备份位置。`node_modules`、`target`、dist和registry cache不能替代源码
 或Release备份。
 
 xcss没有业务数据库。State/Backup合同提供机器可验证的数据描述，不定义产品操作流程。

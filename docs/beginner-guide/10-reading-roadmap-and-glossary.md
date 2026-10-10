@@ -17,7 +17,7 @@ admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何�
 
 ### 第四阶段：发布与消费者
 
-读`xcss_policy.py`、package artifact工具、release实现和tests，再读consumer matrix与各产品采用点。最后
+读`xcss_policy.py`、package artifact工具、release实现和tests，再读各产品当前manifest、锁文件与实际采用点。最后
 读workflow，验证权限和命令是否与文档一致。
 
 ## 10.2 按问题找入口
@@ -40,7 +40,7 @@ admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何�
 | tgz问题 | `tools/xcss_package_artifacts.py` | package tests/manifest |
 | release-tree | `tools/xcss_release/release.py` | release tests/asset builder |
 | CI权限 | workflow policy脚本 | valid/invalid workflow fixture |
-| 谁采用了什么 | `consumers/consumer-matrix.json` | 各产品manifest/lock/commit |
+| 产品采用的版本与来源 | 各产品 manifest、Cargo/npm lock | 对应源码 commit、实际 CI 和正式 Release |
 
 ## 10.3 端到端练习一：管理员登录
 
