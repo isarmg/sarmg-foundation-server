@@ -1,38 +1,38 @@
-# 默认内容块外观与消费者自定义
+# Default content-block appearance and consumer customization
 
-来源：union-rust 的 Apache-2.0 `xcss-design` 内容卡片、登录卡片及色板。
-默认 `@xcss/web/admin-ui/styles.css` 自动导入此文件。
-文档根没有 `data-xcss-appearance` 属性或其值为 `content-blocks` 时启用。
-消费者可以设置 `<html data-xcss-appearance="custom">`（或其他自定义名称）退出，
-再在基础样式之后加载自己的 CSS；所有内容块规则及色板都会退出作用域。
-不替换认证组件，不影响 API、会话、权限或默认字体。单独的
-`@xcss/web/admin-ui/content-blocks.css` 导出也可用于原生 ESM 页面。
+Source: union-rust's Apache-2.0 `xcss-design` content cards, login card, and palette.
+The default `@xcss/web/admin-ui/styles.css` imports this stylesheet automatically.
+It applies when the document root has no `data-xcss-appearance` attribute or its value is `content-blocks`.
+Consumers can opt out with `<html data-xcss-appearance="custom">` or another custom name,
+then load their own CSS after the base styles; all content-block rules and the palette leave scope.
+This does not replace authentication components or change APIs, sessions, permissions, or default fonts.
+The separate `@xcss/web/admin-ui/content-blocks.css` export also supports native ESM pages.
 
-登录复用当前 AdminShell 的语义表单，呈现 380px、3:2、六行卡片、透明输入和文字操作。
-标题与产品标识仍向辅助技术提供；错误行可以滚动，完整请求 ID 不会被删除。
-跟随现有 `data-theme="light|dark"` 和系统主题；保留强制色彩和键盘焦点。
+Login reuses the current AdminShell semantic form: a 380px, 3:2 card with six rows, transparent inputs, and text actions.
+Assistive technology still receives the title and product identity. The error row scrolls without removing the full request ID.
+It follows the existing `data-theme="light|dark"` and system theme, preserving forced colors and keyboard focus.
 
-业务可以使用 `.xcss-content-grid`、`.xcss-content-card`、
-`.xcss-content-card__inner`、`.xcss-content-row` 构成六行 3:2 卡片。
-长表单、详情、表格使用可伸展的 `.xcss-content-panel`，不要强制塞进固定比例卡片。
-标准表格左对齐单元格内容及操作组，首列和末列与内容边缘对齐。表格嵌套在
-`.xcss-content-panel` 内时复用面板的背景和内边距，不叠加第二层卡片。
-隐藏表格时滚动区域一起隐藏，避免空区域仍占据布局间距。
-文字按钮与内容边缘对齐，同时保留最小 44px 点击区域。
-这些类仅规定展示，不包含客户端或服务器行为。
+Products can compose six-row 3:2 cards with `.xcss-content-grid`, `.xcss-content-card`,
+`.xcss-content-card__inner`, and `.xcss-content-row`.
+Long forms, details, and tables use the expandable `.xcss-content-panel`, rather than a fixed-ratio card.
+Standard tables align cell contents and action groups to the left, with the first and last columns aligned to the content edges.
+Tables nested inside `.xcss-content-panel` reuse its background and padding without adding another card layer.
+Hiding a table also hides its scroll region, so an empty region does not retain layout spacing.
+Text buttons align with content edges while retaining a minimum 44px hit target.
+These classes define presentation only and contain no client or server behavior.
 
-菜单栏到正文首行、标准内容块各行以及上一段内容到子标题默认共用
-`--xcss-content-spacing`，其默认值是 `--xcss-space-4`（16px）。普通纵向业务容器可使用
-`.xcss-content-stack`；它会以该变量建立网格间距，并清除直接子项的块级外边距。
-产品确需不同密度时可以在自身作用域覆盖变量，不应再分别设置标题和正文的临时外边距。
+Spacing from the menu bar to the first content row, between standard content-block rows, and from preceding content to a subheading
+uses `--xcss-content-spacing`, whose default is `--xcss-space-4` (16px). Ordinary vertical product containers can use
+`.xcss-content-stack`; it creates grid gaps with this variable and clears block margins on direct children.
+Products needing a different density can override the variable in their own scope instead of adding separate ad hoc heading and content margins.
 
-## 当前发行接入
+## Current release integration
 
-当前包版本见根 README；各产品采用的版本以其清单、锁文件和完整源码修订号为准。
-直接导入 `@xcss/web/admin-ui/styles.css`；包包含默认内容块 CSS。消费者固定发行归档 URL 与锁文件完整性摘要，独立构建不需要同级 xcss 源码。
+See the root README for the current package version. Each product's manifest, lockfile, and full source revision determine the version it consumes.
+Import `@xcss/web/admin-ui/styles.css` directly; the package includes the default content-block CSS. Consumers pin the release archive URL and lockfile integrity digest. Independent builds require no neighboring xcss source.
 
-xcss 只拥有这些展示类、默认设计令牌和无障碍行为。卡片里出现哪些字段、统计规则、实例操作、图表数据和业务事件由产品拥有；不得向本包加入产品 DTO、端点、错误码或产品名称分支。
+xcss owns these presentation classes, default design tokens, and accessibility behavior. Products own card fields, statistical rules, instance actions, chart data, and business events. Product DTOs, endpoints, error codes, and product-name branches do not belong in this package.
 
-默认外观可由消费者自定义，不是对外部产品的强制品牌规则。字体由 `@xcss/web/web-fonts` 提供。
-后续变更必须发布新不可变包并更新消费者锁文件，不覆盖已有发行归档。
-当前表格内容边界与账号外观的版本说明见 [1.0.0 发行](../../docs/releases/1.0.0.md)。
+Consumers can customize the default appearance; it does not impose a brand on external products. `@xcss/web/web-fonts` supplies the fonts.
+Later changes require a new immutable package and updated consumer lockfiles, without overwriting existing release archives.
+See the [1.0.0 release notes](../../docs/releases/1.0.0.md) for current table content boundaries and account appearance.
