@@ -4,7 +4,7 @@
 
 ## 1. 添加 Rust 依赖
 
-将[根 README 的固定依赖](../README.md#快速部署)加入产品 `Cargo.toml`。在产品根目录运行 `cargo check` 生成或更新 `Cargo.lock`，并提交锁文件。下列依赖示例固定到已发布的 1.0.0；接入 1.0.1 时应从其正式发行取得对应的完整 revision 和 tgz，不能仅修改版本号。版本 `=1.0.0` 与完整 Git revision 共同确定库的构建输入。
+将[根 README 的固定依赖](../README.md#快速部署)加入产品 `Cargo.toml`。在产品根目录运行 `cargo check` 生成或更新 `Cargo.lock`，并提交锁文件。下列示例使用已发布的 1.0.1。版本 `=1.0.1` 与完整 Git revision 共同确定库的构建输入。
 
 在产品中创建 `examples/xcss_identity.rs`，加入以下示例：
 
@@ -31,8 +31,8 @@ product_id = "example-server"
 
 [foundation]
 platform_generation = 1
-version = "1.0.0"
-git_rev = "b0524c4fb018b5ba4f27ad71bf32b74c8ef0a972"
+version = "1.0.1"
+git_rev = "fd90ca39b8f03359a0ba92e182f7d84bc7c1a315"
 
 [[components]]
 id = "server"
@@ -50,7 +50,7 @@ capabilities = ["embedded-web", "platform-sqlite", "admin-persistent", "server-r
 
 ```sh
 npm pkg set 'engines.node=>=26.7.0 <27'
-npm install --save-exact https://github.com/isarmg/xcss/releases/download/v1.0.0/xcss-web-1.0.0.tgz
+npm install --save-exact https://github.com/isarmg/xcss/releases/download/v1.0.1/xcss-web-1.0.1.tgz
 npm install --save-exact react@19.3.0 react-dom@19.3.0
 npm install --save-dev --save-exact vite@8.3.3 @vitejs/plugin-react@6.1.2 typescript@7.0.2   @types/react@19.3.0 @types/react-dom@19.3.0 @types/node@26.6.4
 ```

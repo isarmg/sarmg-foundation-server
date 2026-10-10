@@ -14,17 +14,17 @@ Rust 与 Web 构建仅支持 Linux x86_64 GNU（glibc）。部署后的管理页
 
 ## 快速部署
 
-本项目通过依赖接入，不单独运行服务。以下示例固定到已发布的 1.0.0；1.0.1 发布后更新为对应的完整 revision 和 tgz。Rust 消费者在 `Cargo.toml` 固定精确版本与完整发布修订：
+本项目通过依赖接入，不单独运行服务。以下示例使用已发布的 1.0.1。Rust 消费者在 `Cargo.toml` 固定精确版本与完整发布修订：
 
 ```toml
 [dependencies]
-xcss = { git = "https://github.com/isarmg/xcss.git", rev = "b0524c4fb018b5ba4f27ad71bf32b74c8ef0a972", version = "=1.0.0" }
+xcss = { git = "https://github.com/isarmg/xcss.git", rev = "fd90ca39b8f03359a0ba92e182f7d84bc7c1a315", version = "=1.0.1" }
 ```
 
 需要管理 Web 的产品安装同版发行包，并提交依赖锁文件：
 
 ```sh
-npm install --save-exact https://github.com/isarmg/xcss/releases/download/v1.0.0/xcss-web-1.0.0.tgz
+npm install --save-exact https://github.com/isarmg/xcss/releases/download/v1.0.1/xcss-web-1.0.1.tgz
 ```
 
 通过 `xcss::<module>`、`@xcss/web/<module>` 引入能力，在产品根目录维护 `xcss-product.toml`；React/Vite 等 peer 依赖按包内精确版本安装。完成产品构建后，随该产品部署。
