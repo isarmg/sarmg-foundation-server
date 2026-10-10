@@ -1,40 +1,38 @@
-# Filesystem handles and publication boundaries
+# 文件系统句柄与发布边界
 
-This document describes the implemented Unix/Linux server boundary, not completion of every server consumer's acceptance gates.
+本文说明已实现的 Unix/Linux 服务端安全边界。每个采用这些能力的产品仍需独立完成自己的验收。
 
-## Unix private state
+## Unix 私有状态目录
 
-`PrivateDirectory::open_existing` walks the same no-follow descriptors and checks
-the same owner and permissions without creating directories, changing modes or
-syncing files. Read-only server diagnostics use this entry point.
+`PrivateDirectory::open_existing` 通过不跟随符号链接的文件描述符逐级遍历，并检查相同的属主和权限；
+它不创建目录、不修改权限，也不执行文件同步。服务端只读诊断使用此入口。
 
-`create_child` creates or validates a typed direct child relative to the held
-parent descriptor on Unix, so replacing the original state pathname cannot
-redirect initialization of server-owned child state.
+在 Unix 上，`create_child` 相对于已持有的父目录描述符创建或验证具有类型约束的直接子项。
+因此，替换原始状态路径不能把服务端子状态的初始化重定向到其他目录。
 
-`PrivateDirectory::create` requires an absolute path. It walks existing ancestors through no-follow directory descriptors and creates only the final directory with mode 0700. The final directory must be owned by the effective user with exact 0700 permissions. An existing directory is validated, never chmodded; rejection cannot change a symlink target's permissions. Parent and new-directory sync complete creation.
+`PrivateDirectory::create` 要求绝对路径。它通过不跟随符号链接的目录描述符遍历已存在的祖先目录，只创建最后一级目录，权限为 0700。最终目录必须由进程的有效用户拥有，权限必须恰好为 0700。已有目录只接受验证，不会被修改权限；拒绝操作不会改变符号链接目标的权限。创建结束前会同步父目录和新目录。
 
-`AtomicFile::replace` and `AdvisoryLock::acquire` accept a validated, single-component relative name under the held private-directory descriptor. They do not resolve mutations through the original absolute pathname. A renamed or replaced external pathname therefore cannot redirect the operation. Atomic files and lock files are created as 0600; special files, symlinks, and hardlinked targets are rejected. The stable lock inode remains after release.
+`AtomicFile::replace` 和 `AdvisoryLock::acquire` 接受经过验证、仅含一个路径分量的相对名称，并在已持有的私有目录描述符下操作。修改不再通过原始绝对路径解析，因此重命名或替换外部路径不能重定向操作。原子文件和锁文件的创建权限为 0600；特殊文件、符号链接及具有硬链接的目标均被拒绝。释放锁后，稳定的锁文件 inode 仍然保留。
 
-Atomic replacement writes and syncs the temporary file, renames within the held directory, checks the published inode, and syncs the directory. Failure after publication is not proof of rollback; parent-sync failure is explicitly `PublishedDurabilityUnknown`.
+原子替换先写入并同步临时文件，再在已持有的目录内重命名，核对发布后的 inode，最后同步目录。发布后的失败不代表操作已回滚；父目录同步失败会明确返回 `PublishedDurabilityUnknown`，表示文件已经发布但持久性尚不能确认。
 
-`EntryName` represents exactly one canonical filename. `PrivateDirectory::files`, `read_bounded` and `remove_file` use these typed names and the held descriptor on Unix, not reconstructed absolute paths. `AtomicFile::create` provides no-clobber creation; failed collision preserves the occupant. Platform temporaries have one exact random namespace, exposed through `AtomicFile::is_temporary_name` for cleanup under exclusive process ownership.
+`EntryName` 只表示一个符合规范的文件名。在 Unix 上，`PrivateDirectory::files`、`read_bounded` 和 `remove_file` 使用这种具有类型约束的名称及已持有的描述符，而不重新拼接绝对路径。`AtomicFile::create` 提供不覆盖已有文件的创建方式；名称冲突导致失败时，原文件保持不变。平台临时文件使用一个确定格式的随机命名空间，`AtomicFile::is_temporary_name` 可识别这些名称，供独占目录的进程清理。
 
-`NoClobberPublish::publish` accepts a private directory and two typed single-component names, not arbitrary source/destination strings. It only publishes a single-linked regular file within that directory. Linux uses `RENAME_NOREPLACE`, with no fallback on unsupported filesystems. The Unix implementation for other operating systems uses link, parent sync, unlink, parent sync. Publication or sync failures must not be interpreted as permission to blindly replay a mutation.
+`NoClobberPublish::publish` 接受一个私有目录和两个具有类型约束、仅含一个路径分量的名称，不能传入任意源路径或目标路径字符串。它只在该目录内发布链接数为一的普通文件。Linux 使用 `RENAME_NOREPLACE`，文件系统不支持时不会采用替代实现。其他 Unix 系统的实现依次执行创建硬链接、同步父目录、移除原链接、再次同步父目录。发布或同步失败后，不能未经确认就重复修改操作。
 
-Inventory opens directories descriptor-relatively and refuses symlinks, special files and multiply-linked files. It checks pre/post-open identity and enforces entry, byte and 128-directory-depth budgets; depth-first traversal bounds simultaneous directory handles independent of directory width. File/parent synchronization on Unix also opens through no-follow descriptors and refuses non-regular or multiply-linked files.
+清单遍历相对于目录描述符打开子目录，拒绝符号链接、特殊文件和具有多个链接的文件。它在打开前后核对对象身份，并限制条目数、总字节数和最多 128 级目录深度；深度优先遍历使同时持有的目录句柄数量不随同级目录数量增长。Unix 的文件及父目录同步同样通过不跟随符号链接的描述符打开对象，并拒绝非普通文件或具有多个链接的文件。
 
-These private-state primitives require exclusive application ownership of the directory. They do not claim to defend against a malicious process running as the same user and concurrently modifying the private namespace. Advisory locks only coordinate cooperating participants.
+这些私有状态原语要求应用独占目录。其安全承诺不包括抵御以相同用户身份运行、并发修改私有命名空间的恶意进程。协作式文件锁只协调遵守锁协议的参与者。
 
-## Linux rooted filesystems
+## Linux 锚定根目录的文件系统
 
-`OpenAt2Root` verifies the initial directory and probes openat2 before serving work. `MountPolicy` makes cross-mount access an explicit technical capability. There is no openat fallback when the required Linux primitive is unavailable.
+`OpenAt2Root` 在接受工作前验证初始目录并探测 `openat2`。`MountPolicy` 将跨挂载点访问定义为必须显式选择的技术能力。所需 Linux 原语不可用时，不会退回 `openat`。
 
-`open_file` only returns single-linked regular files and refuses symlinks in all components; NONBLOCK prevents FIFO type probes from hanging. `FileIdentity` and `SingleLinkRequirement` describe opened objects. The Linux directory `AdvisoryLock` holds the anchored root itself instead of a replaceable separate lock pathname.
+`open_file` 只返回链接数为一的普通文件，并拒绝所有路径分量中的符号链接；`NONBLOCK` 防止探测 FIFO 类型时阻塞。`FileIdentity` 和 `SingleLinkRequirement` 描述已打开的对象。Linux 目录 `AdvisoryLock` 直接持有已锚定的根目录，而不使用可被替换的独立锁文件路径。
 
-Products may retain business-specific symlink, upload metadata, tree mutation and crash-recovery semantics while their generic helpers are progressively replaced. Xczs currently consumes the shared root initialization/probe, root lock and file identity. Its remaining rooted operations have not yet all moved upstream. Server consumers must not use the diagnostic `PrivateDirectory::path`/`resolve` values as a substitute for held-handle mutations.
+产品在逐步替换通用辅助实现时，可以保留业务特有的符号链接、上传元数据、目录树修改和崩溃恢复语义。Xczs 当前使用共享的根目录初始化与探测、根目录锁和文件身份能力；其余锚定根目录操作尚未全部移入上游。服务端消费者不能使用供诊断的 `PrivateDirectory::path`/`resolve` 返回值代替基于已持有句柄的修改操作。
 
-## Remaining acceptance
+## 仍需由产品完成的验收
 
-Server-side product staging, cross-directory publication and bounded inventories require acceptance in each adopting consumer.
-Passing xcss Linux library tests proves only the shared server primitives exercised there.
+服务端产品的暂存、跨目录发布和有界清单遍历，需要由每个采用这些能力的消费者分别验收。
+xcss 的 Linux 库测试通过，只证明这些测试实际覆盖的共享服务端原语。

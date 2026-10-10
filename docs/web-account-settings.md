@@ -14,4 +14,4 @@ return page === "account" ? <AccountPage /> : <ProductPage />;
 
 自定义 Shell 通过 `<AccountPage client={client} username={session.username} onUpdated={returnToLogin} />` 接入同一表单。`AccountSettings` 的 `onNavigate` 可对接产品自己的导航；默认进入 `#account`。实例菜单的 `InstancePageNavigation` 接受 `"account"` 页面状态，此时三个业务菜单均不显示选中标记。
 
-组件、样式和主题直接来自正式 xcss npm 包；消费者固定发布版本、tarball 和 integrity，不使用源码快照或 Vite 替换插件。登录页保留 3:2 灰色内容块，浅色模式下字体为黑色；语言和主题图标使用与管理页相同的 `1em` 尺寸。主题默认跟随系统，手动选择保存在 `sarmg:theme`，刷新、登录和退出后继续使用；存储不可用时当前文档内的选择仍有效。原 xsos 审核版的主题选择可迁移。认证凭据始终不进入浏览器存储。
+组件、样式和主题直接来自正式 xcss npm 包；消费者固定发布版本、发行归档和完整性摘要，不使用源码快照或 Vite 替换插件。登录页保留 3:2 灰色内容块，浅色模式下字体为黑色；语言和主题图标使用与管理页相同的 `1em` 尺寸。主题默认跟随系统，手动选择保存在 `sarmg:theme`，刷新、登录和退出后继续使用；存储不可用时当前文档内的选择仍有效。原 xsos 审核版的主题选择可迁移。认证凭据始终不进入浏览器存储。

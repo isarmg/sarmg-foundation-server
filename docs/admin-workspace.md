@@ -52,15 +52,15 @@ SVG 高度使用 `1em` 匹配文字，点击区域高 44px，窄屏仅导航区�
 窄屏不会挤出右侧操作图标。
 
 服务端平台路由对 `/api/v1/platform/diagnostics` 的匿名及已登录请求均返回 404；
-登录、权限、Request ID、健康检查、内部任务监督及日志不受影响。
-产品直接使用精确 Git revision 固定的 xcss Runtime 路由入口。
+登录、权限、请求 ID、健康检查、内部任务监督及日志不受影响。
+产品直接使用精确 Git 修订号固定的 xcss 运行时路由入口。
 实例创建、配对、文件操作等业务行为由消费者回调和协议定义，xcss 不按产品名称分支。
 
 ## 当前不可变包分发
 
-当前源码版本见根 README；各产品采用的版本、完整 revision、平台和实际验收结果以其 manifest、锁文件、CI 与正式 Release 为准。
-Rust 使用精确版本与完整 Git revision，Web 使用正式 Release tarball URL 和 lockfile integrity。
+当前源码版本见根 README；各产品采用的版本、完整修订号、平台和实际验收结果以其清单、锁文件、CI 与正式发行为准。
+Rust 使用精确版本与完整 Git 修订号，Web 使用正式发行归档 URL 和锁文件完整性摘要。
 Shell、字体、主题及语言模块直接来自这些包；独立构建不需要同级 xcss 源码。
 
 后续变更仍须发布新不可变版本、更新消费者锁图并复验，不覆盖旧制品；消费者只使用同一个 Shell Context。
-通用原生入口是 `web-embedded-native` Profile 的能力；消费者选择的 Profile 由其清单声明。
+通用原生入口是 `web-embedded-native` 运行形态的能力；消费者选择的运行形态由其清单声明。

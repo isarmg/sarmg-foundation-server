@@ -1,15 +1,15 @@
 # @xcss/web/contracts
 
-`@xcss/web/contracts@1.0.0` 发布 Xcss 当前跨语言 wire contract：TypeScript 类型、针对 `unknown` 的严格
-runtime guard、JSON Schema，以及 Rust/TypeScript 共用的正反 fixture。
+`@xcss/web/contracts@1.0.0` 提供 xcss 当前跨语言通信合同：TypeScript 类型、针对 `unknown` 的严格
+运行时校验、JSON Schema，以及 Rust/TypeScript 共用的正反测试夹具。
 
 当前合同组包括：
 
-- 管理员登录请求与严格 Administrator Session；
-- Error Envelope；
-- State Contract v1；
-- 五字段 Release Identity；
-- Backup Manifest v1。
+- 管理员登录请求与严格的管理员会话；
+- 统一错误响应结构；
+- 第一版状态合同；
+- 五字段发行身份；
+- 第一版备份清单。
 
 ```ts
 import {
@@ -24,12 +24,12 @@ if (!isAdministratorSession(value)) {
 }
 ```
 
-Guard 对对象字段执行 exact-key 检查；identifier、40 位 source revision、64 位小写 SHA-256、JavaScript
-safe integer、非空数组、唯一 maintenance lock、canonical 管理员 username 和 43 字符 token 均有明确边界。
-`AdministratorLoginRequest` 只验证 1–64 字节 printable ASCII 的“不可信候选值”；它可能仍含 `@` 等最终
-身份不允许的可打印字符。真正的 username 规范化、canonical 准入、密码策略和散列验证由 Server 的
-`xcss::admin_auth` 执行。JSON 字段只有 `username`，不存在 `email` alias。
+运行时校验严格核对对象的完整字段集合；标识符、40 位源码修订号、64 位小写 SHA-256、JavaScript
+安全整数、非空数组、唯一维护锁、规范管理员名及 43 字符令牌均有明确边界。
+`AdministratorLoginRequest` 只验证 1–64 字节可打印 ASCII 的“不可信候选值”；它可能仍含 `@` 等最终
+身份不允许的可打印字符。真正的用户名规范化、身份准入、密码策略和散列验证由服务端的
+`xcss::admin_auth` 执行。JSON 字段只有 `username`，不存在 `email` 别名。
 
-类型断言、泛型、`as` 和 JSON Schema 文件本身都不会自动验证一个运行时值。产品必须在信任边界调用 guard
-或经过审计的 Schema validator。产品业务 DTO、物理路径、资源排序/唯一性、旧字段 alias、历史 manifest
-reader 和迁移不属于本包。只能经 `package.json#exports` 导入，禁止深层引用 `src/` 或 `dist/` 私有路径。
+类型断言、泛型、`as` 和 JSON Schema 文件本身都不会自动验证一个运行时值。产品必须在信任边界调用校验函数
+或经过审计的结构验证器。产品业务 DTO、物理路径、资源排序与唯一性、旧字段别名、历史清单
+读取器和迁移不属于本包。只能经 `package.json#exports` 导入，禁止深层引用 `src/` 或 `dist/` 私有路径。

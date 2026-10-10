@@ -1,4 +1,4 @@
-# 11. 统一 Server/Web 构建与开发热更新
+# 11. 统一服务端与 Web 构建与开发热更新
 
 ## 11.1 正式版资源来自可执行文件
 
@@ -7,12 +7,12 @@ xcss `1.0.0` 的 `xcss::web_assets` 生成资源表、确定性 JSON 清单和 S
 处理器使用编译资源；发行目录携带清单用于核对，不携带另一份 raw Web。字体和许可证同样进入清单。
 
 资源清单格式为 `web-assets-v1`，文件按路径排序，绑定路径、MIME、大小和 SHA-256。摘要只计算
-canonical JSON bytes，不包含 CLI 打印时添加的换行。产品二进制提供无需配置、无业务副作用的
+规范的 JSON 字节，不包含 CLI 打印时添加的换行。产品二进制提供无需配置、无业务副作用的
 `web-assets` 命令。实际产物验收将该清单与本次前端输出逐个比较，能够发现旧 dist、遗漏和编译后改动。
 
 ## 11.2 声明构建输入
 
-Server component 的 `xcss-product.toml` capabilities 增加 `embedded-web`。产品根目录提供：
+服务端 component 的 `xcss-product.toml` capabilities 增加 `embedded-web`。产品根目录提供：
 
 ```json
 {
@@ -29,8 +29,8 @@ Server component 的 `xcss-product.toml` capabilities 增加 `embedded-web`。�
 
 这些都是声明，不能是 shell 命令。路径必须规范、相对且留在仓库中，不得通过 `..`、反斜线或链接
 逃逸。输出目录必须与源码目录分开；根 Web 使用 `directory: "."` 时，仍应给它专用输出目录。
-选定的 Cargo package 同时在 `[dependencies]` 和 `[build-dependencies]` 中声明同一版本的
-`xcss::web_assets`，遵循 xcss 完整 revision 与精确版本规则。
+选定的 Cargo 软件包同时在 `[dependencies]` 和 `[build-dependencies]` 中声明同一版本的
+`xcss::web_assets`，遵循 xcss 完整修订号与精确版本规则。
 
 产品 `build.rs` 中调用 `xcss::web_assets::build::generate(root)`，`root` 优先使用
 `XCSS_WEB_DIST`，本地默认使用声明的 dist。runtime 包含
@@ -47,8 +47,8 @@ Axum 用 `response.map(axum::body::Body::from)`；Hyper 用
 ./web/node_modules/.bin/xcss-build-server --mode release
 ```
 
-bin 所在目录随 npm package 根目录变化；根 Web 的 bin 位于 `./node_modules/.bin`。正式模式要求干净
-Git 工作树和完整源码 revision，执行锁定前端安装、前端构建、Linux AMD64 GNU Rust 编译，最后启动
+bin 所在目录随 npm 软件包根目录变化；根 Web 的 bin 位于 `./node_modules/.bin`。正式模式要求干净
+Git 工作树和完整源码修订号，执行锁定前端安装、前端构建、Linux AMD64 GNU Rust 编译，最后启动
 实际生成的 binary 的 `web-assets` 命令验收。单独 `cargo build` 不能证明 dist 是本次生成的。
 
 产品专用打包器可以把这一步作为子步骤。需要隔离源码归档、离线 vendor、签名或伴随程序的流程，
@@ -62,7 +62,7 @@ development 模式使用未绑定源码身份。产品显式选择 `DirectoryAss
 两种开发方式都不修改正式 binary 的资源身份。
 
 正式模式只选择内嵌提供器，并拒绝开发目录覆盖。选择内嵌提供器验收时，改动 Web 需要重新构建 binary。
-这是资源与 Server 同一版本的直接结果。不要让缺失目录触发 fallback，或在 production 读取可编辑 dist。
+这是资源与服务端同一版本的直接结果。不要让缺失目录触发回退，或在 production 读取可编辑 dist。
 
 共享 HTTP 行为包括 GET/HEAD、准确 MIME、`nosniff`、HTML `no-store`、资源 SHA-256 ETag 与 304。
 普通资源使用 `no-cache` 重新验证，因为仅凭 Vite 文件名不能证明名字就是内容 SHA-256。拥有已验证

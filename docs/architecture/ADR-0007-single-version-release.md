@@ -1,14 +1,14 @@
 # ADR-0007：xcss 单版本发布策略
 
-- 状态：Accepted
+- 状态：已采纳
 - 日期：2026-09-02
 
 ## 决策
 
-所有 xcss Rust crate、npm package、Profile、Schema、工具和测试以一个 xcss 版本发布。正式
-消费者同时固定精确版本与完整 40 位 Git revision；Web 使用对应 release 的不可变、已校验制品。
+所有 xcss Rust crate、npm 软件包、运行形态、Schema、工具和测试以一个 xcss 版本发布。正式
+消费者同时固定精确版本与完整 40 位 Git 修订号；Web 使用对应发行的不可变、已校验制品。
 
 ## 后果
 
-平台合同不会形成无法验证的组件版本组合。联调期 path/file 依赖不得进入稳定分支，消费者必须通过无 sibling
+平台合同不会形成无法验证的组件版本组合。联调期 path/file 依赖不得进入稳定分支，消费者必须通过无同级
 仓库的独立检出测试。

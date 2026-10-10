@@ -1,147 +1,149 @@
 # 10. 源码阅读路线、练习与术语表
 
-### 第一阶段：公共面
+## 10.1 分阶段阅读
 
-先读根`Cargo.toml`、`package.json`、各crate/package manifest和README。目标是列出组件、public export、精确
-内部依赖与工具链，不进入实现细节。
+### 第一阶段：公共接口
 
-### 第二阶段：核心primitive
+先读根 `Cargo.toml`、`package.json`、README 及各模块说明，列出单体身份、内部模块、公开导出入口和精确
+工具链，再进入实现细节。
 
-依次读`admin-auth`、`error`、`schema-identity`、`sqlite`、`server-target`。每个function同时读紧邻tests，
-记录输入、typed error和“不保证”。
+### 第二阶段：核心原语
 
-### 第三阶段：跨语言和Web
+依次读 `src/admin_auth/`、`src/error/`、`src/schema_identity/`、`src/sqlite/`、`src/server_target/`。
+每读一个函数，同时阅读相邻测试，记录输入、结构化错误以及它不保证的产品责任。
 
-比较`xcss::contracts/src/lib.rs`与`web/contracts/src/index.ts`、Schema和fixture；再读http-client、
-admin-web index、React hook和Vite helper。重点追踪一个unknown JSON何时变为trusted。
+### 第三阶段：跨语言和 Web
+
+比较 `src/contracts/mod.rs` 与 `web/contracts/src/index.ts`、JSON Schema 及测试夹具，再读 HTTP 客户端、
+管理员客户端、React 钩子和 Vite 辅助工具。重点追踪一个不可信 JSON 值在何处完成验证。
 
 ### 第四阶段：发布与消费者
 
-读`xcss_policy.py`、package artifact工具、release实现和tests，再读各产品当前manifest、锁文件与实际采用点。最后
-读workflow，验证权限和命令是否与文档一致。
+读 `tools/xcss_policy.py`、软件包制品工具、发行实现和测试，再读各产品当前清单、锁文件及实际采用点。
+最后阅读工作流，核对权限和命令与文档是否一致。
 
 ## 10.2 按问题找入口
 
 | 问题 | 首选源码 | 继续阅读 |
 |---|---|---|
-| 管理员 username/密码 | `src/admin_auth/mod.rs` | contracts auth Schema/fixture、产品 startup/login |
-| Origin/Host/CSRF | admin-auth authority/header函数 | 每个Server framework adapter与integration test |
-| Cookie/token | admin-auth token/cookie函数 | 产品Session persistence/Cookie flags |
-| Error JSON | `xcss::error` | contracts fixture、http-client responseError |
-| AdministratorSession | `xcss::contracts`与`@xcss/web/contracts` | admin-web、产品router |
-| SQLite fingerprint | `xcss::schema_identity` | golden fixture、产品DDL |
-| SQLx连接/诊断 | `xcss::sqlite` | 产品path/lock/lifecycle |
-| AMD64 Server | `xcss::server_target` | 产品build.rs/release/start |
-| URL/timeout/body/error | `web/http-client/src/index.ts` | package tests、产品API wrapper |
-| auth竞态 | `web/admin-web/src/index.ts` | admin-web tests、React hook |
-| React状态 | `web/admin-web/src/react.tsx` | 产品App/login page |
-| React/Vite精确版本 | admin-web toolchain与vite.ts | 产品package/check script |
-| CSS/accessibility | design-tokens src/CSS | tests与产品视觉验证 |
-| tgz问题 | `tools/xcss_package_artifacts.py` | package tests/manifest |
-| release-tree | `tools/xcss_release/release.py` | release tests/asset builder |
-| CI权限 | workflow policy脚本 | valid/invalid workflow fixture |
-| 产品采用的版本与来源 | 各产品 manifest、Cargo/npm lock | 对应源码 commit、实际 CI 和正式 Release |
+| 管理员名与密码 | `src/admin_auth/mod.rs` | 合同中的认证结构与夹具、产品初始化和登录 |
+| Origin、Host、CSRF | `src/admin_auth/` 的来源与请求头函数 | 各服务端框架适配器及集成测试 |
+| Cookie 与令牌 | `src/admin_auth/` 的令牌与 Cookie 函数 | 产品会话持久化及 Cookie 属性 |
+| 错误 JSON | `xcss::error` | 合同夹具、HTTP 客户端错误解析 |
+| AdministratorSession | `xcss::contracts` 与 `@xcss/web/contracts` | 管理员客户端及产品路由 |
+| SQLite 结构指纹 | `xcss::schema_identity` | 固定预期值夹具、产品 DDL |
+| SQLx 连接与诊断 | `xcss::sqlite` | 产品路径、锁和生命周期 |
+| AMD64 服务端 | `xcss::server_target` | 产品 `build.rs`、发行与启动 |
+| URL、超时、正文与错误 | `web/http-client/src/index.ts` | 软件包测试、产品 API 封装 |
+| 认证竞态 | `web/admin-web/src/index.ts` | 管理员客户端测试、React 钩子 |
+| React 状态 | `web/admin-web/src/react.tsx` | 产品应用及登录页面 |
+| React/Vite 精确版本 | `web/web-toolchain/` | 产品包清单与检查脚本 |
+| CSS 与无障碍 | `web/design-tokens/` | 测试及产品视觉验收 |
+| tgz 问题 | `tools/xcss_package_artifacts.py` | 软件包测试与清单 |
+| 发行目录 | `tools/xcss_release/release.py` | 发行测试与资产构建工具 |
+| CI 权限 | 工作流规则脚本 | 有效与无效工作流夹具 |
+| 产品采用的版本与来源 | 产品清单及 Cargo/npm 锁文件 | 相同源码提交的实际 CI 与正式发行 |
 
 ## 10.3 端到端练习一：管理员登录
 
-从产品Web表单开始，逐步标记：
+从产品 Web 表单开始，逐步标记：
 
-1. login候选何时由TS guard检查；
-2. requestJson如何限制URL/credential/body；
-3. Server adapter如何收集全部Origin/Host/authority/Sec-Fetch-Site；
-4. Rust contract如何拒绝unknown field；
-5. username/password 何时执行真正 policy；
-6. Argon2 verifier和限流顺序；
-7. token生成/摘要/Session表；
-8. Cookie与Session JSON；
-9. Web guard、private transport Session和UI Session；
-10. 后续mutation的CSRF路径。
+1. 登录候选值在何处通过 TypeScript 运行时校验；
+2. `requestJson` 怎样限制 URL、凭据和正文；
+3. 服务端适配器怎样收集完整 Origin、Host、authority 和 Sec-Fetch-Site；
+4. Rust 合同怎样拒绝未知字段；
+5. 用户名和密码在何处执行权威规则；
+6. Argon2 验证与限流的顺序；
+7. 令牌生成、摘要及会话表；
+8. Cookie 与会话 JSON；
+9. Web 校验、私有传输会话和 UI 会话；
+10. 后续修改操作的 CSRF 路径。
 
-每一步写出xcss保证、产品保证和一个负例。
+每一步写出 xcss 的保证、产品的责任及一个负例。
 
-## 10.4 端到端练习二：SQLite current identity
+## 10.4 端到端练习二：SQLite 当前身份
 
-创建临时SQLite产品Schema，写canonical metadata，读取`sqlite_schema`行并计算fingerprint。然后分别改变：
+在临时目录创建产品 SQLite 结构，写入规范元数据，读取 `sqlite_schema` 行并计算结构指纹。然后分别改变：
 
-- index SQL空白；
-- metadata声明hash；
-- application version；
-- metadata列default；
-- schema row顺序。
+- 索引 SQL 的空白；
+- 元数据声明的摘要；
+- 应用版本；
+- 元数据列的默认值；
+- 结构行的输入顺序。
 
-预测每项在哪个validator失败。不要通过自动覆盖metadata让测试通过。
+预测每项在何处被验证或规范化。不要自动覆盖元数据以使测试通过。
 
-## 10.5 端到端练习三：Package到消费者
+## 10.5 端到端练习三：软件包到消费者
 
-1. clean/build contracts；
-2. 查看dist公开文件；
-3. pack真实tgz；
-4. 审查tar member；
-5. 创建不在monorepo内的空临时consumer；
-6. offline install所有peer；
-7. import根与Schema/fixture export；
-8. 删除sibling仓库后再次运行；
-9. 比较本地file lock与最终release URL lock。
+1. 清理并构建唯一的 `@xcss/web` 包；
+2. 查看 `dist` 的公开文件；
+3. 打包真实 tgz；
+4. 审查归档成员；
+5. 在工作区外创建空临时消费者；
+6. 离线安装归档与全部对等依赖；
+7. 导入根入口、结构和夹具的公开入口；
+8. 确认无同级 xcss 仓库时仍能运行；
+9. 比较本地文件依赖锁与最终发行 URL 的依赖锁。
 
-目的是理解“source正确”“dist正确”“tgz正确”“consumer依赖正确”是四件事。
+源码正确、构建输出正确、发行归档正确和消费者依赖正确，需要分别验证。
 
 ## 10.6 端到端练习四：认证竞态
 
-构造可控fetch：restore阻塞时触发login；旧业务请求阻塞时完成logout/login；两次login按相反网络延迟返回。
-写出每一步generation、public session、transport session、mutation tail和期望Promise结果。若无法预测，回读
-admin-web源码和tests。
+构造可控的 `fetch`：恢复会话阻塞时触发登录；旧业务请求阻塞时完成退出并重新登录；两次登录按相反
+网络延迟返回。写出每一步的代次、公开会话、传输会话、修改操作队列尾及预期 Promise 结果。
+若无法预测，回读管理员客户端源码和测试。
 
-## 10.7 端到端练习五：Release攻击输入
+## 10.7 端到端练习五：发行攻击输入
 
-在临时目录构造额外文件、错误mode、symlink、hardlink、path traversal manifest、hash时替换文件和超限树，
-观察verifier应在哪一步fail fast。只操作临时目录，不在仓库或系统根创建危险链接。
+在临时目录构造额外文件、错误权限、符号链接、硬链接、路径遍历清单、散列时替换文件及超限目录树，
+观察验证器在何处立即拒绝。只操作临时目录，不在仓库根或系统根创建危险链接。
 
 ## 10.8 术语表
 
 | 术语 | 本项目中的精确含义 |
 |---|---|
-| build-time dependency | 编译/打包时取得并进入产品制品，生产不在线调用xcss |
-| consumer | 直接采用至少一个xcss组件的真实产品仓库 |
-| current-only | 一个发布只接受一个当前合同，不含历史fallback |
-| wire contract | 跨进程/语言传输的字段、类型、边界和语义 |
-| candidate | 通过基本结构但尚未被权威认证/业务校验的不可信输入 |
-| runtime guard | JavaScript运行时把unknown验证并narrow为当前type的函数 |
-| exact keys | required/allowed字段集合精确，不接受unknown |
-| canonical | 同一语义只允许一个字节/文本表示 |
-| primitive | 小而可组合、不拥有完整产品生命周期的共享能力 |
-| fail closed | 信息缺失、歧义或无法验证时拒绝，而非猜测/降级 |
-| typed error | 调用方可按variant/code处理，而非解析展示字符串 |
-| same-origin | scheme、host、effective port均一致；本项目还要求完整header合同 |
-| CSRF | Cross-Site Request Forgery；unsafe管理mutation需同源与当前token |
-| PHC string | 密码散列的标准文本编码，包含algorithm/version/params/salt/hash |
-| Argon2id | 当前管理员密码散列algorithm，参数仍必须精确匹配 |
-| Session token | 32-byte随机值的43字符URL-safe Base64表示 |
-| token digest | 产品持久化用于比较的SHA-256，而非raw token |
-| Schema identity | application/version/revision/fingerprint四分量 |
-| fingerprint | 对canonical排序的SQLite Schema原始字段做byte-exact SHA-256 |
-| WAL | SQLite Write-Ahead Log；与checkpoint和备份一致性相关 |
-| safe integer | JavaScript可精确表示的整数范围，不超过2^53-1 |
-| peer dependency | 由消费者显式提供的精确package依赖 |
-| package export | `package.json#exports`允许消费者使用的正式入口 |
-| immutable source | 完整Git commit或不可覆盖release asset，而非branch/path |
-| release identity | product/version/source/target/state contract hash五字段 |
-| release tree | 路径/mode/size/hash精确且无额外文件的发布目录合同 |
+| 构建期依赖 | 编译或打包时取得并进入产品制品；生产不在线调用 xcss |
+| 消费者 | 直接采用 xcss 模块的真实产品仓库 |
+| 仅支持当前格式 | 一个发行只接受一个当前合同，不含历史回退 |
+| 通信合同 | 跨进程或语言传输的字段、类型、边界和语义 |
+| 候选值 | 通过基本结构检查，但尚未通过权威认证或业务校验的不可信输入 |
+| 运行时校验 | JavaScript 运行时验证不可信值并收窄到当前类型的函数 |
+| 精确字段集合 | 必选和允许字段集合严格一致，不接受未知字段 |
+| 规范表示 | 同一语义只允许一个字节或文本表示 |
+| 原语 | 小而可组合、不拥有完整产品生命周期的共享能力 |
+| 验证失败即拒绝 | 信息缺失、歧义或无法验证时拒绝，不猜测或降级 |
+| 结构化错误 | 调用方按错误变体或机器码处理，无需解析展示字符串 |
+| 同源 | 协议方案、主机和有效端口一致；本项目还要求完整请求头合同 |
+| CSRF | 跨站请求伪造；非安全管理修改操作需要同源检查和当前令牌 |
+| PHC 字符串 | 密码散列的标准文本编码，包含算法、版本、参数、盐和摘要 |
+| Argon2id | 当前管理员密码散列算法，参数必须精确匹配 |
+| 会话令牌 | 32 字节随机值的 43 字符 URL 安全 Base64 表示 |
+| 令牌摘要 | 产品持久化并用于比较的 SHA-256，不保存原始令牌 |
+| 结构身份 | 应用、版本、结构修订号及结构指纹四个分量 |
+| 结构指纹 | 对规范排序的 SQLite 结构原始字段进行严格逐字节 SHA-256 计算 |
+| WAL | SQLite 预写日志，与检查点及备份一致性相关 |
+| 安全整数 | JavaScript 可精确表示的整数范围，不能超过 2^53-1 |
+| 对等依赖 | 消费者显式提供的精确软件包依赖 |
+| 软件包导出 | `package.json#exports` 允许消费者使用的正式入口 |
+| 不可变来源 | 完整 Git 提交或不可覆盖的发行资产，不采用分支或本地路径 |
+| 发行身份 | `product`、`version`、`source_revision`、`target`、`state_contract_sha256` 五字段 |
+| 发行目录 | 路径、权限、大小和摘要精确一致，且没有额外文件的发布目录合同 |
 | TOCTOU | 检查与使用之间对象被替换的竞态 |
-| data plane | 设备、Client、媒体流等业务通路，不等于管理员RBAC |
-| control plane | 浏览器管理员配置/操作通路，当前只有admin角色 |
-| compatibility alias | 为另一代名称/字段保留的额外入口，本仓明确不提供 |
+| 数据面 | 设备、客户端、媒体流等业务通路，不等于管理员 RBAC |
+| 控制面 | 浏览器管理员配置和操作通路，当前只有 `admin` 角色 |
+| 兼容别名 | 为另一代名称或字段保留的额外入口，本仓不提供 |
 
 ## 10.9 学成后的评审能力
 
-你应该能拒绝以下提案并给出具体理由：“让xcss保存所有产品Session”“为了方便接受缺Origin”“泛型T
-已经验证JSON”“Server也顺便支持ARM best effort”“把Xczs重写React才算统一”“把csrf放sessionStorage”
-“发现missing DB就自动create”“release只要SHA256SUMS不用文件集合”“暂时保留旧字段以后再删”。
+你应能评审并说明以下提案的问题：让 xcss 保存所有产品会话；接受缺失 Origin；认为泛型已经验证 JSON；
+未经等价验收就增加 ARM 服务端；把所有原生业务模块重写成 React 才算统一；将 CSRF 写入浏览器存储；
+缺少数据库时自动创建；只检查 SHA256SUMS 而不核对完整文件集合；保留旧字段以后再删除。
 
-同时也应知道何时应共享：两个产品确实拥有同一 canonical username、token shape、Error Envelope、fingerprint
-或React工具链，并且最强边界能被保留时，集中primitive和负例能显著提升长期可维护性。
+当两个产品确实拥有相同的管理员名规范、令牌结构、错误响应、结构指纹或 React 工具链，且最强安全边界
+能够保留时，共享原语及负例测试可以提升长期可维护性。
 
 ## 10.10 后续入口
 
 设计或修改共享能力时读[工作流程与流程树](../project-workflow.md)；逐项评估删除影响时查
-[完整功能与取舍清单](../feature-inventory-and-tradeoffs.md)；准备tag、排查package或处理事件时以
+[完整功能与取舍清单](../feature-inventory-and-tradeoffs.md)；准备标签、排查软件包或处理事件时以
 [运维文档](../operations.md)为准。

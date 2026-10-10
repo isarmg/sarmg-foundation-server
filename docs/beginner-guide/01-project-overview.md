@@ -2,14 +2,14 @@
 
 ## 1.1 为什么需要 xcss
 
-多个产品都会遇到“看起来很基础”的问题：管理员密码怎样散列、Session token怎样编码、浏览器如何严格
+多个产品都会遇到“看起来很基础”的问题：管理员密码怎样散列、会话令牌怎样编码、浏览器如何严格
 同源、错误 JSON 长什么样、SQLite Schema怎样绑定产品身份、React/Vite用哪个精确版本、发行树怎样证明
-没有被替换。如果每个仓库都独立实现，几个月后通常会产生不同长度、不同错误、不同fallback和不同测试。
+没有被替换。如果每个仓库都独立实现，几个月后通常会产生不同长度、不同错误、不同回退和不同测试。
 
 xcss 的目标不是消灭所有重复，而是共享那些已经被至少两个真实产品证明具有相同语义的最小能力。
 共享收益必须大于耦合成本；页面、业务数据库、外部设备、进程生命周期和数据面协议仍留在产品。
 
-## 1.2 Build-time 模型
+## 1.2 构建期模型
 
 ```text
 开发/CI时
@@ -24,27 +24,27 @@ xcss 的目标不是消灭所有重复，而是共享那些已经被至少两个
 
 这带来两个重要结果：
 
-1. xcss 仓库或 registry 故障不会影响已经部署的产品；
+1. xcss 仓库或软件包注册中心故障不会影响已经部署的产品；
 2. xcss 修复不会自动进入生产，每个消费者必须更新精确依赖、重建、验证和重新发布。
 
-它与“中央身份平台”完全不同。共享的管理员认证是库和wire合同，不是所有产品登录同一个账户数据库。
+它与“中央身份平台”完全不同。共享的管理员认证是库和通信格式合同，不是所有产品登录同一个账户数据库。
 
 ## 1.3 当前组件地图
 
 | 层 | 组件 | 一句话用途 |
 |---|---|---|
-| Rust安全 | `xcss::admin_auth` | canonical 管理员 username、当前 Argon2id、token、Cookie、同源和 CSRF |
-| Rust协议 | `xcss::contracts` | strict管理员/状态/发布/备份/错误wire类型 |
-| Rust错误 | `xcss::error` | 有界machine code/request ID和Error Envelope |
-| Rust数据 | `xcss::schema_identity` | 无driver的SQLite Schema身份和fingerprint |
-| Rust平台 | `xcss::server_target` | Server编译只允许GNU/Linux AMD64 |
-| Rust连接 | `xcss::sqlite` | SQLx连接PRAGMA、诊断和identity adapter |
+| Rust安全 | `xcss::admin_auth` | 规范管理员 username、当前 Argon2id、令牌、Cookie、同源和 CSRF |
+| Rust协议 | `xcss::contracts` | 严格的管理员/状态/发布/备份/错误通信格式类型 |
+| Rust错误 | `xcss::error` | 有界machine code/请求 ID和错误响应结构 |
+| Rust数据 | `xcss::schema_identity` | 无driver的SQLite Schema身份和结构指纹 |
+| Rust平台 | `xcss::server_target` | 服务端编译只允许GNU/Linux AMD64 |
+| Rust连接 | `xcss::sqlite` | SQLx连接PRAGMA、诊断和identity 适配器 |
 | Rust Web资源 | `xcss::web_assets` | 确定性内嵌清单、SHA-256、HTTP 与开发目录提供器 |
-| Web合同 | `@xcss/web/contracts` | TypeScript type、runtime guard、JSON Schema、fixture |
+| Web合同 | `@xcss/web/contracts` | TypeScript type、运行时校验、JSON Schema、测试夹具 |
 | Web传输 | `@xcss/web/http-client` | 同源、有界、可取消的JSON请求 |
-| Web认证 | `@xcss/web/admin-web` | 内存Session、竞态安全auth client、React hook和Vite baseline |
-| Web样式 | `@xcss/web/design-tokens` | scoped设计和可访问性primitive |
-| 发布 | Python tools/scripts | package tar、state/release identity、release-tree和workflow policy |
+| Web认证 | `@xcss/web/admin-web` | 内存会话、竞态安全认证 client、React 钩子和Vite 基线 |
+| Web样式 | `@xcss/web/design-tokens` | 限定作用域的设计和可访问性原语 |
+| 发布 | Python tools/scripts | 软件包归档、state/发行身份、release-tree和工作流校验规则 |
 
 ## 1.4 目录逐层解释
 
@@ -67,29 +67,29 @@ tools/               policy/release/package的实现和负例
 docs/                仅五类中文文档
 ```
 
-为什么没有 `clients/`？因为 npm package 是被产品构建消费的库，不是本仓运行的产品客户端。为什么没有
-`config/` 和 `deploy/`？因为 xcss 没有daemon、systemd或运行配置。
+为什么没有 `clients/`？因为 npm 软件包是被产品构建消费的库，不是本仓运行的产品客户端。为什么没有
+`config/` 和 `deploy/`？因为 xcss 没有守护进程、systemd或运行配置。
 
 ## 1.5 “统一”到底统一什么
 
 当前跨产品统一：
 
 - 管理员只有 `admin` 角色；
-- 三个管理员auth路径和Session JSON；
-- 管理员 username、密码、Argon2id、token、Origin/Host/Sec-Fetch-Site、CSRF 安全原语；
-- Error Envelope和State/Release/Backup合同；
+- 三个管理员认证路径和会话 JSON；
+- 管理员 username、密码、Argon2id、令牌、Origin/Host/Sec-Fetch-Site、CSRF 安全原语；
+- 错误响应结构和State/Release/Backup合同；
 - SQLite metadata/fingerprint；
-- Server唯一target；
+- 服务端唯一target；
 - 非Xczs管理Web的React/Vite/Node/TypeScript；
 - package/release/workflow最低供应链规则。
 
 仍由产品决定：
 
-- 管理员表、Session表、Cookie、TTL、登录限流、审计；
-- 设备/Client/API key/摄像头/媒体token等数据面身份；
-- 业务route、DTO、数据库表、transaction、锁和外部副作用；
-- 页面、组件、品牌、主题状态、文件/媒体stream；
-- systemd、reverse proxy、配置、Secret、backup/restore和release强化规则。
+- 管理员表、会话表、Cookie、TTL、登录限流、审计；
+- 设备/Client/API key/摄像头/媒体令牌等数据面身份；
+- 业务route、DTO、数据库表、事务、锁和外部副作用；
+- 页面、组件、品牌、主题状态、文件/媒体流；
+- systemd、反向代理、配置、Secret、backup/restore和发行强化规则。
 
 ## 1.6 唯一管理员角色的正确理解
 
@@ -103,7 +103,7 @@ docs/                仅五类中文文档
 
 ## 1.7 AMD64边界的正确理解
 
-业务 Server binary 只声明 `xcss` 依赖。整个 crate 在根入口检查架构、OS 和 libc，`xcss::server_target` 还提供目标常量；只接受：
+业务服务端 binary 只声明 `xcss` 依赖。整个 crate 在根入口检查架构、OS 和 libc，`xcss::server_target` 还提供目标常量；只接受：
 
 ```text
 x86_64 + linux + gnu + 64-bit
@@ -111,27 +111,28 @@ x86_64 + linux + gnu + 64-bit
 
 全部内部模块共享这个编译边界，选择某个模块不会改变整个 crate 的平台要求。
 
-## 1.8 Xczs前端例外
+## 1.8 Xczs 的原生业务模块
 
-Xczs原生ES modules与Rust binary一起嵌入，文件管理交互和测试体系已经围绕这一形态建立。把它迁到React
-只会增加重写风险，不会改善统一认证的核心目标。因此Xczs保留原生前端，但Server登录仍返回xcss
-AdministratorSession，密码/token/same-origin/CSRF仍用同一Rust primitive。例外必须是可解释的产品边界，
-不是随意漂移。
+Xczs 当前采用 `web-react-admin`：登录、导航和页面骨架使用 React/xcss；文件列表及上传控制器保留原生
+ES 模块，通过独占 DOM 区域与共享外壳组合。全部正式 Web 资源与 Rust 可执行文件一起编译。
+服务端登录仍返回 `AdministratorSession`，密码、令牌、同源检查和 CSRF 使用相同的 Rust 原语。
+业务模块的实现方式不改变共享认证与构建合同。
 
-## 1.9 current-only生命周期
+## 1.9 仅支持当前格式生命周期
 
 ```text
 开发期改变合同
  -> 直接改当前实现/Schema/fixture/消费者
  -> 重建测试状态
- -> 不保存另一套reader
+ -> 不保存另一套读取器
+```
 
-“拒绝非当前”是正常安全行为，不应通过多试几个hash、忽略unknown field或自动建库来提高“兼容性”。
+“拒绝非当前”是正常安全行为，不应通过多试几个hash、忽略未知 field或自动建库来提高“兼容性”。
 
 ## 1.10 本章练习
 
-1. 在根两个 manifest 中核对单体身份，列出内部 Rust 模块与 Web 子路径，并解释它们如何共同发布。
-2. 从一个产品中找出管理员身份与数据面credential，解释为何二者不能合并。
+1. 在根两个清单中核对单体身份，列出内部 Rust 模块与 Web 子路径，并解释它们如何共同发布。
+2. 从一个产品中找出管理员身份与数据面凭据，解释为何二者不能合并。
 3. 画出产品build时与production runtime时xcss是否在线的两张图。
-4. 解释Xczs为何是前端例外、客户端多架构为何不是Server target例外。
+4. 解释Xczs为何是前端例外、客户端多架构为何不是服务端编译目标例外。
 5. 从功能台账任选一个“保障”项，写出删除后的具体攻击或故障路径。

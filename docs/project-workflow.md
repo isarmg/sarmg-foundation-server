@@ -3,7 +3,7 @@
 ## 1. 文档目标
 
 本文描述一项能力从产品本地需求进入 xcss、形成可发布合同、被真实产品采用并最终受运维约束的
-完整流程。xcss 是所有产品的上游平台规范和安全下限；一次看似很小的 helper 修改可能同时改变 Server、Web、
+完整流程。xcss 是所有产品的上游平台规范和安全下限；一次看似很小的辅助函数修改可能同时改变服务端、Web、
 SQLite、离线工具和发布树，所以“源码编译通过”只是中间节点，不是完成定义。
 
 ## 2. 全局流程树
@@ -33,7 +33,7 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 └─ 在产品仓库记录本次源码、CI 与正式发行物的实际验收结果
 ```
 
-路径依赖只用于发布前联调。永久 sibling `path`/`file:` 会让独立仓库 CI、GitHub checkout 和复现构建
+路径依赖只用于发布前联调。永久同级 `path`/`file:` 会让独立仓库 CI、GitHub 源码检出和复现构建
 依赖开发机目录；先发布再测试消费者则可能产生一个不可安装或语义错误的不可变版本。因此正确顺序必须
 同时包含“发布前真实消费者联调”和“发布后不可变来源复核”。
 
@@ -41,15 +41,15 @@ SQLite、离线工具和发布树，所以“源码编译通过”只是中间�
 
 | 问题 | 合格证据 | 不合格答案 |
 |---|---|---|
-| 为什么属于平台 | 责任边界、适用 Profile、参考实现与负责人 | “多个项目代码看起来相似” |
+| 为什么属于平台 | 责任边界、适用运行形态、参考实现与负责人 | “多个项目代码看起来相似” |
 | 输入是什么 | 不可信/可信边界、编码、大小、是否可空、所有字段 | 一个理想化函数签名 |
-| 失败怎样表达 | typed error、HTTP/CLI 映射、是否可重试、是否有副作用 | 返回 `anyhow::Error` 后各自猜 |
+| 失败怎样表达 | 具有类型约束的 error、HTTP/CLI 映射、是否可重试、是否有副作用 | 返回 `anyhow::Error` 后各自猜 |
 | 状态由谁拥有 | 数据库、Cookie、内存、文件、锁、发布树的明确所有者 | “xcss 统一管理” |
 | 最强约束是什么 | 所有消费者中的最严格规则和无法共享的产品规则 | 取最低共同实现 |
 | 删除会怎样 | 具体破坏、替代实现、消费者迁移动作 | “应该没影响” |
 | 如何验证 | 正例、边界、攻击/竞态/损坏负例、真实产品集成 | 只有 happy path 单测 |
 
-### 4.1 Server 登录流程
+### 4.1 服务端登录流程
 
 ```text
 POST /api/v1/auth/login
@@ -69,13 +69,13 @@ POST /api/v1/auth/login
 └─ 返回 exact AdministratorSession，role 固定 admin
 ```
 
-`AdministratorLoginRequest` 的合同只允许一个 1–64 字节 printable ASCII username 候选通过 JSON 边界，
-并不把 username 或密码认定为有效。username 规范化和密码策略必须在登录 admission 显式执行；持久化
+`AdministratorLoginRequest` 的合同只允许一个 1–64 字节可打印 ASCII username 候选通过 JSON 边界，
+并不把 username 或密码认定为有效。username 规范化和密码策略必须在登录准入显式执行；持久化
 凭据还应在启动时调用 `require_canonical_administrator_username` 与 `require_current_password_hash`，使不符合当前政策的数据库直接
-启动失败。候选 guard 因此可以接受仍含 `@` 的 bounded printable 文本，但 canonical admission 必须拒绝；
-这不是邮箱登录或旧字段兼容。JSON 字段只允许 `username`，`email` 是 unknown field。
+启动失败。候选运行时校验因此可以接受仍含 `@` 的 bounded printable 文本，但规范的准入必须拒绝；
+这不是邮箱登录或旧字段兼容。JSON 字段只允许 `username`，`email` 是未知 field。
 
-### 4.2 Same-origin 流程
+### 4.2 同源校验流程
 
 ```text
 框架保留所有原始 field line
@@ -88,10 +88,10 @@ POST /api/v1/auth/login
 └─ Origin authority 与有效 Host authority 精确相等
 ```
 
-xcss 没有 forwarded-header fallback。反向代理部署必须由产品在可信代理边界内先形成一个权威外部
-Host，再把完整值交给 primitive；不能让库从冲突的 `Host`、`:authority`、`X-Forwarded-*` 中挑一个。
+xcss 没有 forwarded-header 回退。反向代理部署必须由产品在可信代理边界内先形成一个权威外部
+Host，再把完整值交给原语；不能让库从冲突的 `Host`、`:authority`、`X-Forwarded-*` 中挑一个。
 
-### 4.3 Mutation 与 CSRF
+### 4.3 修改操作与 CSRF
 
 ```text
 浏览器持有当前内存 csrf_token
@@ -102,14 +102,14 @@ Host，再把完整值交给 primitive；不能让库从冲突的 `Host`、`:aut
  -> 产品再执行 Session、权限、业务 validation 和 transaction
 ```
 
-safe method 不自动携带 CSRF。调用方不能直接设置 `X-CSRF-Token` 绕过 client 所有权；Server 不能只读取
-第一个同名 header。Cookie 名称、属性、Session TTL、撤销、并发上限和安全审计由 xcss Profile 固定，
+safe method 不自动携带 CSRF。调用方不能直接设置 `X-CSRF-Token` 绕过 client 所有权；服务端不能只读取
+第一个同名 header。Cookie 名称、属性、会话 TTL、撤销、并发上限和安全审计由 xcss 运行形态固定，
 产品不得覆盖。
 
 ### 4.4 角色流程
 
 控制面身份只有 Administrator。数据库不需要 `role` 列；`AdministratorRole` 只有 `Admin` 一个枚举值，
-wire 固定 `role:"admin"`。产品的数据面仍可有设备 credential、配对 token、摄像头凭据、媒体资源的
+通信格式固定 `role:"admin"`。产品的数据面仍可有设备凭据、配对令牌、摄像头凭据、媒体资源的
 `role=primary/thumbnail` 等业务概念，但这些不是管理 RBAC，不得复用管理员角色字段。
 
 ### 5.1 创建 client
@@ -132,18 +132,18 @@ wire 固定 `role:"admin"`。产品的数据面仍可有设备 credential、配�
 
 ### 5.2 竞态流程
 
-- login/logout mutation 进入同一 Promise tail，按调用顺序与 Set-Cookie 副作用一致完成。
-- 每次 login、logout 或当前 401 都推进 generation；较早网络响应不得复活被替换的 Session。
-- `transportSession` 只在闭包内追踪已发生的 cookie mutation，使紧随 login 排队的 logout 能携带正确
+- login/logout 修改操作进入同一 Promise tail，按调用顺序与 Set-Cookie 副作用一致完成。
+- 每次登录、退出或当前 401 都推进 generation；较早网络响应不得复活被替换的会话。
+- `transportSession` 只在闭包内追踪已发生的 cookie 修改操作，使紧随登录排队的退出能携带正确
   CSRF；它不向 UI 暴露第二份授权状态。
-- 并发 `restore()` 复用单一 Promise；较新的 login/logout 会使旧 restore 变为 superseded。
-- React hook 自己也维护 generation 与 active client ref，组件切换 client 或卸载后，旧 Promise 不更新
+- 并发 `restore()` 复用单一 Promise；较新的 login/logout 会使旧恢复会话变为 superseded。
+- React 钩子自己也维护 generation 与 active client ref，组件切换 client 或卸载后，旧 Promise 不更新
   新组件状态。
-- 业务请求发出时记录 Session/generation；旧 Session 的延迟 401 不得清除之后成功登录的新 Session。
+- 业务请求发出时记录 Session/generation；旧会话的延迟 401 不得清除之后成功登录的新会话。
 
 ### 5.3 产品响应验证
 
-`AdministratorSession` 由共享 guard 验证。其他 API 返回值必须由产品传入 guard：
+`AdministratorSession` 由共享运行时校验验证。其他 API 返回值必须由产品传入运行时校验：
 
 ```ts
 const value = await administratorApi.request(
@@ -152,7 +152,7 @@ const value = await administratorApi.request(
 );
 ```
 
-禁止传入永远返回 `true` 的 guard 或用 TypeScript 泛型冒充运行时验证。文件上传、下载、WHEP/HLS 等非 JSON
+禁止传入永远返回 `true` 的运行时校验或用 TypeScript 泛型冒充运行时验证。文件上传、下载、WHEP/HLS 等非 JSON
 数据面可使用产品专用 transport，不强行走 `requestJson`。
 
 ## 6. 跨语言合同变更流程
@@ -174,16 +174,16 @@ const value = await administratorApi.request(
 
 - 缺字段、未知字段、显式 `null`、空字符串不是同一状态；
 - JSON integer 必须不超过 `Number.MAX_SAFE_INTEGER`，即使 Rust 可以解析更大 `u64`；
-- source revision 必须是 40 位小写 hex，SHA-256 必须 64 位小写 hex；
+- 源码修订号必须是 40 位小写 hex，SHA-256 必须 64 位小写 hex；
 - identifier 有长度和 ASCII 字符集，不接受展示文本；
 - State 的 schema 字段必须出现，但可以为 `null`；
 - Backup resources 至少一个且 `files >= 1`；
-- 管理员 Session 的 `authenticated` 只能是 `true`，`role` 只能是 `admin`，username/token 必须 canonical。
+- 管理员会话的 `authenticated` 只能是 `true`，`role` 只能是 `admin`，username/token 必须规范的。
 
 ### 6.2 产品加强规则
 
-共享 guard 只验证跨产品 wire 最低合同。资源名称是否唯一、资源排序、path 是否 canonical、Schema 是否
-等于产品 current identity、release target 是否等于 Server target，都必须由产品在共享验证成功后继续
+共享运行时校验只验证跨产品通信格式最低合同。资源名称是否唯一、资源排序、path 是否规范的、Schema 是否
+等于产品当前身份、发行 target 是否等于服务端编译目标，都必须由产品在共享验证成功后继续
 检查。
 
 ### 7.1 纯算法流程
@@ -199,7 +199,7 @@ const value = await administratorApi.request(
 ```
 
 SQL 文本不做 formatter、空白归一化或语义等价转换；字节不同就是当前 Schema 不同。算法独立于 SQLx/
-rusqlite，防止两个驱动同时链接 native SQLite，也使离线工具可以复用同一 fingerprint。
+rusqlite，防止两个驱动同时链接 native SQLite，也使离线工具可以复用同一结构指纹。
 
 ### 7.2 打开与校验流程
 
@@ -215,13 +215,13 @@ rusqlite，防止两个驱动同时链接 native SQLite，也使离线工具可�
       └─ require_current_schema 对比 application/version/revision/hash
 ```
 
-`integrity_check`、`foreign_key_check` 与 TRUNCATE checkpoint 是可组合诊断 primitive。checkpoint busy 或
+`integrity_check`、`foreign_key_check` 与 TRUNCATE checkpoint 是可组合诊断原语。checkpoint busy 或
 incomplete 都是失败，不能在仍有 writer/reader 时只复制 main SQLite 文件。xcss 不执行 migration、
-backup、restore 或业务 transaction。
+backup、恢复会话或业务事务。
 
-## 8. Server Target 流程
+## 8. 服务端编译目标流程
 
-每个 Server binary crate 同时依赖 `xcss::server_target` 并在其 build/release/start 层声明同一 target：
+每个服务端 binary crate 同时依赖 `xcss::server_target` 并在其 build/release/start 层声明同一 target：
 
 ```text
 cargo build --target x86_64-unknown-linux-gnu
@@ -248,11 +248,11 @@ package.json + .node-version
 ```
 
 消费者目前使用 npm 与 `package-lock.json`；xcss monorepo 使用 pnpm 与 `pnpm-lock.yaml`。共享断言不
-强制消费者改用 pnpm。Xczs 当前选择 `web-react-admin` Profile：React/xcss 拥有登录、导航和页面
+强制消费者改用 pnpm。Xczs 当前选择 `web-react-admin` 运行形态：React/xcss 拥有登录、导航和页面
 骨架，原生 ES modules 的文件业务控制器保留独占 DOM 区域；两者一同嵌入单 binary。这是明确的组件
 所有权边界，不是第二套认证或前端入口。
 
-### 9.2 xcss package
+### 9.2 xcss 软件包
 
 ```text
 修改 src / Schema / fixture / CSS
@@ -268,9 +268,9 @@ package.json + .node-version
 ```
 
 `contracts`、`http-client`、`admin-web` 是同一个 `@xcss/web` 包中的内部模块，按公开子路径使用；
-包只为外部 React/Vite 入口声明精确的可选 peer。tarball 内不得保留 `workspace:`，也不得依赖 monorepo symlink 才能运行。
+包只为外部 React/Vite 入口声明精确的可选 peer。发行归档内不得保留 `workspace:`，也不得依赖 monorepo 符号链接才能运行。
 
-## 10. Design Token 变更流程
+## 10. 设计令牌变更流程
 
 ```text
 确认属于平台设计语义
@@ -283,19 +283,19 @@ package.json + .node-version
  -> 所有消费者视觉、键盘、高对比度和 reduced-motion 验证
 ```
 
-不得因为多个产品都使用“按钮”就把完整组件、品牌、页面 shell 或主题存储移入 xcss。删除 token 时
-直接删除并升级消费者，不留下重复 CSS custom property alias。
+不得因为多个产品都使用“按钮”就把完整组件、品牌、页面 shell 或主题存储移入 xcss。删除令牌时
+直接删除并升级消费者，不留下重复 CSS custom property 别名。
 
 ## 11. 产品接入验收
 
-产品在自己的 manifest 和锁文件声明实际采用的公共依赖、完整源码 revision、Profile 与能力。
-发布后以同一源码 commit 进行独立 checkout、完整产品门禁和实际运行验收，核对正式资产的身份、
-平台、摘要以及嵌入资源。产品的 CI 与 Release 保存这次结果；失败、未执行及待验证项如实记录。
+产品在自己的清单和锁文件声明实际采用的公共依赖、完整源码修订号、运行形态与能力。
+发布后以同一源码 commit 进行独立源码检出、完整产品门禁和实际运行验收，核对正式资产的身份、
+平台、摘要以及嵌入资源。产品的 CI 与发行保存这次结果；失败、未执行及待验证项如实记录。
 
 公共实现自己的构建和发布由上游质量门负责，产品业务行为由对应产品的测试负责。上游检查通过
 不能替代产品验收，旧记录也不能作为当前发布结果。
 
-## 12. Release 流程
+## 12. 发行流程
 
 ```text
 main 工作树完全干净
@@ -315,15 +315,15 @@ main 工作树完全干净
 └─ 创建 GitHub Release；已存在同名 release 时失败，不覆盖
 ```
 
-release tree manifest 位于 `artifacts/` 之外且不描述自身，避免递归 hash。普通 workflow 的权限是空顶层加
-job `contents: read`；仅 tag-only release job 可用 `contents: write`。action 必须锁完整 SHA，checkout
-不得持久化 credential。
+发行目录清单位于 `artifacts/` 之外且不描述自身，避免递归 hash。普通 workflow 的权限是空顶层加
+job `contents: read`；仅 tag-only 发行 job 可用 `contents: write`。action 必须锁完整 SHA，源码检出
+不得持久化凭据。
 
 ### 13.1 删除清单
 
-删除一个公开能力时同步处理：Cargo member/dependency、npm workspace/dependency/peer/export、源码、测试、
-fixture、Schema、lockfile、package smoke、release inventory、各产品调用和全部中文文档。
-不得留下 deprecated symbol、alias package、旧 CSS property 或永远不再调用的 parser。
+删除一个公开能力时同步处理：Cargo member/dependency、npm 工作区/dependency/peer/export、源码、测试、
+测试夹具、Schema、锁文件、软件包冒烟验证、发行文件清单、各产品调用和全部中文文档。
+不得留下已弃用的 symbol、别名软件包、旧 CSS property 或永远不再调用的解析器。
 
 ### 13.2 持久状态变化
 
@@ -335,15 +335,15 @@ fixture、Schema、lockfile、package smoke、release inventory、各产品调�
    └─ 在线产品仍只读 target current；不要求新增历史离线转换边
 ```
 
-密码 policy 改变也遵循相同原则：在线 Server 不尝试多个参数集；启动/登录只接受当前 hash，转换必须在
+密码规则改变也遵循相同原则：在线服务端不尝试多个参数集；启动/登录只接受当前 hash，转换必须在
 独立受审流程完成。
 
 ## 14. 提交与最终交付
 
-按“一个大问题一个提交”组织历史，例如：统一认证与合同、Web 基线、Server target、Schema/SQLite、发布
+按“一个大问题一个提交”组织历史，例如：统一认证与合同、Web 基线、服务端编译目标、Schema/SQLite、发布
 供应链、中文文档与消费者采用分别提交。提交前确认没有把 `target`、`node_modules`、`dist`、测试数据库、
-真实 Secret 或本地 release 资产带入 Git。
+真实 Secret 或本地发行资产带入 Git。
 
-最终交付必须同时满足：xcss 全部门禁通过；每个消费者使用不可变依赖；各产品自己的测试和 release
-验证通过；Server 非 AMD64 compile-fail；Xczs 例外被明确记录；管理面只有 admin；current-only 扫描无旧
+最终交付必须同时满足：xcss 全部门禁通过；每个消费者使用不可变依赖；各产品自己的测试和发行
+验证通过；服务端非 AMD64 编译失败；Xczs 例外被明确记录；管理面只有 admin；仅支持当前格式扫描无旧
 名称/旧字段/双路径；Git 按大问题提交并推送；任何尚未完成的外部发布步骤被明确报告而不是假定成功。

@@ -1,15 +1,15 @@
-# 当前管理员 Web Profile
+# 当前管理员 Web 运行形态
 
 产品通过 `createXcssAdminApplication({ product, navigation, routes, client? })` 提供产品身份、同站导航和业务内容。
 可传入唯一共享管理员 client；未传时由 Shell 创建。业务通过 `useAdminApplication()` 取得 client、已认证
-Session 和有界 `notify`。认证数据仅保存在 admin-web 内存中，不放入浏览器存储。
+会话和有界 `notify`。认证数据仅保存在 admin-web 内存中，不放入浏览器存储。
 可选的 `loginLandingHref` 是经校验的本地链接，仅在管理员显式登录成功后替换当前地址；恢复会话和刷新页面保留当前深链接。
 
-Shell 拥有登录、Session 恢复/重试、退出、导航、跳过导航链接、主题切换、错误边界和通知，不提供诊断入口或面板。
-登录期间表单保持挂载，防止失败提示丢失；密码失败后清空并恢复焦点。对外仅显示固定安全提示及校验后的 Request ID，
+Shell 拥有登录、会话恢复/重试、退出、导航、跳过导航链接、主题切换、错误边界和通知，不提供诊断入口或面板。
+登录期间表单保持挂载，防止失败提示丢失；密码失败后清空并恢复焦点。对外仅显示固定安全提示及校验后的请求 ID，
 不显示 error.message、stack 或任意内部状态 JSON。管理 Web 不主动请求诊断接口；服务运行所需的健康检查不受影响。
 
-`@xcss/web/admin-ui` 提供当前 UI primitives。Dialog 使用 native modal，并明确封闭键盘 Tab 循环、支持 Escape
+`@xcss/web/admin-ui` 提供当前 UI 原语。Dialog 使用 native modal，并明确封闭键盘 Tab 循环、支持 Escape
 和恢复原焦点。危险确认默认聚焦取消。Button 默认 type=button，IconButton 强制可访问名称。
 通知最多五条，可由键盘关闭，位于页头下方正常文档流中，不叠加遮挡业务按钮或键盘焦点。
 Table 可键盘横向滚动；业务 loading/error 有可见文本与正确 live/alert 语义。初始会话和核心字体启动阶段使用不暴露恢复细节的不透明启动界面，准备完成后才挂载登录页或已认证工作区。
@@ -32,6 +32,6 @@ web-fonts/fonts.css 及 admin-ui/styles.css。登录、全局 Shell 与字体通
 admin-web 负责认证客户端。构建关闭 source maps，对每个产物执行硬性大小预算（默认 512 KiB），超限失败。
 输出目录为 dist，资源由 Vite 生成内容哈希文件名，React/React DOM 去重。
 
-验收命令：`pnpm test`、`pnpm test:web`。浏览器套件在 Chromium 和 Firefox 检查登录/退出、Request ID、
+验收命令：`pnpm test`、`pnpm test:web`。浏览器套件在 Chromium 和 Firefox 检查登录/退出、请求 ID、
 焦点循环、错误边界、不提供诊断入口、主题和通知，并对 360px 移动宽度的两种主题运行 axe WCAG AA 与横向溢出检查。
-测试只代表共享 Profile；每个消费者仍须运行其业务和独立构建验收，不能据此宣称全产品改造完成。
+测试只代表共享运行形态；每个消费者仍须运行其业务和独立构建验收，不能据此宣称全产品改造完成。
