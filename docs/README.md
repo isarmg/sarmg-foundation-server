@@ -15,7 +15,7 @@
 | 服务运行时 | [server-runtime.md](platform-specifications/server-runtime.md) | 统一启停、任务监督与健康检查的 HTTP 边界 |
 | 持久操作 | [durable-operations.md](platform-specifications/durable-operations.md) | 事务、所有者隔离、不确定状态（Unknown）和审计发件箱 |
 | 文件句柄安全 | [filesystem-handles.md](filesystem-handles.md) | 私有目录、具有类型约束的条目、有界 I/O、原子发布与原生验收边界 |
-| 配置、CLI、锁与日志 | [configuration-cli-logging.md](configuration-cli-logging.md) | 当前工作树新增的严格配置、只读诊断、共同维护权与有界结构化日志；未发布边界 |
+| 配置、CLI、锁与日志 | [configuration-cli-logging.md](configuration-cli-logging.md) | 当前严格配置、只读诊断、共同维护权与有界结构化日志及其验收边界 |
 | 管理员 Web 运行形态 | [admin-web-shell.md](platform-specifications/admin-web-shell.md) | 共享外壳、顶部导航、可访问 UI 和浏览器验收 |
 | 管理 Web 中英文 | [admin-web-language.md](admin-web-language.md) | 语言偏好、成对文案、协议值边界和双语验收 |
 | 持久管理员管理 | [administrator-management.md](platform-specifications/administrator-management.md) | 唯一管理 API、事务内授权、最后管理员保护、审计与右上角自助设置 |

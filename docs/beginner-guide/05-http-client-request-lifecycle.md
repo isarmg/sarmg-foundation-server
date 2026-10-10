@@ -176,26 +176,31 @@ export function App() {
   const auth = useAdministratorSession(administratorApi);
   if (auth.phase === "loading") return <p>正在检查登录状态…</p>;
   if (auth.phase === "anonymous") return <Login onLogin={auth.login} />;
+  if (auth.phase === "anonymous_logout_unconfirmed") {
+    return <button onClick={() => auth.logout().catch(() => undefined)}>重试退出</button>;
+  }
   if (auth.phase === "error") return <Recovery error={auth.error} />;
   return <Console session={auth.session} onLogout={auth.logout} />;
 }
 ```
 
-四态union保证每个phase对应合法session/error组合。钩子 mount自动恢复会话；active client ref和自己的state
+五态 union 包含 `loading`、`anonymous`、`anonymous_logout_unconfirmed`、`authenticated` 和 `error`，保证每个 phase 对应合法 session/error 组合。钩子 mount自动恢复会话；active client ref和自己的state
 generation阻止组件卸载、client替换或旧Promise更新当前state。登录失败会恢复client当前状态并把错误继续
-抛给表单处理。
+抛给表单处理。退出失败同样会抛出错误并保留未确认状态；示例事件处理器捕获该 Promise 拒绝，界面继续
+显示重试入口，不能把失败视为服务端已注销。
 
 ## 5.14 Vite与工具链
 
 ```ts
-import { createXcssReactViteConfig } from "@xcss/web/admin-web/vite";
+import { createXcssReactViteConfig } from "@xcss/web/web-toolchain/vite";
 
 export default createXcssReactViteConfig();
 ```
 
-辅助函数启用React plugin，输出`dist`并每次清空。产品可传`base`，其余业务build设置若确有需求应在不破坏
-基线的前提下审查。`assertAdministratorWebToolchain`检查软件包清单和`.node-version`中的精确
-Node/React/Vite/TypeScript版本，不接受范围。
+辅助函数启用 React plugin，输出 `dist` 并每次清空。产品可传 `base` 和 `maxAssetBytes`；资源预算默认
+512 KiB，只接受 1～64 MiB 的正安全整数，超限构建失败。`@xcss/web/web-toolchain` 的
+`assertXcssWebToolchain` 核对 `engines.node`、传入 Node 版本及 dependencies/devDependencies 中出现的精确
+React/Vite/TypeScript 版本，不接受范围；生产者根清单及正式发行另有供应链校验。
 
 ## 5.15 成功响应运行时校验
 

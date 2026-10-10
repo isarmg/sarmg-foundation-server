@@ -1,6 +1,6 @@
 # @xcss/web/contracts
 
-`@xcss/web/contracts@1.0.0` 提供 xcss 当前跨语言通信合同：TypeScript 类型、针对 `unknown` 的严格
+唯一 `@xcss/web@1.0.0` 包的 `contracts` 公开子路径提供 xcss 当前跨语言通信合同：TypeScript 类型、针对 `unknown` 的严格
 运行时校验、JSON Schema，以及 Rust/TypeScript 共用的正反测试夹具。
 
 当前合同组包括：

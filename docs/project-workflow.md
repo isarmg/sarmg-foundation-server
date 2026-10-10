@@ -63,7 +63,7 @@ POST /api/v1/auth/login
 ├─ xcss 执行 body/IP/account/global 限流
 ├─ xcss Store 加载当前管理员记录
 ├─ verify_password（只接受当前 Argon2id PHC）
-├─ random_token 分别生成 Session/CSRF 所需随机值
+├─ random_token 生成 Session，derive_csrf_token 从同会话令牌稳定派生 CSRF
 ├─ xcss Store 只持久化摘要、固定 TTL 和 Session version
 ├─ xcss HTTP Adapter 设置固定 Cookie
 └─ 返回 exact AdministratorSession，role 固定 admin
@@ -217,15 +217,15 @@ rusqlite，防止两个驱动同时链接 native SQLite，也使离线工具可�
 
 `integrity_check`、`foreign_key_check` 与 TRUNCATE checkpoint 是可组合诊断原语。checkpoint busy 或
 incomplete 都是失败，不能在仍有 writer/reader 时只复制 main SQLite 文件。xcss 不执行 migration、
-backup、恢复会话或业务事务。
+业务备份、业务状态恢复或业务事务；管理员会话恢复由 `admin_core` 的认证机制提供。
 
 ## 8. 服务端编译目标流程
 
-每个服务端 binary crate 同时依赖 `xcss::server_target` 并在其 build/release/start 层声明同一 target：
+每个服务端 binary crate 声明单个 `xcss` 依赖，按需使用 `xcss::server_target` 常量，并在 build/release/start 层声明同一 target：
 
 ```text
 cargo build --target x86_64-unknown-linux-gnu
-├─ xcss::server_target compile_error 拒绝其他 arch/OS/libc/pointer width
+├─ xcss 根 build.rs 与 src/lib.rs 硬门禁拒绝其他 arch/OS/libc/pointer width
 ├─ 产品 build.rs 可在更早阶段给出产品名错误
 ├─ release identity target = x86_64-unknown-linux-gnu
 ├─ 归档检查 ELF machine = x86-64
@@ -234,11 +234,11 @@ cargo build --target x86_64-unknown-linux-gnu
 
 ### 9.1 产品 Web
 
-除 Xczs 外，每个产品 Web 位于 `web` 并执行：
+所有当前 React 管理 Web（包括 Xczs）都执行以下流程；具体前端根目录由产品构建声明给出：
 
 ```text
 package.json + .node-version
-├─ assertAdministratorWebToolchain 检查精确 Node/React/Vite/TS 版本
+├─ assertXcssWebToolchain 检查精确 Node/React/Vite/TS 版本
 ├─ createXcssReactViteConfig 建立 React plugin 与 clean dist
 ├─ TypeScript strict typecheck
 ├─ Vite build
@@ -247,7 +247,7 @@ package.json + .node-version
 └─ 对实际 Server 的 web-assets 清单验收，发行只携带清单，Web 内嵌于二进制
 ```
 
-消费者目前使用 npm 与 `package-lock.json`；xcss monorepo 使用 pnpm 与 `pnpm-lock.yaml`。共享断言不
+消费者目前使用 npm 与 `package-lock.json`；xcss 单包使用 pnpm 与 `pnpm-lock.yaml`。共享断言不
 强制消费者改用 pnpm。Xczs 当前选择 `web-react-admin` 运行形态：React/xcss 拥有登录、导航和页面
 骨架，原生 ES modules 的文件业务控制器保留独占 DOM 区域；两者一同嵌入单 binary。这是明确的组件
 所有权边界，不是第二套认证或前端入口。
@@ -283,7 +283,8 @@ package.json + .node-version
  -> 所有消费者视觉、键盘、高对比度和 reduced-motion 验证
 ```
 
-不得因为多个产品都使用“按钮”就把完整组件、品牌、页面 shell 或主题存储移入 xcss。删除令牌时
+`admin-ui`、`admin-shell`、设计令牌与字体模块已经提供公共组件、管理页面外壳和样式机制；产品专有的
+品牌、业务页面及业务状态仍留在产品。新增公共 UI 能力须按职责和通用性评审，不能仅因外观相似而上移。删除令牌时
 直接删除并升级消费者，不留下重复 CSS custom property 别名。
 
 ## 11. 产品接入验收
@@ -321,7 +322,7 @@ job `contents: read`；仅 tag-only 发行 job 可用 `contents: write`。action
 
 ### 13.1 删除清单
 
-删除一个公开能力时同步处理：Cargo member/dependency、npm 工作区/dependency/peer/export、源码、测试、
+删除一个公开能力时同步处理：唯一 crate 的公开模块与依赖、唯一 npm 包的 dependency/peer/export、源码、测试、
 测试夹具、Schema、锁文件、软件包冒烟验证、发行文件清单、各产品调用和全部中文文档。
 不得留下已弃用的 symbol、别名软件包、旧 CSS property 或永远不再调用的解析器。
 
@@ -345,5 +346,5 @@ job `contents: read`；仅 tag-only 发行 job 可用 `contents: write`。action
 真实 Secret 或本地发行资产带入 Git。
 
 最终交付必须同时满足：xcss 全部门禁通过；每个消费者使用不可变依赖；各产品自己的测试和发行
-验证通过；服务端非 AMD64 编译失败；Xczs 例外被明确记录；管理面只有 admin；仅支持当前格式扫描无旧
-名称/旧字段/双路径；Git 按大问题提交并推送；任何尚未完成的外部发布步骤被明确报告而不是假定成功。
+验证通过；服务端非 AMD64 编译失败；Xczs 的 React 外壳与原生业务模块边界明确；管理面只有 admin；
+当前 API、字段和实现不保留旧版本专用回退；Git 按大问题提交并推送；任何尚未完成的外部发布步骤被明确报告而不是假定成功。

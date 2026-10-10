@@ -29,8 +29,8 @@ xcss `1.0.0` 的 `xcss::web_assets` 生成资源表、确定性 JSON 清单和 S
 
 这些都是声明，不能是 shell 命令。路径必须规范、相对且留在仓库中，不得通过 `..`、反斜线或链接
 逃逸。输出目录必须与源码目录分开；根 Web 使用 `directory: "."` 时，仍应给它专用输出目录。
-选定的 Cargo 软件包同时在 `[dependencies]` 和 `[build-dependencies]` 中声明同一版本的
-`xcss::web_assets`，遵循 xcss 完整修订号与精确版本规则。
+选定的 Cargo 软件包同时在 `[dependencies]` 和 `[build-dependencies]` 中声明同一个 `xcss` crate，
+固定相同完整修订号和精确版本，再通过 `xcss::web_assets` 模块调用构建与运行时 API。
 
 产品 `build.rs` 中调用 `xcss::web_assets::build::generate(root)`，`root` 优先使用
 `XCSS_WEB_DIST`，本地默认使用声明的 dist。runtime 包含
@@ -78,4 +78,4 @@ python3 scripts/xcss-conformance.py verify-web --product-root /absolute/product
 上述命令从 xcss 仓库运行，验证声明与依赖。正式包还需执行产品的发行树验证和实际 HTTP
 资源验收，覆盖 MIME、GET/HEAD、缓存、错路径以及篡改拒绝。源码检查通过不会自动表示发布树已验证。
 
-历史不可变 xcss 版本仍可被检查，报告采用其声明版本对应的规则，不声称它已采用 1.0.0 合同。
+当前接入只使用本文的单体、内嵌资源和唯一数据格式合同；不通过历史版本号选择另一套构建规则。

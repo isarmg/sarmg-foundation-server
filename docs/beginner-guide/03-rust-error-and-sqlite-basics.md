@@ -76,8 +76,8 @@ assert!(token_matches_hash(&token, &digest));
 重新编码，拒绝非规范的末尾bits。会话数据库通常只存SHA-256摘要；比较先验证当前shape和32-byte
 expected digest，再使用恒定时间 equality。
 
-随机源失败时必须让会话创建失败，不能回退时间戳、普通UUID或PRNG。CSRF 令牌可与会话令牌分开
-生成；具体持久字段、TTL和撤销属于产品。
+随机源失败时必须让会话创建失败，不能回退时间戳、普通UUID或PRNG。当前 `admin_core` 从同一会话令牌稳定派生 CSRF，不另生成随机 CSRF；会话表、TTL、撤销和 Cookie
+政策由公共实现固定，产品负责初始化与挂载。
 
 ## 3.5 原始 Cookie
 

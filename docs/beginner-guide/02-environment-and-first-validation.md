@@ -84,7 +84,7 @@ git diff --stat
 ```
 
 上层通过不能替代下层。例如TypeScript源码能编译，并不能证明`package.json#exports`指向真实文件；
-xcss单测通过，也不能证明Sunshine仍强制上游TLS或Media 发行的二进制内嵌了正确Web资源。
+xcss 单测通过，也不能证明 xscs 仍严格验证 Sunshine 上游 TLS，或 xszs 发行的二进制内嵌了正确 Web 资源。
 
 ## 2.6 仓库校验规则
 
@@ -92,15 +92,15 @@ xcss单测通过，也不能证明Sunshine仍强制上游TLS或Media 发行的�
 python3 scripts/check-xcss.py
 ```
 
-它会检查版本、单体身份、内部模块边界、工具链和取消名称。产品接入通过 `xcss-conformance`
+它执行四类现有检查：依赖与单体边界、服务端依赖目标、Web 锁文件、版本与工具链。产品接入通过 `xcss-conformance`
 检查其当前清单、来源、Schema、Web 和发行声明；实际行为由产品测试验收。常见失败：
 
 | 失败 | 不要做 | 正确做法 |
 |---|---|---|
 | version differs | 只改报错文件 | 找出版本变更范围并同步所有事实源 |
 | 未知 member/package | 直接扩allowlist | 先完成共享能力准入和公开边界评审 |
-| internal dep not 精确的 | 改成caret | 使用精确当前版本并更新lock |
-| contains cancelled name | 绕过字符串扫描 | 修改真实身份、import、文档和资产名 |
+| 内部独立包或本地依赖 | 扩展允许列表 | 使用同一包内部模块；正式外部依赖固定来源与锁文件 |
+| 服务端依赖目标不符 | 绕过平台门禁 | 所有外部依赖只声明在 Linux AMD64 GNU 目标下 |
 
 ## 2.7 工作流校验规则
 
@@ -139,8 +139,9 @@ pnpm test
 python3 scripts/package-artifacts.py smoke
 ```
 
-`pnpm test`会先构建需要的dist并从dist测试。软件包冒烟验证还会生成各包真实tgz、审查tar，再用npm在临时空目录
-按正常 peer 规则安装全部包并执行类型消费和 Vite 构建，精确外部依赖准备允许联网。为什么使用npm做最终安装？因为真实消费者使用npm，这能发现pnpm 工作区未暴露的问题。
+`pnpm test` 先构建根 dist，再从 dist 测试。软件包冒烟验证生成唯一的真实 tgz、审查 tar，并在临时空目录
+用 npm 安装该包及精确外部 peer，执行 TypeScript 消费和 Vite 构建；依赖准备允许联网。真实消费者使用 npm，
+因此最终安装验证不能只依赖本仓已有的 node_modules 或构建缓存。
 
 ## 2.10 Python工具测试
 

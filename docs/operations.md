@@ -16,8 +16,8 @@
 | Node | `26.7.0` | `.node-version`、`engines.node`、CI | 切换 Node，不放宽 engine |
 | pnpm | `10.34.6` | 根 `packageManager`、CI | 安装精确版本，不使用 Corepack 浮动解析 |
 | TypeScript | `7.0.2` | 根 package.json、lock | 与产品 Web 基线一起升级 |
-| React / React DOM | `19.3.0` | `admin-web` toolchain/peer/dev deps | 所有 React 管理 Web（包括 Xczs）同步验证 |
-| Vite / React plugin | `8.3.3` / `6.1.2` | `admin-web` toolchain/peer/dev deps | 所有非 Xczs Web 同步验证 |
+| React / React DOM | `19.3.0` | `web-toolchain` 与根 peer/dev 清单 | 所有 React 管理 Web（包括 Xczs）同步验证 |
+| Vite / React plugin | `8.3.3` / `6.1.2` | `web-toolchain` 与根 peer/dev 清单 | 所有 React 管理 Web（包括 Xczs）同步验证 |
 | 服务端编译目标 | `x86_64-unknown-linux-gnu` | `xcss::server_target` | 服务端其他 target 编译必须失败 |
 | License | Apache-2.0 | 根 `LICENSE`、Cargo/npm 元数据、Cargo 软件包清单 | 缺失或字节漂移即不发布 |
 | 发行标签 | `v1.0.0` | Git 标签 | 一经发布不移动、不覆盖、不重建同版本 |
@@ -88,8 +88,9 @@ git status --short
 - 根 `LICENSE` 必须是普通、单链接、审核过的 Apache-2.0 文本，Cargo 清单及 npm tgz实际携带它；
 - 整个 crate 启用安全 lint 和 Linux AMD64 GNU 编译硬门禁；
 - npm 的 `os`、`cpu`、`libc` 必须为 Linux、x64、glibc；CLI 和构建入口再次检查实际进程平台；
-- `admin-web` 的 React/Vite/TypeScript/type 软件包精确一致；
-- 源码和文档不存在已取消的项目/客户端名称。
+- Web 锁文件与根清单的依赖一致，React/Vite/TypeScript/type 软件包使用精确版本。
+
+四组仓库规则分别检查单体依赖边界、服务端依赖的规范目标、Web 锁文件和版本/工具链；没有项目名称扫描门。
 
 产品源码接入检查使用 `python3 scripts/xcss-conformance.py report --product-root <path> --json`。该报告会
 逐项标明清单、依赖、Schema、Web 与发行状态；没有发行清单时状态是 `not-checked` 且
@@ -101,9 +102,8 @@ git status --short
 结果；Web xcss 依赖只接受对应版本的官方发行归档，并由 `package-lock.json` 的 resolved 与
 SHA-512 完整性摘要复核。任何其他写法都明确失败，不存在“未识别所以跳过”的成功路径。
 
-若检查报未知 package/member，不要把未知项加入 allowlist 让测试变绿；先确认它是否经过共享准入。若
-报旧名称，修改真实产品身份，而不是用字符串拼接绕过扫描；规则自己为了定义拒绝项而拼接是有意避免
-自命中。
+若检查报额外软件包、依赖目标、版本或锁文件错误，应核对实际清单与规则对应的输入，修复真实结构或来源。
+公共能力按职责、产品中立性与可测试性准入，不能通过添加例外来掩盖依赖或平台漂移。
 
 ### 6.1 当前密码散列身份
 
@@ -129,7 +129,8 @@ SHA-512 完整性摘要复核。任何其他写法都明确失败，不存在“
 - 规范的 username 必须是 3～64 字节，首尾为字母/数字，全部字符只来自 `[a-z0-9._-]`；`@`、Unicode、
   控制字符 和其他符号拒绝。相邻分隔符允许，xcss 不赋予点号任何域名语义。
 - 持久状态和会话必须已经规范的，产品启动时验证但不能悄悄改写；数据库应同时建立同义 CHECK。
-- Session/CSRF 令牌是 32-byte OS 随机数，经 URL 安全的 Base64 无填充编为 43 字符。
+- Session 由 32-byte OS 随机数生成，经 URL 安全的 Base64 无填充编为 43 字符；当前 CSRF 从该会话
+  令牌稳定派生，并使用同样的规范令牌格式。`random_token` 是通用随机原语，不表示当前会话分别随机生成 CSRF。
 - `token_hash`/`token_hash_hex` 是 SHA-256 摘要工具；只有先通过令牌 shape 才允许做会话匹配。
 - `token_matches_hash` 和 CSRF 辅助函数使用恒定时间比较，expected digest 长度必须为 32 字节。
 
@@ -154,7 +155,7 @@ SHA-512 完整性摘要复核。任何其他写法都明确失败，不存在“
 3. `package-artifacts.py check` 只审计现有 dist；
 4. `package-artifacts.py smoke` clean、重建、pack、检查 tar并在空目录隔离安装 + TypeScript/Vite。
 
-只有第 4 阶段证明实际发布形态。monorepo 软链接能掩盖缺失 dependency/export，所以不能只执行第 1、2
+只有第 4 阶段证明实际发布形态。本地依赖软链接能掩盖缺失 dependency/export，所以不能只执行第 1、2
 阶段后发布。
 
 ### 7.2 软件包内容规则
@@ -182,12 +183,12 @@ SHA-512 完整性摘要复核。任何其他写法都明确失败，不存在“
 
 ### 7.4 服务端与 Web 的统一构建
 
-从 xcss `0.10.8` 起，带 Web 的服务端 component 必须声明 `embedded-web` capability，并提供
+当前带 Web 的服务端 component 必须声明 `embedded-web` capability，并提供
 `xcss-web-build.json`。`xcss-build-server --mode release` 依次执行 npm 锁定安装、前端构建、
 规范目标 Rust 编译及实际二进制的 `web-assets` 验收；构建命令来自发布包 `@xcss/web/web-toolchain`。
 Web 输出路径通过 `XCSS_WEB_DIST` 传给 Vite/native preset 和 Rust build script，避免各产品各自猜测
 目录和先后顺序。Rust 软件包在 runtime 和 build-dependencies 中都使用同一精确版本的
-`xcss::web_assets`。
+单个 `xcss` crate，并通过 `xcss::web_assets` 调用资源 API。
 
 二进制中的清单绑定每个资源的路径、MIME、大小和 SHA-256。发行树可以携带这份清单并与二进制逐字节
 核对，生产请求直接使用内嵌字节。不要再次发行 raw Web 目录来保存重复副本，也不要用可重写的外部
@@ -200,7 +201,8 @@ Web 输出路径通过 `XCSS_WEB_DIST` 传给 Vite/native preset 和 Rust build 
 可执行文件必须拒绝开发目录覆盖；不得因目录缺失而静默回退到旧资源。
 
 `xcss-conformance verify-source` 与 `verify-web` 检查 capability、构建声明、仓库内规范路径、npm
-script 与共同 crate 依赖。历史版本按历史声明接受检查，报告不会把它们解释为已采用新构建合同。
+script 与共同 crate 依赖。当前规则不按旧版本号选择例外或旧构建合同；历史验收记录保留其原有事实，
+不能替代当前源码及发布资产的验证。
 完整接入步骤见 [统一服务端与 Web 构建指南](beginner-guide/11-embedded-web-build.md)。
 
 ## 8. Rust crate 消费与排障
@@ -269,8 +271,8 @@ YAML anchor 和 action outside steps。修改工作流校验规则时必须同�
 - `main` 已推送且 source tree 无 tracked/untracked 文件；
 - 全部质量门通过；
 - 版本与工具链事实源一致；
-- 至少一个会实际触发本次改动的真实消费者完成发布前联调；若改动跨语言通信格式、认证、Schema 算法或 Web
-  runtime，必须覆盖至少两个不同产品，不能用 xcss 自测替代消费者证据；
+- 根据实际影响范围完成真实消费者联调；跨语言通信格式、认证、Schema 算法或 Web runtime 变化应覆盖
+  受影响的不同运行形态和产品，不能用 xcss 自测替代消费者证据，也不设置机械的两个消费者准入门槛；
 - 单个 Rust crate 的真实 Cargo 软件包清单均携带审核过的根 `LICENSE`；
 - GitHub 不存在同名 tag/release；
 - 标签 `v1.0.0` 精确指向当前 HEAD，源码修订号为完整小写 SHA。
@@ -316,7 +318,7 @@ xcss 状态合同的 `schema=null`，lock/resource/external/companion 数组为�
 1. 从 GitHub 发行下载所有资产到空目录；
 2. 在 `artifacts/` 内运行 `sha256sum -c SHA256SUMS`；
 3. 使用随附发行 tool 验证 `artifacts/` 与外层 `release-tree.json`；
-4. 分别检查全部包的真实 tgz 的软件包 name/version/exports，执行隔离目录正常 peer 安装；
+4. 检查唯一真实 tgz 的软件包 name/version/exports，执行隔离目录正常 peer 安装；
 5. 将每个消费者的 Rust path 换为完整 Git rev、Web file 换为发行 tgz URL；
 6. 重建消费者 lock，在独立源码检出完成完整产品测试、发行解包和断网运行；
 7. 提交产品源码，并以相同 commit 的实际 CI、发行资产和运行验收保存本次结果。
@@ -372,8 +374,8 @@ API，应同步升级消费者；不得在 xcss 添加别名维持另一代。
 需要备份：Git 仓库及对象、annotated 标签、GitHub 发行 metadata/assets、CI 配置、Cargo/pnpm lock、
 Schema/fixture、产品实际 CI 与发行验收记录和文档。软件包注册中心 cache、`node_modules`、`target`、`dist` 不是源码备份。
 
-建议每个发布周期至少执行：从空缓存 locked install；全部包的真实 tgz 离线安装；release-tree 回下载验证；所有
-当前产品来源、CI 和正式资产结果复核；完整 SHA action 与权限扫描；旧名称/仅支持当前格式扫描；管理员合同/Server
+建议每个发布周期至少执行：从空缓存 locked install；唯一真实 tgz 离线安装；release-tree 回下载验证；所有
+当前产品来源、CI 和正式资产结果复核；完整 SHA action 与权限校验；当前 API/字段/模块职责人工复核；管理员合同/Server
 target 跨产品抽查。xcss 无业务数据，所以不得把产品 backup 文件复制进本仓或发行。
 
 ## 当前认证与发布验收

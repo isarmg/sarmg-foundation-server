@@ -4,7 +4,7 @@
 
 ## 默认规则
 
-所有 crate 继承根工作区 lint：`unsafe_code = deny`、`unsafe_op_in_unsafe_fn = deny`、`clippy::undocumented_unsafe_blocks = deny`。允许例外的最小范围是下面列出的原生函数；业务组合、日志轮转和权限策略本身没有 unsafe 豁免。每个块的 `SAFETY` 注释必须说明指针有效性、所有权、生命周期或线程独占前提。
+唯一根 crate 使用根 `Cargo.toml` 的 `[lints.rust]` 和 `[lints.clippy]`：`unsafe_code = deny`、`unsafe_op_in_unsafe_fn = deny`、`clippy::undocumented_unsafe_blocks = deny`。允许例外的最小范围是下面列出的原生函数；业务组合、日志轮转和权限策略本身没有 unsafe 豁免。每个块的 `SAFETY` 注释必须说明指针有效性、所有权、生命周期或线程独占前提。
 
 ## 保留的接口
 

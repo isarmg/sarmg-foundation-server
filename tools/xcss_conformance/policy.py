@@ -215,28 +215,16 @@ def verify_manifest(product_root: Path, foundation_root: Path) -> dict[str, Any]
         if (
             profile["kind"] == "server"
             and "web_profile" in component
-            and _embedded_web_generation(manifest)
             and "embedded-web" not in declared
         ):
             raise ConformanceError(
-                f"{context}: xcss 0.10.0 and later Server Web requires embedded-web capability"
+                f"{context}: Server Web requires embedded-web capability"
             )
     return manifest
 
 
-def _embedded_web_generation(manifest: dict[str, Any]) -> bool:
-    """Generation 0.10 introduces the shared production resource contract.
-
-    Historical immutable releases remain inspectable under their actual policy;
-    inspecting them must never claim adoption of the later embedded Web contract.
-    """
-    version = SEMVER.fullmatch(manifest["foundation"]["version"])
-    assert version is not None  # Already validated by verify_manifest.
-    return tuple(int(part) for part in version.groups()[:3]) >= (0, 10, 0)
-
-
 def _embedded_web_required(manifest: dict[str, Any]) -> bool:
-    return _embedded_web_generation(manifest) and any(
+    return any(
         "web_profile" in component
         for component in manifest["components"]
     )

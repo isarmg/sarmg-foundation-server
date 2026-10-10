@@ -6,8 +6,9 @@
 同源、错误 JSON 长什么样、SQLite Schema怎样绑定产品身份、React/Vite用哪个精确版本、发行树怎样证明
 没有被替换。如果每个仓库都独立实现，几个月后通常会产生不同长度、不同错误、不同回退和不同测试。
 
-xcss 的目标不是消灭所有重复，而是共享那些已经被至少两个真实产品证明具有相同语义的最小能力。
-共享收益必须大于耦合成本；页面、业务数据库、外部设备、进程生命周期和数据面协议仍留在产品。
+xcss 按职责和通用性共享服务端基础能力。即使暂时只有一个产品使用，产品中立、可独立测试的机制也可以
+进入上游；产品专有业务不因代码相似而上移。业务页面、业务数据库、外部设备和数据面协议仍由产品负责，
+公共认证、运行时、文件安全和管理 UI 的机制由 xcss 提供。
 
 ## 1.2 构建期模型
 
@@ -31,20 +32,43 @@ xcss 的目标不是消灭所有重复，而是共享那些已经被至少两个
 
 ## 1.3 当前组件地图
 
-| 层 | 组件 | 一句话用途 |
+| 层 | 内部模块或公开子路径 | 一句话用途 |
 |---|---|---|
-| Rust安全 | `xcss::admin_auth` | 规范管理员 username、当前 Argon2id、令牌、Cookie、同源和 CSRF |
-| Rust协议 | `xcss::contracts` | 严格的管理员/状态/发布/备份/错误通信格式类型 |
-| Rust错误 | `xcss::error` | 有界machine code/请求 ID和错误响应结构 |
-| Rust数据 | `xcss::schema_identity` | 无driver的SQLite Schema身份和结构指纹 |
-| Rust平台 | `xcss::server_target` | 服务端编译只允许GNU/Linux AMD64 |
-| Rust连接 | `xcss::sqlite` | SQLx连接PRAGMA、诊断和identity 适配器 |
-| Rust Web资源 | `xcss::web_assets` | 确定性内嵌清单、SHA-256、HTTP 与开发目录提供器 |
-| Web合同 | `@xcss/web/contracts` | TypeScript type、运行时校验、JSON Schema、测试夹具 |
-| Web传输 | `@xcss/web/http-client` | 同源、有界、可取消的JSON请求 |
-| Web认证 | `@xcss/web/admin-web` | 内存会话、竞态安全认证 client、React 钩子和Vite 基线 |
-| Web样式 | `@xcss/web/design-tokens` | 限定作用域的设计和可访问性原语 |
-| 发布 | Python tools/scripts | 软件包归档、state/发行身份、release-tree和工作流校验规则 |
+| Rust 安全 | `xcss::admin_auth` | 管理员名、Argon2id、令牌、Cookie、同源和 CSRF 原语 |
+| Rust 认证 | `xcss::admin_core` | 账户/会话生命周期、登录限流、认证与安全审计机制 |
+| Rust HTTP | `xcss::admin_axum` | Axum 管理员 HTTP 挂载、请求校验与响应适配 |
+| Rust HTTP | `xcss::admin_hyper` | Hyper 管理员 HTTP 挂载与同等安全适配 |
+| Rust 认证存储 | `xcss::admin_sqlite` | 持久管理员和会话的 SQLite 存储与事务 |
+| Rust 静态认证 | `xcss::admin_static` | 单个静态管理员、当前账户文件与内存会话 |
+| Rust 配置 | `xcss::config` | 分层配置、显式环境映射、来源与输入预算 |
+| Rust 协议 | `xcss::contracts` | 管理员、状态、发行、备份和错误的严格通信格式 |
+| Rust 错误 | `xcss::error` | 有界错误码、请求 ID 和结构化错误响应 |
+| Rust 文件安全 | `xcss::fs_safety` | 描述符相对访问、链接拒绝、权限与身份验证 |
+| Rust 日志 | `xcss::log` | 结构化事件、脱敏、筛选和有界轮转 |
+| Rust 运维 | `xcss::operations` | 公共操作记录、审计与相应数据库机制 |
+| Rust 公共数据库 | `xcss::platform_db` | 管理控制面的公共 SQLite 表与结构 |
+| Rust 数据身份 | `xcss::schema_identity` | SQLite 规范结构指纹与四分量身份算法 |
+| Rust 秘密 | `xcss::secret` | 秘密值的安全类型与处理原语 |
+| Rust 秘密封装 | `xcss::secret_envelope` | 当前秘密封装格式与认证加密 |
+| Rust HTTP 连接 | `xcss::secure_http` | 服务端出站 HTTP 的安全连接机制 |
+| Rust CLI | `xcss::server_cli` | 机器错误、就绪身份核验和共同 HTTP 解析拒绝 |
+| Rust 生命周期 | `xcss::server_runtime` | 服务启动、关闭、健康和就绪状态 |
+| Rust 平台 | `xcss::server_target` | 目标常量；整个 crate 的 Linux AMD64 GNU 门禁位于根入口 |
+| Rust SQLite | `xcss::sqlite` | SQLx 连接、PRAGMA、诊断、身份适配与只读校验副本 |
+| Rust 状态文件 | `xcss::state_file` | 安全原子写、运行/维护锁与持久维护门 |
+| Rust 测试 | `xcss::testkit` | 供测试使用的公共安全夹具与辅助机制 |
+| Rust Web 资源 | `xcss::web_assets` | 确定性内嵌清单、SHA-256、HTTP 与开发目录提供器 |
+| Web 合同 | `@xcss/web/contracts` | TypeScript 类型、运行时校验、JSON Schema 和夹具 |
+| Web 传输 | `@xcss/web/http-client` | 同源、有界、可取消的 JSON 请求 |
+| Web 认证 | `@xcss/web/admin-web` | 内存会话、竞态安全认证客户端与 React 钩子 |
+| Web 管理外壳 | `@xcss/web/admin-shell` | 共享登录、导航、账号设置及业务区域组合 |
+| Web 组件 | `@xcss/web/admin-ui` | 管理组件、可访问性、日期控件与内容块 |
+| Web 样式 | `@xcss/web/design-tokens` | 限定作用域的设计和可访问性原语 |
+| Web 字体 | `@xcss/web/web-fonts` | 随发行包提供的字体及预加载机制 |
+| Web 构建 | `@xcss/web/web-toolchain` | 精确工具链、TypeScript/Vite 配置和服务端构建编排 |
+| 发布 | Python tools/scripts | 软件包归档、状态/发行身份、release-tree 和工作流校验 |
+
+以上 24 个 Rust 模块属于一个 crate，8 个 Web 入口属于一个 npm 包；不是 32 个独立发布的软件包。
 
 ## 1.4 目录逐层解释
 
@@ -80,16 +104,16 @@ docs/                仅五类中文文档
 - 错误响应结构和State/Release/Backup合同；
 - SQLite metadata/fingerprint；
 - 服务端唯一target；
-- 非Xczs管理Web的React/Vite/Node/TypeScript；
+- 所有 React 管理 Web（包括 Xczs）的 React/Vite/Node/TypeScript；
 - package/release/workflow最低供应链规则。
 
 仍由产品决定：
 
-- 管理员表、会话表、Cookie、TTL、登录限流、审计；
+- 产品管理员初始化入口、HTTP 挂载和持久或静态运行形态选择；管理员表、会话、Cookie、TTL、登录限流及安全审计机制由 xcss 固定；
 - 设备/Client/API key/摄像头/媒体令牌等数据面身份；
-- 业务route、DTO、数据库表、事务、锁和外部副作用；
-- 页面、组件、品牌、主题状态、文件/媒体流；
-- systemd、反向代理、配置、Secret、backup/restore和发行强化规则。
+- 业务 route、DTO、业务数据库表和事务、业务锁及外部副作用；
+- 专有业务页面、组件、品牌、业务主题状态及文件/媒体流；公共管理外壳、组件、令牌和字体由 xcss 提供；
+- systemd、反向代理、产品配置字段和 Secret 来源、业务 backup/restore 及发行强化规则；公共配置、秘密、文件安全和维护锁机制由 xcss 提供。
 
 ## 1.6 唯一管理员角色的正确理解
 
@@ -134,5 +158,5 @@ ES 模块，通过独占 DOM 区域与共享外壳组合。全部正式 Web 资�
 1. 在根两个清单中核对单体身份，列出内部 Rust 模块与 Web 子路径，并解释它们如何共同发布。
 2. 从一个产品中找出管理员身份与数据面凭据，解释为何二者不能合并。
 3. 画出产品build时与production runtime时xcss是否在线的两张图。
-4. 解释Xczs为何是前端例外、客户端多架构为何不是服务端编译目标例外。
+4. 解释 Xczs 如何组合 React 管理外壳与原生文件业务模块，以及客户端多架构为何不是服务端编译目标例外。
 5. 从功能台账任选一个“保障”项，写出删除后的具体攻击或故障路径。

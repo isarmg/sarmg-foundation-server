@@ -5,7 +5,7 @@
 
 ## 决策
 
-所有 xcss Rust crate、npm 软件包、运行形态、Schema、工具和测试以一个 xcss 版本发布。正式
+唯一 Rust crate `xcss`、唯一 npm 包 `@xcss/web` 及内部模块、运行形态、Schema、工具和测试共同发布。正式
 消费者同时固定精确版本与完整 40 位 Git 修订号；Web 使用对应发行的不可变、已校验制品。
 
 ## 后果

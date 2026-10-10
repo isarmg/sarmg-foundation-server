@@ -23,7 +23,7 @@
 Axum/Hyper 共用 Testkit：缺失/重复/畸形 Content-Type、四个悬挂正文、第五个请求伪造来源头仍被拒绝、取消后重新登录成功。
 适配器单测覆盖全局上限、IPv4 映射、精确字节边界、虚拟时钟超时、取消资源释放及传输错误脱敏。
 
-静态管理员配置同时限制 1024 个账户且拒绝重复 administrator_id；不同 username 不能共享会话主体。
+静态管理员配置只接受一个合法活动账户，并拒绝空配置、超量记录及重复 administrator_id；不同 username 不能共享会话主体。
 
 登录在读取正文前拒绝重复 Cookie 字段行、重复当前会话 Cookie 以及无效当前 Token 形状，返回 `auth.invalid_cookie`，不设置新 Cookie。该规则由 Axum/Hyper 共享测试覆盖。登录失败预算按真实 socket IP（IPv4-mapped 地址规范化）和账户分别执行，不读取代理来源头；达到失败预算时返回 `auth.rate_limited` 和保守的完整平台窗口 `Retry-After`。
 产品通过当前适配器获取上述保护；采用的精确版本以其清单和锁文件为准，验收结果由对应源码的实际 CI 与正式发行证明。

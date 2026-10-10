@@ -31,7 +31,7 @@ product_id = "fixture-product"
 
 [foundation]
 platform_generation = 1
-version = "0.5.0"
+version = "1.0.0"
 git_rev = "0123456789abcdef0123456789abcdef01234567"
 
 [[components]]
@@ -46,16 +46,14 @@ capabilities = [
   "server-health",
   "filesystem-root",
   "linux-openat2",
+  "embedded-web",
 ]
 """
 
 
 class ConformanceTests(unittest.TestCase):
     def embedded_fixture(self, product: Path) -> None:
-        manifest = VALID_MANIFEST.replace('version = "0.5.0"', 'version = "0.10.0"').replace(
-            '  "linux-openat2",', '  "linux-openat2",\n  "embedded-web",'
-        )
-        (product / "xcss-product.toml").write_text(manifest)
+        (product / "xcss-product.toml").write_text(VALID_MANIFEST)
         (product / "xcss-layout.toml").write_text('web_root="web"\n')
         web = product / "web"
         web.mkdir()
@@ -65,25 +63,24 @@ class ConformanceTests(unittest.TestCase):
             "web": {"directory": "web", "script": "build", "dist": "dist"},
             "rust": {"manifest": "Cargo.toml", "package": "fixture", "binary": "fixture", "source_revision_env": "SOURCE_REVISION"},
         }))
-        dependency = '{git="https://github.com/isarmg/xcss.git",rev="0123456789abcdef0123456789abcdef01234567",version="=0.10.0"}'
+        dependency = '{git="https://github.com/isarmg/xcss.git",rev="0123456789abcdef0123456789abcdef01234567",version="=1.0.0"}'
         (product / "Cargo.toml").write_text(
             '[package]\nname="fixture"\nversion="0.1.0"\n'
             f'[dependencies]\nxcss={dependency}\n'
             f'[build-dependencies]\nxcss={dependency}\n'
         )
         (product / "Cargo.lock").write_text(
-            'version=4\n[[package]]\nname="xcss"\nversion="0.10.0"\n'
+            'version=4\n[[package]]\nname="xcss"\nversion="1.0.0"\n'
             'source="git+https://github.com/isarmg/xcss.git?rev=0123456789abcdef0123456789abcdef01234567#0123456789abcdef0123456789abcdef01234567"\n'
         )
 
     def test_current_web_requires_declared_shared_capability(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace('version = "0.5.0"', 'version = "0.10.0"'))
+            (product / "xcss-product.toml").write_text(VALID_MANIFEST.replace('  "embedded-web",\n', ''))
             with self.assertRaisesRegex(ConformanceError, "requires embedded-web capability"):
                 verify_manifest(product, ROOT)
-            # Older immutable generations remain inspectable under their own contract.
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
+            self.embedded_fixture(product)
             verify_manifest(product, ROOT)
             verify_source(product, ROOT)
 
@@ -138,8 +135,8 @@ class ConformanceTests(unittest.TestCase):
     def test_manifest_schema_accepts_the_current_version(self) -> None:
         schema = json.loads((ROOT / "schemas/xcss-product.schema.json").read_text())
         pattern = schema["properties"]["foundation"]["properties"]["version"]["pattern"]
-        self.assertIsNotNone(re.fullmatch(pattern, "0.5.0"))
-        self.assertIsNone(re.fullmatch(pattern, "0x5x0"))
+        self.assertIsNotNone(re.fullmatch(pattern, "1.0.0"))
+        self.assertIsNone(re.fullmatch(pattern, "1x0x0"))
 
     def test_repository_platform_definition_is_self_consistent(self) -> None:
         result = verify_foundation(ROOT)
@@ -165,10 +162,11 @@ class ConformanceTests(unittest.TestCase):
     def test_source_check_resolves_aliased_foundation_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST, encoding="utf-8")
+            self.embedded_fixture(product)
             (product / "Cargo.toml").write_text(
                 '[package]\nname="fixture"\nversion="0.1.0"\n'
-                '[dependencies]\nlocal-error={package="xcss",path="../foundation"}\n',
+                '[dependencies]\nlocal-error={package="xcss",path="../foundation"}\n'
+                '[build-dependencies]\nxcss={git="https://github.com/isarmg/xcss.git",rev="0123456789abcdef0123456789abcdef01234567",version="=1.0.0"}\n',
                 encoding="utf-8",
             )
             with self.assertRaisesRegex(ConformanceError, "immutable-foundation-dependencies"):
@@ -177,22 +175,22 @@ class ConformanceTests(unittest.TestCase):
     def test_source_check_rejects_unpinned_foundation_dependency_forms(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
-            (product / "Cargo.toml").write_text(
-                '[package]\nname="fixture"\nversion="0.1.0"\n'
-                '[dependencies]\nxcss="0.5"\n'
-            )
+            self.embedded_fixture(product)
+            cargo = product / "Cargo.toml"
+            cargo.write_text(cargo.read_text().replace('xcss={git="https://github.com/isarmg/xcss.git",rev="0123456789abcdef0123456789abcdef01234567",version="=1.0.0"}', 'xcss="1.0"', 1))
             with self.assertRaisesRegex(ConformanceError, "exact xcss Git source"):
                 verify_source(product, ROOT)
 
     def test_removed_independent_packages_cannot_silently_escape_source_checks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
-            (product / "Cargo.toml").write_text('[package]\nname="fixture"\nversion="0.1.0"\n[dependencies]\nold={package="xcss-error",version="1.0"}\n')
+            self.embedded_fixture(product)
+            cargo = product / "Cargo.toml"
+            original = cargo.read_text()
+            cargo.write_text(original.replace('[dependencies]\n', '[dependencies]\nold={package="xcss-error",version="1.0"}\n'))
             with self.assertRaisesRegex(ConformanceError, "independent xcss-error was removed"):
                 verify_source(product, ROOT)
-            (product / "Cargo.toml").unlink()
+            cargo.write_text(original)
             (product / "package.json").write_text(json.dumps({"dependencies": {"@xcss/admin-ui": "1.0.0"}}))
             with self.assertRaisesRegex(ConformanceError, "independent @xcss/admin-ui was removed"):
                 verify_source(product, ROOT)
@@ -239,7 +237,7 @@ class ConformanceTests(unittest.TestCase):
     def test_server_checks_cover_nested_server_sources(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)
-            (product / "xcss-product.toml").write_text(VALID_MANIFEST)
+            self.embedded_fixture(product)
             server = product / "server"
             server.mkdir()
             source = '.route("/api/v1/auth/login", handler)\nconst SESSION_COOKIE_NAME = "local";'
@@ -253,14 +251,14 @@ class ConformanceTests(unittest.TestCase):
 product_id = "fixture-product"
 [foundation]
 platform_generation = 1
-version = "0.5.0"
+version = "1.0.0"
 git_rev = "0123456789abcdef0123456789abcdef01234567"
 [[components]]
 id = "server"
 profile = "server-control-plane"
 http_adapter = "axum"
 web_profile = "web-react-admin"
-capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health"]
+capabilities = ["platform-sqlite", "admin-persistent", "server-runtime", "server-health", "embedded-web"]
 '''
         with tempfile.TemporaryDirectory() as directory:
             product = Path(directory)

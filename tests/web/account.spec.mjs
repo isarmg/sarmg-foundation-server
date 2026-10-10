@@ -50,6 +50,8 @@ test("account menu verifies current password, clears secrets and returns to sign
 
 test("ordinary account route keeps the person icon unchanged, clears drafts and shares persistent login themes", async ({ page }) => {
   test.setTimeout(120_000);
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.addInitScript(() => localStorage.setItem("xsos:theme", "dark"));
   const session = { authenticated: true, user_id: "A".repeat(43), username: "admin", role: "admin", csrf_token: "A".repeat(43) };
   let authenticated = false, updates = 0;
   await page.route("**/api/v1/**", route => {
@@ -69,6 +71,15 @@ test("ordinary account route keeps the person icon unchanged, clears drafts and 
     await expect(page.locator("html")).toHaveAttribute("data-xcss-fonts", "ready", { timeout: 30_000 });
     const login = page.locator(".xcss-auth-card"), controls = page.getByRole("group",{name:english?"Display settings":"显示设置"});
     await expect(login).toBeVisible();
+    if (english) {
+      expect(await page.evaluate(() => localStorage.getItem("sarmg:theme"))).toBeNull();
+      expect(await page.evaluate(() => localStorage.getItem("xsos:theme"))).toBe("dark");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+      await page.emulateMedia({ colorScheme: "dark" });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await page.emulateMedia({ colorScheme: "light" });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    }
     for (const theme of ["light","dark"]) {
       if (await page.locator("html").getAttribute("data-theme") !== theme) await controls.getByRole("button", {name:english?/Switch to .* mode/:/切换到.*模式/}).click();
       const colors = await login.evaluate(node=>({background:getComputedStyle(node).backgroundColor,text:[...node.querySelectorAll(".xcss-form-field > span,input,button")].map(n=>getComputedStyle(n).color)}));

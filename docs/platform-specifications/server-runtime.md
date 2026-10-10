@@ -49,4 +49,4 @@ Axum 和 Hyper 的管理员协议使用 `xcss::testkit::assert_administrator_htt
 
 `PLATFORM_RESERVED_PATHS` 导出健康路径及管理员认证命名空间。文件服务必须只读预检冲突，保留实际路径/子树；不能无理由禁用整个 `/api` 目录。
 
-`server-filesystem` 仅接受 Axum 适配器，保持原生内嵌 Web、静态管理员及内存会话。该运行形态的 `durable-operations` 也可由经验证的产品文件操作登记表实现，不要求把文件提交语义改成 xcss 通用任务表。
+`server-filesystem` 仅接受 Axum 适配器，使用静态管理员和内存会话；管理 Web 可选择 `web-react-admin` 或 `web-embedded-native`，正式资源均内嵌。该运行形态的 `durable-operations` 也可由经验证的产品文件操作登记表实现，不要求把文件提交语义改成 xcss 通用任务表。

@@ -1,6 +1,6 @@
 # @xcss/web/http-client
 
-`@xcss/web/http-client@1.0.0` 提供一个公开请求函数 `requestJson<T>` 和结构化错误 `ApiClientError`。它统一
+唯一 `@xcss/web@1.0.0` 包的 `http-client` 公开子路径提供请求函数 `requestJson<T>` 和结构化错误 `ApiClientError`。它统一
 同源 URL、Cookie 凭据、非安全 HTTP 方法的 CSRF、超时与调用方取消、响应字节预算、严格的 JSON
 `Content-Type`、统一错误响应结构及 `Retry-After` 解析。
 

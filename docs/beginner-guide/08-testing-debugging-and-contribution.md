@@ -80,7 +80,7 @@ primitive单元测试
 4. 旧会话业务请求延迟401，新登录已成功；
 5. 多组件并发恢复会话只fetch一次；
 6. React 钩子卸载或client替换后旧Promise完成；
-7. 退出网络失败但UI仍anonymous且private snapshot清理；
+7. 退出网络失败时 UI 使用 `anonymous_logout_unconfirmed`，关闭本地授权并保留私有撤销快照供主动重试；
 8. 运行时校验失败不会发布会话。
 
 只用同步mock会漏掉该软件包最重要的价值。
@@ -98,7 +98,8 @@ primitive单元测试
 violation、完整性诊断、checkpoint busy/incomplete、元数据 DDL/column/storage class、0/2 row、每字段
 当前 mismatch和实际结构指纹 drift。
 
-路径不跟随符号链接的、owner/mode、实例锁和backup crash recovery不属于`xcss::sqlite`单测，应在产品层测试。
+文件安全、owner/mode 与实例锁分别由 `fs_safety`、`state_file` 的真实测试保障，不属于 `sqlite` 模块
+单测；产品仍须验证业务资源授权、部署权限以及业务 backup crash recovery。
 
 ## 8.7 软件包与发行安全测试
 
@@ -146,7 +147,7 @@ violation、完整性诊断、checkpoint busy/incomplete、元数据 DDL/column/
 
 写清：
 
-1. 两个以上当前消费者的仓库、文件、测试；
+1. 产品中立职责、实际消费者的仓库、文件与测试；暂时只有一个消费者也可以共享真正通用的机制；
 2. 重复实现和真正相同的语义；
 3. 差异及为何仍能抽最小原语；
 4. 不可信输入、上限、编码和规范的规则；
@@ -157,7 +158,7 @@ violation、完整性诊断、checkpoint busy/incomplete、元数据 DDL/column/
 9. 版本、删除后果、消费者迁移和退出方案；
 10. 为何不需要兼容层或在线service。
 
-无法回答时先留在产品，收集第二消费者证据。
+无法回答职责或语义边界时先留在产品，补充实际调用、安全约束和测试证据；不以第二个消费者作为机械准入条件。
 
 ## 8.10 代码评审问题
 

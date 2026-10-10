@@ -24,7 +24,7 @@ node web/web-fonts/scripts/build.mjs
 
 ## 当前发行分发
 
-字体通过正式 `@xcss/web/web-fonts` 发行包分发。消费者固定不可变发行包，并在构建时校验来源、摘要和许可证。
+字体通过唯一正式 `@xcss/web` 包的 `web-fonts` 公开子路径分发。消费者固定不可变发行包，并在构建时校验来源、摘要和许可证。
 管理 Web 通过包依赖使用 Normal NL 正体与 CJK 资源。
 消费者导入包的 CSS，构建时校验来源、字体摘要和许可证，运行时只加载产品同源资源，不需要同级 xcss 工作区或 CDN。
 
