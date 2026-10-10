@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-async function openPreview(page) {
-  await page.goto("/dialog-media.html?lang=en");
+async function openPreview(page, { ptz = false } = {}) {
+  await page.goto(`/dialog-media.html?lang=en${ptz ? "&ptz=1" : ""}`);
   const trigger = page.getByRole("button", { name: "Open camera preview", exact: true });
   await trigger.focus();
   await page.keyboard.press("Enter");
@@ -11,8 +11,8 @@ async function openPreview(page) {
   await expect(dialog).toBeVisible();
   await expect(close).toBeFocused();
   await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThanOrEqual(2);
-  // Exact non-PTZ camera shape: one light-DOM close button and a real controlled video.
-  await expect(dialog.locator("button")).toHaveCount(1);
+  // Default: exact non-PTZ shape. The query variant adds two ordinary PTZ buttons.
+  await expect(dialog.locator("button")).toHaveCount(ptz ? 3 : 1);
   await expect(video).toHaveAttribute("controls", "");
   await page.evaluate(() => {
     window.mediaFocus = { outside: [], steps: [] };
@@ -95,5 +95,22 @@ test("media Dialog Escape and close preserve trigger restoration over reopen", a
     await expect(dialog).not.toBeVisible();
     await expect(trigger).toBeFocused();
     await expect(page.getByTestId("closed-count")).toHaveText("2");
+  } finally { await attachFocus(page, testInfo); }
+});
+test("media Dialog native Tab reaches the video and following PTZ buttons", async ({ page }, testInfo) => {
+  const { dialog, video } = await openPreview(page, { ptz: true });
+  try {
+    await pressAndRecord(page, "Tab");
+    await expect.poll(() => video.evaluate(element => document.activeElement === element || element.matches(":focus-within"))).toBe(true);
+    await assertNoBackgroundFocus(page);
+    const visited = new Set();
+    for (let step = 0; step < 20 && visited.size < 2; step++) {
+      await pressAndRecord(page, "Tab");
+      await assertNoBackgroundFocus(page);
+      const focused = await page.evaluate(() => document.activeElement?.getAttribute("data-testid"));
+      if (focused === "ptz-pan-left" || focused === "ptz-stop") visited.add(focused);
+    }
+    expect([...visited]).toEqual(["ptz-pan-left", "ptz-stop"]);
+    await expect(dialog).toBeVisible();
   } finally { await attachFocus(page, testInfo); }
 });

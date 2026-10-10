@@ -78,6 +78,8 @@ export function Dialog({ title, description, children, onClose }: DialogProps) {
     onKeyDown={event => {
       if (event.key !== "Tab") return;
       const dialog = reference.current!;
+      // Native media controls have focusable subwidgets outside the light DOM.
+      if (dialog.querySelector("video[controls],audio[controls]")) return;
       const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
         'button,input,select,textarea,a[href],[tabindex]',
       )).filter(element => element.tabIndex >= 0 && !element.matches(':disabled,[hidden]') && element.getClientRects().length > 0);
