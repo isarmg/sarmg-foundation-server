@@ -24,7 +24,7 @@ xcss = { git = "https://github.com/isarmg/xcss.git", rev = "b0524c4fb018b5ba4f27
 需要管理 Web 的产品安装同版发行包，并提交依赖锁文件：
 
 ```sh
-pnpm add https://github.com/isarmg/xcss/releases/download/v1.0.0/xcss-web-1.0.0.tgz
+npm install --save-exact https://github.com/isarmg/xcss/releases/download/v1.0.0/xcss-web-1.0.0.tgz
 ```
 
 通过 `xcss::<module>`、`@xcss/web/<module>` 引入能力，在产品根目录维护 `xcss-product.toml`；React/Vite 等 peer 依赖按包内精确版本安装。完成产品构建后，随该产品部署。

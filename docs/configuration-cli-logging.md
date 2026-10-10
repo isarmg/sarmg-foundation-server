@@ -41,7 +41,7 @@ Unix `read_private_file` 只读一个 700 私有目录中的 600 文件，要求
 
 数据库 `product_metadata` 的四分量身份及其实际 schema 指纹继续精确校验，列名和数据约束保持当前定义。
 表和索引名也参与指纹，改名后的数据库需要当前代码生成的新 schema 和新摘要；仅修改元数据中的 hash
-不能代替结构验证。已有状态的处理步骤见[运维文档](operations.md#17-固定数据接口调整后的重新部署)。
+不能代替结构验证。库只校验当前格式；已有状态的处理使用对应产品提供并验证的流程。结构算法见[SQLite 参考](reference/contracts-and-schema.md#结构身份基础)。
 
 ## 只读数据库校验
 
@@ -69,7 +69,7 @@ Unix `RotatingLogFile` 使用既有 700 目录、600 单链接文件和一个 wr
 
 普通 `PrivateStateDirectory::open` 与 `PrivateDirectory::open_existing` 仍要求 effective uid 精确等于目录所有者。离线维护可明确使用 `open_for_administration`：仅 effective uid 0 或实际目录所有者允许，逐级 NOFOLLOW 打开已有实体 0700 目录，不创建、不 chmod/chown 现有对象。新 common lock 和原子 pending 文件以排他新 descriptor 生成，再 fchown 为目录实际 uid/gid，保持 0600 和单链接；已有错误 owner、mode 或链接拒绝，绝不修复后继续。
 
-普通`PrivateStateDirectory::open`和`PrivateDirectory::open_existing`要求effective uid等于owner。`open_for_administration`只接受uid0或实际owner，保留0700、NOFOLLOW和稳定身份；新锁/原子文件通过固定descriptor设为目录实际uid/gid、0600、单链接，已有不安全对象拒绝且不修复。`owner_uid/owner_gid`返回实际身份；`MaintenanceLock::as_fd`仅借用已持锁的描述符，不转移所有权或定义子进程操作协议。
+`owner_uid/owner_gid` 返回实际身份；`MaintenanceLock::as_fd` 仅借用已持锁的描述符，不转移所有权或定义子进程协议。
 
 ## 锁释放与继承文件描述符
 
