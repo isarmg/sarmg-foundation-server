@@ -1,4 +1,4 @@
-import { rm, mkdir, writeFile } from "node:fs/promises";
+import { rm, mkdir, readFile, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
@@ -29,5 +29,6 @@ for (const [name, config, assets] of steps) {
   if (config) run(process.execPath, [join(root, "node_modules/typescript/bin/tsc"), "-p", config], directory);
   if (assets) run(process.execPath, [join(directory, "scripts", assets)], directory);
 }
-await writeFile(join(root, "dist/index.js"), 'export const version = "1.0.0";\n');
-await writeFile(join(root, "dist/index.d.ts"), 'export declare const version: "1.0.0";\n');
+const { version } = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
+await writeFile(join(root, "dist/index.js"), `export const version = ${JSON.stringify(version)};\n`);
+await writeFile(join(root, "dist/index.d.ts"), `export declare const version: ${JSON.stringify(version)};\n`);

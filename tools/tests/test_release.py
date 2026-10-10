@@ -230,7 +230,7 @@ class ReleaseTreeTests(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(version.stdout.strip(), "xcss-release 1.0.0")
+        self.assertEqual(version.stdout.strip(), "xcss-release 1.0.1")
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "tree"
             root.mkdir()

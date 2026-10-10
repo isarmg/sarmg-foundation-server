@@ -14,7 +14,7 @@ Rust 与 Web 构建仅支持 Linux x86_64 GNU（glibc）。部署后的管理页
 
 ## 快速部署
 
-本项目通过依赖接入，不单独运行服务。Rust 消费者在 `Cargo.toml` 固定精确版本与完整发布修订：
+本项目通过依赖接入，不单独运行服务。以下示例固定到已发布的 1.0.0；1.0.1 发布后更新为对应的完整 revision 和 tgz。Rust 消费者在 `Cargo.toml` 固定精确版本与完整发布修订：
 
 ```toml
 [dependencies]

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.0.1"
 NODE_VERSION = "26.7.0"
 PNPM_VERSION = "10.34.6"
 RUST_VERSION = "1.99.0"
@@ -183,7 +183,7 @@ def check_versions(root: Path) -> None:
     cargo = _toml(root / "Cargo.toml")
     package = cargo.get("package", {})
     if package.get("name") != "xcss" or package.get("version") != CURRENT_VERSION:
-        raise XcssPolicyError("Cargo.toml must define the one xcss 1.0.0 package")
+        raise XcssPolicyError(f"Cargo.toml must define the one xcss {CURRENT_VERSION} package")
     if package.get("rust-version") != RUST_VERSION.removesuffix(".0") or package.get("license") != "Apache-2.0":
         raise XcssPolicyError("Cargo.toml toolchain or license differs from policy")
     if "workspace" in cargo or list((root / "src").rglob("Cargo.toml")) or list((root / "rust/crates").glob("*/Cargo.toml")):
@@ -193,7 +193,7 @@ def check_versions(root: Path) -> None:
         raise XcssPolicyError("the whole xcss crate must enforce the Linux AMD64 GNU target")
     manifest = _json(root / "package.json")
     if manifest.get("name") != "@xcss/web" or manifest.get("version") != CURRENT_VERSION or manifest.get("private") is True:
-        raise XcssPolicyError("package.json must publish the one @xcss/web 1.0.0 package")
+        raise XcssPolicyError(f"package.json must publish the one @xcss/web {CURRENT_VERSION} package")
     for key, expected in {"os": ["linux"], "cpu": ["x64"], "libc": ["glibc"]}.items():
         if manifest.get(key) != expected:
             raise XcssPolicyError(f"package.json {key} differs from the server build boundary")

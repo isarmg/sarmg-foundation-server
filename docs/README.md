@@ -17,6 +17,6 @@ xcss 为服务端和管理 Web 提供公共 Rust crate 与 npm 包。产品在�
 - [发行工具操作](operations.md)
 - [功能索引](feature-inventory-and-tradeoffs.md)与[专题参考](reference/README.md)
 - [开发者导读](beginner-guide/README.md)
-- [架构决策](architecture/README.md)与 [1.0.0 发布说明](releases/1.0.0.md)
+- [架构决策](architecture/README.md)与 [1.0.1 发布说明](releases/1.0.1.md)与[历史 1.0.0 发布说明](releases/1.0.0.md)
 
 Rust 与 Web 构建目标为 Linux x86_64 GNU；部署后的浏览器页面可跨平台访问。代码采用 [Apache License 2.0](../LICENSE)。

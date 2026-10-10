@@ -4,7 +4,7 @@
 
 ## 1. 添加 Rust 依赖
 
-将[根 README 的固定依赖](../README.md#快速部署)加入产品 `Cargo.toml`。在产品根目录运行 `cargo check` 生成或更新 `Cargo.lock`，并提交锁文件。版本 `=1.0.0` 与完整 Git revision 共同确定库的构建输入。
+将[根 README 的固定依赖](../README.md#快速部署)加入产品 `Cargo.toml`。在产品根目录运行 `cargo check` 生成或更新 `Cargo.lock`，并提交锁文件。下列依赖示例固定到已发布的 1.0.0；接入 1.0.1 时应从其正式发行取得对应的完整 revision 和 tgz，不能仅修改版本号。版本 `=1.0.0` 与完整 Git revision 共同确定库的构建输入。
 
 在产品中创建 `examples/xcss_identity.rs`，加入以下示例：
 
