@@ -29,18 +29,25 @@ test("controlled instance names retain caller validation after an invalid check"
   await page.goto("/?lang=en#validation");
   const name = page.getByRole("textbox", { name: "Instance name", exact: true });
   const save = page.getByRole("button", { name: "Save instance", exact: true });
+  // requestSubmit keeps native validation and submit events without relying on pointer input.
+  const requestSave = () => save.evaluate(button => button.form.requestSubmit(button));
   // Dispatch invalid without a native validation popup intercepting the next click.
   expect(await name.evaluate(element => element.checkValidity())).toBe(false);
   await expect.poll(() => name.evaluate(element => element.validity.customError)).toBe(true);
   await page.getByRole("button", { name: "Use whitespace name", exact: true }).click();
   await expect(name).toHaveValue(" ");
   await expect.poll(() => name.evaluate(element => element.validity.customError)).toBe(true);
-  await save.click();
+  await expect.poll(() => name.evaluate(element => element.validity.valid)).toBe(false);
+  await requestSave();
   await expect(page.getByTestId("saved-instances")).toHaveText("0");
   await name.fill("Existing instance");
-  await save.click();
+  await expect(name).toHaveValue("Existing instance");
+  await expect.poll(() => name.evaluate(element => element.validity.valid)).toBe(true);
+  await requestSave();
   await expect(page.getByTestId("saved-instances")).toHaveText("1");
   await name.fill("  ");
-  await save.click();
+  await expect(name).toHaveValue("  ");
+  await expect.poll(() => name.evaluate(element => element.validity.valid)).toBe(false);
+  await requestSave();
   await expect(page.getByTestId("saved-instances")).toHaveText("1");
 });
