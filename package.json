@@ -15,7 +15,7 @@
   "scripts": {
     "test:web": "node scripts/build-web.mjs && playwright test",
     "test:web:built": "playwright test",
-    "test:fonts": "node scripts/check-font-navigation.mjs web/web-fonts",
+    "test:fonts": "node scripts/check-font-startup.mjs --source web/web-fonts && node scripts/check-font-startup.mjs --source web/web-fonts --color-scheme dark",
     "build": "node scripts/build-web.mjs",
     "package:check": "python3 scripts/package-artifacts.py check",
     "package:release": "python3 scripts/package-artifacts.py release --output release/npm",

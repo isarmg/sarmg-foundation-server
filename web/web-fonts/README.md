@@ -31,10 +31,20 @@ node web/web-fonts/scripts/build.mjs
 更新字体必须发布新的不可变包、更新消费者锁图并重建资源合同，不能覆盖旧归档或伪造原生平台验收。
 随包保留对应许可证；客户端本机 Web 不属于此次服务端管理 Web 范围。
 
-已使用审核过的字体源码快照的服务端同步 CSS、启动模块、内嵌背景样式及对应摘要，保留已审核的字体二进制。Xczs 的过渡 CSS 引用固定发行包中的字体文件，由构建检查验证构建资源路径的差异。`startup.json` 固定启动模块和背景样式摘要；消费者构建不读取同级 xcss 工作区。
+已使用审核过的字体源码快照的服务端同步 CSS、启动模块、内嵌背景样式及对应摘要，保留已审核的字体二进制。消费者的 CSS 引用固定发行包中的字体文件，由产品构建检查验证资源路径。`startup.json` 固定启动模块和背景样式摘要；消费者构建不读取同级 xcss 工作区。
 
-使用冷缓存并阻塞 Bootstrap 和稀有 CJK 字体，验证网站仅显示纯色背景，超过原来的 1.2 秒也不显示系统字体；释放所有字体后再进入页面，检查全部字体已解码、后续字符和菜单不产生新字体请求：
+使用冷缓存并阻塞 Bootstrap 和稀有 CJK 字体，验证网站仅显示纯色背景，等待超过 1.2 秒也不显示系统字体；释放所有字体后再进入页面，检查全部字体已解码、后续字符和菜单不产生新字体请求：
 
 ```sh
-node scripts/check-font-navigation.mjs web/web-fonts ../xsos ../xscs ../xcos ../xszs ../xczs
+node scripts/check-font-startup.mjs --source web/web-fonts
+node scripts/check-font-startup.mjs --source web/web-fonts --color-scheme dark
 ```
+
+产品接入由消费者自己的测试负责启动测试服务、准备页面与 API，以及建立测试会话。共享检查器只接收已准备好的完整页面 URL，不读取或识别产品源码目录：
+
+```sh
+node scripts/check-font-startup.mjs --url http://127.0.0.1:4173/login
+node scripts/check-font-startup.mjs --url http://127.0.0.1:4173/ --url http://127.0.0.1:4173/#settings --storage-state /absolute/test-session.json
+```
+
+`--source` 与 `--url` 互斥；`--url` 可以重复。默认检查浅色背景，深色页面可显式传入 `--color-scheme dark`。`--storage-state` 是可选的 Playwright 测试会话文件，仅用于隔离测试环境。产品测试继续负责验证实际入口、导航和会话行为；共享检查器不替换页面、重写资源路径或模拟业务 API。

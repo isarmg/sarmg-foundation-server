@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { chromium, firefox, expect } from "@playwright/test";
 
 process.env.PW_TEST_SCREENSHOT_NO_FONTS_READY = "1";
@@ -27,59 +29,68 @@ async function assertPlainBackground(page, dark = false) {
   assert.equal(await page.locator("body").evaluate(body => getComputedStyle(body).visibility), "hidden");
 }
 
-if (process.argv.length < 3) throw new Error("Pass explicit product roots or a xcss font source directory");
-for (const argument of process.argv.slice(2)) {
-  const path = resolve(argument);
-  const source = await readFile(join(path, "fonts.css")).then(() => true, error => {
-    if (error.code !== "ENOENT") throw error;
-    return false;
-  });
-  const xczs = !source && path.endsWith("xczs");
-  const files = source ? path : join(path, xczs ? "web/runtime-dist" : "web/dist");
-  const pages = source ? ["/font-startup"] : xczs ? ["/", "/__xczs__/login", "/__xczs__/tags"] : [path.endsWith("xszs") ? "/admin/" : "/"];
-  if (!source) {
-    const snapshot = join(path, "web/fonts");
-    for (const name of ["ready.js", "ready.d.ts", "boot.css", "startup.json"]) {
-      assert.ok((await readFile(join(snapshot, name))).equals(await readFile(join(canonicalFonts, name))), `${argument}: startup snapshot differs from xcss (${name})`);
-    }
-    for (const name of xczs ? ["index.html", "login.html", "tags.html"] : ["index.html"]) {
-      const html = await readFile(join(path, "web", name), "utf8");
-      assert.ok(html.includes('data-xcss-fonts="pending"') && html.includes(boot), `${argument}: ${name} must hide content before any scripts or CSS load`);
+export function parseFontStartupOptions(args) {
+  const { values } = parseArgs({ args, options: {
+    source: { type: "string" },
+    url: { type: "string", multiple: true },
+    "color-scheme": { type: "string", default: "light" },
+    "storage-state": { type: "string" },
+  } });
+  const urls = values.url ?? [];
+  if (Boolean(values.source) === (urls.length > 0)) {
+    throw new Error("Pass either --source FONT_DIRECTORY or one or more --url PAGE_URL options");
+  }
+  const colorScheme = values["color-scheme"];
+  if (colorScheme !== "light" && colorScheme !== "dark") {
+    throw new Error("--color-scheme must be light or dark");
+  }
+  for (const value of urls) {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error("--url must use HTTP or HTTPS");
     }
   }
-  const server = createServer(async (request, response) => {
+  return { source: values.source && resolve(values.source), urls, colorScheme, storageState: values["storage-state"] };
+}
+
+// Only the common font fixture is hosted here. Consumers own their server,
+// page templates, API fixtures, authentication and URL selection.
+export function fontSourceHandler(directory) {
+  const files = resolve(directory);
+  return async (request, response) => {
     try {
-      let pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-      if (pathname.startsWith("/api/v1/")) {
-        response.setHeader("content-type", "application/json");
-        response.end(JSON.stringify({ authenticated: false })); return;
-      }
-      if (source && pathname === "/font-startup") {
+      const pathname = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+      if (pathname === "/font-startup") {
         response.setHeader("content-type", "text/html; charset=utf-8");
         response.end(`<!doctype html><html data-xcss-fonts="pending"><head><style>${boot}</style><link rel="stylesheet" href="/fonts.css"></head><body><p id="source-content" hidden>${text}</p><script type="module">import {startAfterFonts} from '/ready.js';void startAfterFonts(()=>{document.querySelector('#source-content').hidden=false;});</script></body></html>`); return;
       }
-      if (xczs && pages.includes(pathname)) {
-        const name = pathname === "/" ? "index.html" : pathname.endsWith("login") ? "login.html" : "tags.html";
-        const metadata = Buffer.from(JSON.stringify({ href: "/", dir_exists: true })).toString("base64");
-        const html = (await readFile(join(path, "web", name), "utf8")).replaceAll("__ASSETS_PREFIX__", "__xczs__/").replaceAll("__INDEX_DATA__", metadata).replaceAll("__MIN_PASSWORD_BYTES__", "12").replaceAll("__MAX_PASSWORD_BYTES__", "128");
-        response.setHeader("content-type", "text/html; charset=utf-8"); response.end(html); return;
-      }
-      pathname = pathname.replace(/^\/admin\//u, "/").replace(/^\/__xczs__\//u, "/");
-      if (pathname === "/") pathname = "/index.html";
       const file = resolve(files, `.${pathname}`);
       if (!file.startsWith(files + "/")) throw new Error("outside font fixture");
       response.setHeader("content-type", ({ ".css": "text/css", ".js": "text/javascript", ".html": "text/html", ".woff2": "font/woff2" })[extname(file)] ?? "application/octet-stream");
       response.end(await readFile(file));
     } catch { response.statusCode = 404; response.end(); }
-  });
-  await new Promise(done => server.listen(0, "127.0.0.1", done));
+  };
+}
+
+export async function checkFontStartup(args = process.argv.slice(2)) {
+  const { source, urls, colorScheme, storageState } = parseFontStartupOptions(args);
+  let server;
+  if (source) {
+    // Fail early on an invalid source directory, before launching a browser.
+    await readFile(join(source, "fonts.css"));
+    server = createServer(fontSourceHandler(source));
+    await new Promise((done, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", done);
+    });
+    urls.push(`http://127.0.0.1:${server.address().port}/font-startup`);
+  }
   try {
     for (const engine of [chromium, firefox]) {
       const browser = await engine.launch();
       try {
-        for (const pathname of pages) {
-          const dark = source || xczs && pathname.endsWith("login");
-          const context = await browser.newContext({ colorScheme: dark ? "dark" : "light", viewport: { width: 360, height: 740 } });
+        for (const url of urls) {
+          const context = await browser.newContext({ colorScheme, storageState, viewport: { width: 360, height: 740 } });
           const page = await context.newPage();
           let releaseBootstrap, releaseShards;
           const bootstrapGate = new Promise(done => { releaseBootstrap = done; });
@@ -91,14 +102,14 @@ for (const argument of process.argv.slice(2)) {
           await page.route(/MapleMonoBootstrap-Regular[^/]*\.woff2$/u, async route => { heldBootstrap++; await bootstrapGate; await route.continue(); });
           await page.route(/MapleMonoNL-CN-(Regular|Bold)-9CCF-9E67[^/]*\.woff2$/u, async route => { heldShards++; await shardGate; await route.continue(); });
           try {
-            await page.goto(`http://127.0.0.1:${server.address().port}${pathname}`, { waitUntil: "domcontentloaded" });
+            await page.goto(url, { waitUntil: "domcontentloaded" });
             await expect.poll(() => ({ bootstrap: heldBootstrap, shards: heldShards }), { timeout: 15_000 }).toEqual({ bootstrap: 1, shards: 2 });
             await page.waitForTimeout(1500);
             await expect(page.locator("html")).toHaveAttribute("data-xcss-fonts", "pending");
-            await assertPlainBackground(page, dark);
+            await assertPlainBackground(page, colorScheme === "dark");
             releaseBootstrap();
             await expect.poll(() => page.evaluate(() => [...document.fonts].filter(face => face.family.includes("Bootstrap") && face.weight === "400").every(face => face.status === "loaded"))).toBe(true);
-            await assertPlainBackground(page, dark);
+            await assertPlainBackground(page, colorScheme === "dark");
             releaseShards();
             await expect(page.locator("html")).toHaveAttribute("data-xcss-fonts", "ready", { timeout: 15_000 });
             await expect.poll(() => page.locator("body").innerText()).not.toBe("");
@@ -126,21 +137,25 @@ for (const argument of process.argv.slice(2)) {
             assert.equal(requests.size, before, "later menu text cannot download fonts");
             assert.ok([...requests.values()].every(count => count === 1));
             assert.deepEqual(errors, []);
-            console.log(`${argument} ${pathname}: ${engine.name()} plain background while pending; all ${expectedFaces} fonts decoded before UI; later text stable`);
+            console.log(`${url}: ${engine.name()} plain background while pending; all ${expectedFaces} fonts decoded before UI; later text stable`);
           } finally { releaseBootstrap(); releaseShards(); await context.close(); }
         }
-        // A broken font must never release the UI or activate the old 1.2s fallback.
-        const page = await browser.newPage({ colorScheme: "light", viewport: { width: 360, height: 740 } });
+        // A broken font must never release the UI or activate a timeout fallback.
+        const page = await browser.newPage({ colorScheme, storageState, viewport: { width: 360, height: 740 } });
         const failures = [];
         page.on("console", message => { if (message.text().includes("Application font preparation failed")) failures.push(message.text()); });
         await page.route(/MapleMonoNL-CN-Regular-9CCF-9E67[^/]*\.woff2$/u, route => route.fulfill({ status: 503, body: "" }));
-        await page.goto(`http://127.0.0.1:${server.address().port}${pages.at(-1)}`, { waitUntil: "domcontentloaded" });
+        await page.goto(urls.at(-1), { waitUntil: "domcontentloaded" });
         await expect.poll(() => failures.length, { timeout: 15_000 }).toBe(1);
         await page.waitForTimeout(1500);
         await expect(page.locator("html")).toHaveAttribute("data-xcss-fonts", "pending");
-        await assertPlainBackground(page);
-        console.log(`${argument}: ${engine.name()} failed font keeps the background without system-font fallback`);
+        await assertPlainBackground(page, colorScheme === "dark");
+        console.log(`${urls.at(-1)}: ${engine.name()} failed font keeps the background without system-font fallback`);
       } finally { await browser.close(); }
     }
-  } finally { await new Promise(done => server.close(done)); }
+  } finally { if (server) await new Promise(done => server.close(done)); }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await checkFontStartup();
 }
