@@ -2,7 +2,7 @@ import React, { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createXcssAdminApplication, useAdminApplication, InstanceHeaderActions, InstanceNameField, AccountPage } from "../../../dist/admin-shell/index.js";
 import { createAdministratorApiClient } from "../../../dist/admin-web/index.js";
-import { Button, Dialog, FormField, TextField, DateRangeField } from "../../../dist/admin-ui/index.js";
+import { Button, Dialog, FormField, TextField, Select, DateRangeField } from "../../../dist/admin-ui/index.js";
 import "../../../web/design-tokens/tokens.css";
 import "../../../web/design-tokens/tokens.dark.css";
 import "../../../web/design-tokens/reset.css";
@@ -22,6 +22,25 @@ function DateRangeFixture() {
     <p data-testid="applied-range">{range.start}/{range.end} ({count})</p>
   </section>;
 }
+function ValidationFixture() {
+  const [value, setValue] = useState("");
+  const [saved, setSaved] = useState(0);
+  const [instanceName, setInstanceName] = useState("");
+  const [savedInstances, setSavedInstances] = useState(0);
+  return <section><form onSubmit={event => { event.preventDefault(); setSaved(count => count + 1); }}>
+    <FormField label="Name"><TextField required value={value} onChange={event => setValue(event.target.value)} /></FormField>
+    <FormField label="Category"><Select required value={value} onChange={event => setValue(event.target.value)}>
+      <option value="">Choose</option><option value="existing">Existing</option>
+    </Select></FormField>
+    <Button onClick={() => setValue("existing")}>Edit existing</Button>
+    <Button onClick={() => setValue("")}>New</Button>
+    <Button type="submit">Save</Button><output data-testid="saved-count">{saved}</output>
+  </form><form onSubmit={event => { event.preventDefault(); setSavedInstances(count => count + 1); }}>
+    <FormField label="Instance name"><InstanceNameField value={instanceName} onChange={event => setInstanceName(event.target.value)} /></FormField>
+    <Button onClick={() => setInstanceName(" ")}>Use whitespace name</Button>
+    <Button type="submit">Save instance</Button><output data-testid="saved-instances">{savedInstances}</output>
+  </form></section>;
+}
 function ProductRoutes() {
   const { notify } = useAdminApplication();
   const [dialog, setDialog] = useState(false);
@@ -30,6 +49,7 @@ function ProductRoutes() {
   if (window.location.hash === "#account") return <AccountPage />;
   if (window.location.hash === "#workspace") return <WorkspaceFixture />;
   if (window.location.hash === "#dates") return <DateRangeFixture />;
+  if (window.location.hash === "#validation") return <ValidationFixture />;
   return <section><h1>Product overview</h1>
     <Button onClick={() => setDialog(true)}>Open modal</Button>
     <Button onClick={() => notify("Saved successfully")}>Show notification</Button>

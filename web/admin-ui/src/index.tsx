@@ -18,15 +18,36 @@ export function IconButton({ "aria-label": label, ...props }: ButtonHTMLAttribut
   return <Button {...props} aria-label={label} />;
 }
 export function TextField({ className, onInvalid, onInput, ...props }: ComponentProps<"input">) {
+  const invalidField = useRef<{ field: HTMLInputElement; message: string } | null>(null);
+  useEffect(() => {
+    const invalid = invalidField.current;
+    if (invalid && invalid.field.validationMessage === invalid.message) invalid.field.setCustomValidity("");
+    invalidField.current = null;
+  }, [props.value]);
   return <input {...props} className={classes("xcss-input", className)} onInvalid={event => {
-    if (!event.currentTarget.validity.customError) event.currentTarget.setCustomValidity(validationMessage(event.currentTarget));
+    if (!event.currentTarget.validity.customError) {
+      const message = validationMessage(event.currentTarget);
+      event.currentTarget.setCustomValidity(message);
+      invalidField.current = { field: event.currentTarget, message };
+    }
     onInvalid?.(event);
-  }} onInput={event => { event.currentTarget.setCustomValidity(""); onInput?.(event); }} />;
+  }} onInput={event => { invalidField.current = null; event.currentTarget.setCustomValidity(""); onInput?.(event); }} />;
 }
 export function Select({ className, onInvalid, onChange, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  const invalidField = useRef<{ field: HTMLSelectElement; message: string } | null>(null);
+  useEffect(() => {
+    const invalid = invalidField.current;
+    if (invalid && invalid.field.validationMessage === invalid.message) invalid.field.setCustomValidity("");
+    invalidField.current = null;
+  }, [props.value]);
   return <select {...props} className={classes("xcss-input", className)} onInvalid={event => {
-    if (!event.currentTarget.validity.customError) event.currentTarget.setCustomValidity(validationMessage(event.currentTarget)); onInvalid?.(event);
-  }} onChange={event => { event.currentTarget.setCustomValidity(""); onChange?.(event); }} />;
+    if (!event.currentTarget.validity.customError) {
+      const message = validationMessage(event.currentTarget);
+      event.currentTarget.setCustomValidity(message);
+      invalidField.current = { field: event.currentTarget, message };
+    }
+    onInvalid?.(event);
+  }} onChange={event => { invalidField.current = null; event.currentTarget.setCustomValidity(""); onChange?.(event); }} />;
 }
 export function Checkbox(props: Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
   return <input {...props} type="checkbox" />;
