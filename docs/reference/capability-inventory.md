@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | FND-001 | 构建期共享层，不运行中央 xcss service | 根 README、唯一 Cargo/npm 清单、无资源的状态合同 | 产品制品断网运行；xcss 不独立监听或运行 daemon |
 | FND-002 | 1 个 Rust crate 与 1 个 npm 软件包的内部模块共同发布 | 根 Cargo/npm 清单、`src/` 与 `web/` 内部模块 | 一个 crate、一个 tgz；模块选择不移除根 Rust 依赖；Web 外部 peer 按实际需求安装 |
-| FND-003 | 全组件当前清单版本 `1.0.0` | Cargo 软件包 version、npm 软件包 version、`xcss_policy.py` | repository 规则精确一致性检查 |
+| FND-003 | 全组件当前清单版本 `1.0.2` | Cargo 软件包 version、npm 软件包 version、`xcss_policy.py` | repository 规则精确一致性检查 |
 | FND-004 | 只提供唯一当前 API/合同/算法 | crate/package public API、严格的运行时校验、文档 | 不存在别名、dual reader/write、已弃用的导出入口 |
 | FND-006 | 公共认证、存储、运行时机制编入各产品，不拥有中央在线实例或产品业务数据 | `admin_core`、`admin_sqlite`、`server_runtime`、`platform_db` 等内部模块 | 产品拥有自己的管理员状态、业务 DB、文件树与进程；xcss 状态合同 resources 为空 |
 | FND-007 | 生产不依赖 GitHub/npm/xcss 在线可用 | 消费者 pin、编译/打包模型 | 构建后断网启动与核心功能验证 |
@@ -91,7 +91,7 @@
 
 | ID | 当前功能/特性 | 实现/锚点 | 最低验证/边界 |
 | --- | --- | --- | --- |
-| FND-090 | 三个管理员认证 path 是跨 Rust/TS常量 | `ADMIN_*_PATH`、`ADMIN_AUTH_PATHS` | 核心 | 高 | 产品 route/client产生双事实源 | 恰好 `/api/v1/auth/login|session|logout` |
+| FND-090 | 三个管理员认证 path 是跨 Rust/TS常量 | `ADMIN_*_PATH`、`ADMIN_AUTH_PATHS` | 恰好 `/api/v1/auth/login\|session\|logout` |
 | FND-091 | `AdministratorLoginRequest` 精确的两字段，Rust 读写均先验证 | Rust custom serialize/deserialize、TS 运行时校验、Schema | missing/unknown/type 测试夹具；非法 public value 序列化失败 |
 | FND-092 | 登录 username 候选 1..64 可打印 ASCII 字节 | Rust custom deserialize、TS 运行时校验、Schema | empty/64/65/control/DEL/Unicode 负例 |
 | FND-093 | 登录 password候选 1..1024 码点且无控制字符 | 同上 | empty/1025/control负例；服务端再按字节校验 |
@@ -346,7 +346,7 @@
 | FND-342 | tool tar固定mtime=0/uid/gid/name/mode/order | asset builder | 双构建SHA相同 |
 | FND-343 | 发行 output必须安全、空、非root目录 | `prepare_output` | broad/nonempty/link目录负例 |
 | FND-344 | 发行要求工作树无tracked/untracked变化 | `verify_source` | porcelain必须空 |
-| FND-345 | 标签必须精确`v1.0.0`且唯一指向HEAD | `verify_source` | wrong/missing/multiple 标签负例 |
+| FND-345 | 标签必须精确`v1.0.2`且唯一指向HEAD | `verify_source` | wrong/missing/multiple 标签负例 |
 | FND-346 | 状态合同先生成再hash绑定发行身份 | asset builder顺序 | hash与Schema验证 |
 | FND-347 | build inventory记录工具链与两个lock hash | `inventory` | JSON内容与hash测试 |
 | FND-348 | inventory枚举1个Rust和1个npm组件 | cargo 元数据 + 软件包 discover | component集合检查 |
